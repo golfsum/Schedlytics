@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Link2,
   Scissors,
@@ -9,15 +9,13 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useToast } from './Toast'
-
-interface ShortLink {
-  id: number
-  long: string
-  short: string
-  clicks: number
-}
-
-let linkId = 0
+import {
+  listShortLinks,
+  createShortLink,
+  deleteShortLink,
+  displayShort,
+  type ShortLink,
+} from '../lib/shortLinks'
 
 /* -------------------------------------------------------------------------- */
 /*  Shared card: Link-in-bio builder + URL shortener                            */
@@ -26,23 +24,31 @@ let linkId = 0
 export function LinkEngagementTools() {
   const { addToast } = useToast()
   const [longUrl, setLongUrl] = useState('')
-  const [shortUrl, setShortUrl] = useState<string | null>(null)
+  const [link, setLink] = useState<ShortLink | null>(null)
   const [copied, setCopied] = useState(false)
+  const [busy, setBusy] = useState(false)
 
-  const generate = () => {
+  const generate = async () => {
     if (!longUrl.trim()) {
       addToast('Enter a URL to shorten first', 'info')
       return
     }
-    const slug = Math.random().toString(36).slice(2, 8)
-    setShortUrl(`sched.ly/${slug}`)
-    setCopied(false)
-    addToast('Short link generated! 🔗')
+    setBusy(true)
+    try {
+      const created = await createShortLink(longUrl)
+      setLink(created)
+      setCopied(false)
+      addToast('Short link generated! 🔗')
+    } catch (e) {
+      addToast(e instanceof Error ? e.message : 'Could not create link', 'info')
+    } finally {
+      setBusy(false)
+    }
   }
 
   const copy = () => {
-    if (!shortUrl) return
-    navigator.clipboard?.writeText(`https://${shortUrl}`).catch(() => {})
+    if (!link) return
+    navigator.clipboard?.writeText(link.shortUrl).catch(() => {})
     setCopied(true)
     addToast('Copied to clipboard')
     setTimeout(() => setCopied(false), 1600)
@@ -118,14 +124,23 @@ export function LinkEngagementTools() {
 
           <button
             onClick={generate}
-            className="mt-3 w-full rounded-lg gradient-cyan py-2.5 text-sm font-bold text-navy-900 transition-transform hover:scale-[1.01]"
+            disabled={busy}
+            className="mt-3 w-full rounded-lg gradient-cyan py-2.5 text-sm font-bold text-navy-900 transition-transform hover:scale-[1.01] disabled:opacity-70"
           >
-            Generate Short Link
+            {busy ? 'Generating…' : 'Generate Short Link'}
           </button>
 
-          {shortUrl && (
+          {link && (
             <div className="mt-3 flex animate-fade-in items-center justify-between gap-2 rounded-lg border border-cyan-accent/20 bg-cyan-accent/5 px-3 py-2.5">
-              <span className="truncate text-sm font-semibold text-cyan-accent">{shortUrl}</span>
+              <a
+                href={link.shortUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="truncate text-sm font-semibold text-cyan-accent hover:underline"
+                title={`Redirects to ${link.url}`}
+              >
+                {displayShort(link.shortUrl)}
+              </a>
               <button
                 onClick={copy}
                 className="flex shrink-0 items-center gap-1.5 rounded-md bg-navy-800 px-2.5 py-1.5 text-xs font-medium text-slate-200 hover:text-white"
@@ -147,38 +162,46 @@ export function LinkEngagementTools() {
 
 export default function LinkToolsView() {
   const { addToast } = useToast()
-  const [links, setLinks] = useState<ShortLink[]>([
-    { id: ++linkId, long: 'instagram.com/p/summer-drop-2026', short: 'sched.ly/sum26', clicks: 1284 },
-    { id: ++linkId, long: 'youtube.com/watch?v=styling-guide', short: 'sched.ly/style', clicks: 932 },
-    { id: ++linkId, long: 'shop.mybrand.com/new-collection', short: 'sched.ly/newco', clicks: 2571 },
-  ])
+  const [items, setItems] = useState<ShortLink[]>([])
   const [draft, setDraft] = useState('')
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null)
 
-  const add = () => {
+  // Load existing links (from the backend if configured, else localStorage).
+  useEffect(() => {
+    listShortLinks()
+      .then(setItems)
+      .catch(() => setItems([]))
+  }, [])
+
+  const add = async () => {
     if (!draft.trim()) {
       addToast('Enter a URL first', 'info')
       return
     }
-    const slug = Math.random().toString(36).slice(2, 7)
-    setLinks((l) => [
-      { id: ++linkId, long: draft.trim(), short: `sched.ly/${slug}`, clicks: 0 },
-      ...l,
-    ])
-    setDraft('')
-    addToast('Short link created! 🔗')
+    try {
+      const created = await createShortLink(draft)
+      setItems((l) => [created, ...l])
+      setDraft('')
+      addToast('Short link created! 🔗')
+    } catch (e) {
+      addToast(e instanceof Error ? e.message : 'Could not create link', 'info')
+    }
   }
 
-  const copy = (short: string) => {
-    navigator.clipboard?.writeText(`https://${short}`).catch(() => {})
+  const copy = (l: ShortLink) => {
+    navigator.clipboard?.writeText(l.shortUrl).catch(() => {})
+    setCopiedSlug(l.slug)
     addToast('Copied to clipboard')
+    setTimeout(() => setCopiedSlug((s) => (s === l.slug ? null : s)), 1600)
   }
 
-  const remove = (id: number) => {
-    setLinks((l) => l.filter((x) => x.id !== id))
+  const remove = async (slug: string) => {
+    await deleteShortLink(slug)
+    setItems((l) => l.filter((x) => x.slug !== slug))
     addToast('Link deleted', 'info')
   }
 
-  const totalClicks = links.reduce((sum, l) => sum + l.clicks, 0)
+  const totalClicks = items.reduce((sum, l) => sum + (l.clicks || 0), 0)
 
   return (
     <div className="space-y-6">
@@ -213,25 +236,32 @@ export default function LinkToolsView() {
         </div>
 
         <div className="divide-y divide-white/5">
-          {links.map((l) => (
-            <div key={l.id} className="flex items-center gap-3 py-3">
+          {items.map((l) => (
+            <div key={l.slug} className="flex items-center gap-3 py-3">
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold text-cyan-accent">{l.short}</div>
-                <div className="truncate text-xs text-slate-500">{l.long}</div>
+                <a
+                  href={l.shortUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block truncate text-sm font-semibold text-cyan-accent hover:underline"
+                >
+                  {displayShort(l.shortUrl)}
+                </a>
+                <div className="truncate text-xs text-slate-500">{l.url}</div>
               </div>
               <div className="shrink-0 text-right">
-                <div className="text-sm font-bold text-white">{l.clicks.toLocaleString()}</div>
+                <div className="text-sm font-bold text-white">{(l.clicks || 0).toLocaleString()}</div>
                 <div className="text-[11px] text-slate-500">clicks</div>
               </div>
               <button
-                onClick={() => copy(l.short)}
+                onClick={() => copy(l)}
                 className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/5 bg-navy-900/60 text-slate-300 hover:text-white"
                 title="Copy"
               >
-                <Copy className="h-4 w-4" />
+                {copiedSlug === l.slug ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </button>
               <button
-                onClick={() => remove(l.id)}
+                onClick={() => remove(l.slug)}
                 className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/5 bg-navy-900/60 text-slate-400 hover:text-rose-300"
                 title="Delete"
               >
@@ -239,7 +269,7 @@ export default function LinkToolsView() {
               </button>
             </div>
           ))}
-          {links.length === 0 && (
+          {items.length === 0 && (
             <p className="py-8 text-center text-sm text-slate-500">
               No links yet — shorten one above to get started.
             </p>

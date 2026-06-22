@@ -17,7 +17,9 @@ server/
     ├── _meta.js          # shared Facebook Login helper (IG + FB)
     ├── instagram.js      # Instagram Graph API (insights)
     ├── facebook.js       # Pages API (insights)
-    └── pinterest.js      # Pinterest API v5
+    ├── pinterest.js      # Pinterest API v5
+    ├── twitch.js         # Twitch OAuth + Helix API
+    └── patreon.js        # Patreon OAuth + API v2
 ```
 
 ## Each module exposes the same interface
@@ -108,6 +110,8 @@ Requires enabling **all three** APIs in Google Cloud and these scopes:
 | Instagram | developers.facebook.com (*Instagram Graph API*) | `/auth/instagram/callback` | `instagram_basic`, `instagram_manage_insights`, `pages_show_list` |
 | Facebook | developers.facebook.com (*Facebook Login*) | `/auth/facebook/callback` | `pages_show_list`, `pages_read_engagement`, `read_insights` |
 | Pinterest | developers.pinterest.com (*API v5*) | `/auth/pinterest/callback` | `user_accounts:read`, `pins:read`, `boards:read` |
+| Twitch | dev.twitch.tv/console/apps (*Helix*) | `/auth/twitch/callback` | `user:read:email`, `moderator:read:followers` |
+| Patreon | patreon.com/portal (*API v2*) | `/auth/patreon/callback` | `identity`, `campaigns` |
 
 ### Notes & gotchas
 - **Instagram** stats require a **Professional** (Business/Creator) IG account linked to a Facebook Page.

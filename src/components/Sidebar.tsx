@@ -6,10 +6,11 @@ import type { NavId } from '../types'
 interface SidebarProps {
   active: NavId
   onNavigate: (id: NavId) => void
+  onUpgrade: () => void
 }
 
 /** Left-hand primary navigation rail. */
-export default function Sidebar({ active, onNavigate }: SidebarProps) {
+export default function Sidebar({ active, onNavigate, onUpgrade }: SidebarProps) {
   return (
     <aside className="hidden w-[232px] shrink-0 flex-col border-r border-white/5 bg-navy-950/80 px-4 py-6 md:flex">
       {/* Brand */}
@@ -61,7 +62,10 @@ export default function Sidebar({ active, onNavigate }: SidebarProps) {
         <p className="mt-2 text-xs leading-relaxed text-slate-300">
           Unlock unlimited channels, AI captions &amp; deep analytics.
         </p>
-        <button className="mt-3 w-full rounded-lg gradient-cyan py-2 text-xs font-bold text-navy-900 transition-transform hover:scale-[1.02]">
+        <button
+          onClick={onUpgrade}
+          className="mt-3 w-full rounded-lg gradient-cyan py-2 text-xs font-bold text-navy-900 transition-transform hover:scale-[1.02]"
+        >
           Upgrade
         </button>
       </div>

@@ -79,7 +79,7 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
             </span>
           </div>
           <p className="mb-4 text-xs text-slate-500">Followers across all connected channels</p>
-          <AreaChart data={FOLLOWER_GROWTH} />
+          <AreaChart data={FOLLOWER_GROWTH} format={(v) => `${v}K`} />
           <div className="mt-2 flex justify-between text-[10px] text-slate-500">
             {['Jan', 'Mar', 'May', 'Jul', 'Sep', 'Nov'].map((m) => (
               <span key={m}>{m}</span>

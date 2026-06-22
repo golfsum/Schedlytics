@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   CORRELATION_MATRIX,
   CORRELATION_ROWS,
@@ -86,56 +87,114 @@ export function CorrelationMatrix() {
 /* -------------------------------------------------------------------------- */
 
 export function EngagementTrend() {
-  const w = 240
-  const h = 96
-  const pad = 6
-  const max = Math.max(...ENGAGEMENT_TREND)
-  const min = Math.min(...ENGAGEMENT_TREND)
-  const stepX = (w - pad * 2) / (ENGAGEMENT_TREND.length - 1)
-
-  const points = ENGAGEMENT_TREND.map((v, i) => {
-    const x = pad + i * stepX
-    const y = pad + (1 - (v - min) / (max - min || 1)) * (h - pad * 2)
-    return [x, y] as const
-  })
-
-  const line = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x},${y}`).join(' ')
-  const area = `${line} L${points[points.length - 1][0]},${h - pad} L${points[0][0]},${h - pad} Z`
-
   return (
     <div>
-      <div className="flex items-end justify-between">
-        <svg viewBox={`0 0 ${w} ${h}`} className="h-24 w-full">
-          <defs>
-            <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#22D3EE" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#22D3EE" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {/* gridlines */}
-          {[0.25, 0.5, 0.75].map((g) => (
-            <line
-              key={g}
-              x1={pad}
-              x2={w - pad}
-              y1={pad + g * (h - pad * 2)}
-              y2={pad + g * (h - pad * 2)}
-              stroke="#ffffff"
-              strokeOpacity="0.05"
-            />
-          ))}
-          <path d={area} fill="url(#trendFill)" />
-          <path d={line} fill="none" stroke="#22D3EE" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-          {points.map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r={i === points.length - 1 ? 3.5 : 0} fill="#22D3EE" />
-          ))}
-        </svg>
-      </div>
+      <InteractiveLine
+        data={ENGAGEMENT_TREND}
+        color="#22D3EE"
+        gradientId="trendFill"
+        className="h-24 w-full"
+        format={(v) => `${v}`}
+      />
       <div className="mt-1 flex justify-between text-[10px] text-slate-500">
         {ENGAGEMENT_LABELS.map((l, i) => (
           <span key={i}>{l}</span>
         ))}
       </div>
+    </div>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Shared interactive line/area with hover tooltips                            */
+/* -------------------------------------------------------------------------- */
+
+function InteractiveLine({
+  data,
+  color,
+  gradientId,
+  className,
+  format,
+}: {
+  data: number[]
+  color: string
+  gradientId: string
+  className: string
+  format: (v: number) => string
+}) {
+  const [hover, setHover] = useState<number | null>(null)
+  const w = 300
+  const h = 120
+  const pad = 8
+  const max = Math.max(...data)
+  const min = Math.min(...data)
+  const stepX = (w - pad * 2) / (data.length - 1)
+
+  const points = data.map((v, i) => {
+    const x = pad + i * stepX
+    const y = pad + (1 - (v - min) / (max - min || 1)) * (h - pad * 2)
+    return [x, y] as const
+  })
+  const line = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x},${y}`).join(' ')
+  const area = `${line} L${points[points.length - 1][0]},${h - pad} L${points[0][0]},${h - pad} Z`
+
+  // percentage positions for the HTML overlay (matches the stretched svg box)
+  const pct = points.map(([x, y]) => ({ left: (x / w) * 100, top: (y / h) * 100 }))
+
+  return (
+    <div className="relative">
+      <svg viewBox={`0 0 ${w} ${h}`} className={className} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0.25, 0.5, 0.75].map((g) => (
+          <line
+            key={g}
+            x1={pad}
+            x2={w - pad}
+            y1={pad + g * (h - pad * 2)}
+            y2={pad + g * (h - pad * 2)}
+            stroke="#ffffff"
+            strokeOpacity="0.05"
+          />
+        ))}
+        <path d={area} fill={`url(#${gradientId})`} />
+        <path d={line} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      </svg>
+
+      {/* hover dots + hit areas */}
+      {pct.map((p, i) => (
+        <div
+          key={i}
+          className="absolute flex h-5 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center"
+          style={{ left: `${p.left}%`, top: `${p.top}%` }}
+          onMouseEnter={() => setHover(i)}
+          onMouseLeave={() => setHover(null)}
+        >
+          <span
+            className={`rounded-full transition-all ${
+              hover === i
+                ? 'h-2.5 w-2.5 ring-4 ring-cyan-accent/20'
+                : i === pct.length - 1
+                  ? 'h-1.5 w-1.5'
+                  : 'h-0 w-0'
+            }`}
+            style={{ backgroundColor: color }}
+          />
+        </div>
+      ))}
+
+      {hover !== null && (
+        <div
+          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-md border border-white/10 bg-navy-950 px-2 py-1 text-[11px] font-semibold text-white shadow"
+          style={{ left: `${pct[hover].left}%`, top: `${pct[hover].top}%`, marginTop: '-8px' }}
+        >
+          {format(data[hover])}
+        </div>
+      )}
     </div>
   )
 }
@@ -149,58 +208,22 @@ export function AreaChart({
   color = '#22D3EE',
   className = 'h-40 w-full',
   gradientId = 'areaFill',
+  format = (v: number) => `${v}`,
 }: {
   data: number[]
   color?: string
   className?: string
   gradientId?: string
+  format?: (v: number) => string
 }) {
-  const w = 300
-  const h = 120
-  const pad = 8
-  const max = Math.max(...data)
-  const min = Math.min(...data)
-  const stepX = (w - pad * 2) / (data.length - 1)
-
-  const points = data.map((v, i) => {
-    const x = pad + i * stepX
-    const y = pad + (1 - (v - min) / (max - min || 1)) * (h - pad * 2)
-    return [x, y] as const
-  })
-
-  const line = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x},${y}`).join(' ')
-  const area = `${line} L${points[points.length - 1][0]},${h - pad} L${points[0][0]},${h - pad} Z`
-
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className={className} preserveAspectRatio="none">
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      {[0.25, 0.5, 0.75].map((g) => (
-        <line
-          key={g}
-          x1={pad}
-          x2={w - pad}
-          y1={pad + g * (h - pad * 2)}
-          y2={pad + g * (h - pad * 2)}
-          stroke="#ffffff"
-          strokeOpacity="0.05"
-        />
-      ))}
-      <path d={area} fill={`url(#${gradientId})`} />
-      <path
-        d={line}
-        fill="none"
-        stroke={color}
-        strokeWidth="2.5"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      <circle cx={points[points.length - 1][0]} cy={points[points.length - 1][1]} r="3.5" fill={color} />
-    </svg>
+    <InteractiveLine
+      data={data}
+      color={color}
+      gradientId={gradientId}
+      className={className}
+      format={format}
+    />
   )
 }
 
@@ -211,19 +234,26 @@ export function AreaChart({
 export function ConversionBars() {
   const max = Math.max(...CONVERSION_BARS.map((b) => b.value))
   return (
-    <div className="flex h-28 items-end justify-around gap-4 px-2">
+    <div className="flex h-28 items-end justify-around gap-3 px-2">
       {CONVERSION_BARS.map((b) => (
-        <div key={b.label} className="flex flex-1 flex-col items-center gap-2">
-          <div className="flex h-20 w-full items-end justify-center">
+        <div key={b.label} className="group flex flex-1 flex-col items-center gap-2">
+          <div className="relative flex h-20 w-full items-end justify-center">
+            {/* hover value label */}
+            <span className="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-full rounded-md border border-white/10 bg-navy-950 px-2 py-0.5 text-[11px] font-semibold text-white opacity-0 shadow transition-opacity group-hover:opacity-100">
+              {b.value}%
+            </span>
             <div
-              className="w-8 rounded-t-md transition-all"
+              className="w-8 cursor-pointer rounded-t-md transition-all group-hover:brightness-125"
               style={{
                 height: `${(b.value / max) * 100}%`,
                 background: `linear-gradient(to top, ${b.color}, ${b.color}99)`,
               }}
+              title={`${b.label}: ${b.value}%`}
             />
           </div>
-          <span className="text-[11px] font-medium text-slate-400">{b.label}</span>
+          <span className="text-[11px] font-medium text-slate-400 transition-colors group-hover:text-white">
+            {b.label}
+          </span>
         </div>
       ))}
     </div>

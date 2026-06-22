@@ -5,6 +5,8 @@ import {
   Music2,
   ShoppingBag,
   Youtube,
+  Twitch,
+  HandCoins,
   LayoutDashboard,
   Calendar,
   BarChart3,
@@ -67,6 +69,20 @@ export const PLATFORMS: Record<PlatformId, Platform> = {
     color: '#FF0000',
     Icon: Youtube,
   },
+  twitch: {
+    id: 'twitch',
+    name: 'Twitch',
+    gradient: 'from-purple-600 to-violet-500',
+    color: '#9146FF',
+    Icon: Twitch,
+  },
+  patreon: {
+    id: 'patreon',
+    name: 'Patreon',
+    gradient: 'from-rose-500 to-red-500',
+    color: '#FF424D',
+    Icon: HandCoins,
+  },
 }
 
 export const PLATFORM_LIST = Object.values(PLATFORMS)
@@ -115,9 +131,12 @@ export const INITIAL_POSTS: CalendarPost[] = [
 
 export const CHANNEL_STATS: ChannelStat[] = [
   { platform: 'instagram', impressions: '1.2M', clicks: '14k', revenue: '$1.8k', synced: true },
-  { platform: 'tiktok', impressions: '0.9M', clicks: '21k', revenue: '$2.1k', synced: false },
+  { platform: 'youtube', impressions: '1.6M', clicks: '32k', revenue: '$3.4k', synced: true },
+  { platform: 'tiktok', impressions: '0.9M', clicks: '21k', revenue: '$2.1k', synced: true },
   { platform: 'facebook', impressions: '0.9M', clicks: '21k', revenue: '$2.1k', synced: false },
-  { platform: 'pinterest', impressions: '1.2M', clicks: '21k', revenue: '$2.1k', synced: false },
+  { platform: 'pinterest', impressions: '1.2M', clicks: '11k', revenue: '$0.9k', synced: false },
+  { platform: 'twitch', impressions: '0.4M', clicks: '8k', revenue: '$1.2k', synced: false },
+  { platform: 'patreon', impressions: '12k', clicks: '3k', revenue: '$4.6k', synced: false },
 ]
 
 /* -------------------------------------------------------------------------- */
@@ -141,7 +160,9 @@ export const ENGAGEMENT_LABELS = ['Oct 20', '', '', '', 'Oct 25', '', 'Oct 26']
 
 /** Conversion by platform. */
 export const CONVERSION_BARS: { label: string; value: number; color: string }[] = [
-  { label: 'IG', value: 72, color: '#22D3EE' },
-  { label: 'TikTok', value: 58, color: '#8B5CF6' },
-  { label: 'FB', value: 44, color: '#3B82F6' },
+  { label: 'IG', value: 72, color: '#E1306C' },
+  { label: 'YT', value: 64, color: '#FF0000' },
+  { label: 'TikTok', value: 58, color: '#25F4EE' },
+  { label: 'FB', value: 44, color: '#1877F2' },
+  { label: 'Twitch', value: 38, color: '#9146FF' },
 ]

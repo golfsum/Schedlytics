@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import Toggle from './Toggle'
 import { useToast } from './Toast'
+import { useImageUpload } from './ImageUpload'
 import { CHANNEL_STATS, PLATFORMS } from '../data'
 import { CorrelationMatrix, EngagementTrend, ConversionBars } from './charts'
 
@@ -42,6 +43,7 @@ function MediaStudio() {
   const [variantA, setVariantA] = useState('Get ready for cozy layers!')
   const [variantB, setVariantB] = useState('Shop the new season now!')
   const [published, setPublished] = useState(false)
+  const media = useImageUpload(undefined, () => addToast('Image uploaded'))
 
   return (
     <section className="card flex flex-col p-5">
@@ -49,12 +51,20 @@ function MediaStudio() {
 
       {/* upload + preview */}
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <button className="grid aspect-square place-items-center rounded-xl border border-dashed border-white/15 bg-navy-900/50 text-slate-400 transition-colors hover:border-cyan-accent/40 hover:text-cyan-accent">
-          <div className="flex flex-col items-center gap-2">
-            <UploadCloud className="h-7 w-7" />
-            <span className="text-xs font-medium">Upload here</span>
-          </div>
+        <button
+          onClick={media.open}
+          className="grid aspect-square place-items-center overflow-hidden rounded-xl border border-dashed border-white/15 bg-navy-900/50 text-slate-400 transition-colors hover:border-cyan-accent/40 hover:text-cyan-accent"
+        >
+          {media.preview ? (
+            <img src={media.preview} alt="Uploaded" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <UploadCloud className="h-7 w-7" />
+              <span className="text-xs font-medium">Upload here</span>
+            </div>
+          )}
         </button>
+        {media.input}
         <div className="overflow-hidden rounded-xl border border-white/10">
           <img
             src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=70"

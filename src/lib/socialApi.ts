@@ -12,6 +12,9 @@ const API = import.meta.env.VITE_API_URL?.replace(/\/$/, '')
 /** True when a backend URL is configured. */
 export const backendEnabled = Boolean(API)
 
+/** Base URL of the backend (empty string when not configured). */
+export const apiBase = API ?? ''
+
 export interface RemoteAccount {
   connected: boolean
   connecting: boolean

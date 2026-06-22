@@ -7,6 +7,7 @@ import DashboardView from './components/DashboardView'
 import SettingsView from './components/SettingsView'
 import NewPostPanel from './components/NewPostPanel'
 import EditPostModal from './components/EditPostModal'
+import UpgradeModal from './components/UpgradeModal'
 import LinkToolsView from './components/LinkTools'
 import InboxView from './components/InboxView'
 import { useToast } from './components/Toast'
@@ -19,10 +20,11 @@ export default function App() {
   const [posts, setPosts] = useState<CalendarPost[]>(INITIAL_POSTS)
   const [panelOpen, setPanelOpen] = useState(false)
   const [editingPost, setEditingPost] = useState<CalendarPost | null>(null)
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
 
   /** Append a freshly scheduled post to the calendar grid. */
   const addPost = (post: Omit<CalendarPost, 'id'>) =>
-    setPosts((prev) => [...prev, { ...post, id: `p${prev.length + 1}-${++idSeq}` }])
+    setPosts((prev) => [...prev, { week: 0, ...post, id: `p${prev.length + 1}-${++idSeq}` }])
 
   /** Persist edits from the edit modal. */
   const savePost = (updated: CalendarPost) => {
@@ -43,11 +45,11 @@ export default function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-navy-900 text-slate-200">
-      <Sidebar active={nav} onNavigate={setNav} />
+      <Sidebar active={nav} onNavigate={setNav} onUpgrade={() => setUpgradeOpen(true)} />
 
       {/* main column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar />
+        <Topbar onNavigate={setNav} onUpgrade={() => setUpgradeOpen(true)} />
 
         <div className="flex min-h-0 flex-1">
           {/* scrollable content */}
@@ -96,6 +98,9 @@ export default function App() {
           onDelete={deletePost}
         />
       )}
+
+      {/* upgrade modal */}
+      {upgradeOpen && <UpgradeModal onClose={() => setUpgradeOpen(false)} />}
     </div>
   )
 }

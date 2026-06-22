@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { PORT, BASE_URL, FRONTEND_URL, creds } from './config.js'
 import { getPlatform, platforms } from './platforms/index.js'
 import { store } from './store.js'
+import { links } from './links-store.js'
 import { validAccessToken } from './tokens.js'
 import youtubeRoutes from './routes/youtube.js'
 
@@ -14,7 +15,20 @@ const SITE_DIR = join(__dirname, '..', 'site')
 
 const app = express()
 app.use(express.json())
-app.use(cors({ origin: FRONTEND_URL, credentials: true }))
+// Allow the configured frontend origin plus any localhost port (the dev server
+// port can vary), so requests are not blocked by CORS during local development.
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true)
+      const ok =
+        origin === FRONTEND_URL ||
+        /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      cb(null, ok)
+    },
+    credentials: true,
+  }),
+)
 
 // Platform-specific routes (extras beyond generic stats).
 app.use('/api/youtube', youtubeRoutes)
@@ -186,6 +200,47 @@ app.post('/api/data-deletion', (req, res) => {
     message:
       'All stored Schedlytics data and platform access tokens have been deleted. If you connected accounts, you may also revoke access from each platform settings.',
   })
+})
+
+/* -------------------------------------------------------------------------- */
+/*  URL shortener                                                              */
+/*    POST   /api/links        { url }   -> { slug, shortUrl, url, clicks }     */
+/*    GET    /api/links                  -> list (with shortUrl + clicks)       */
+/*    DELETE /api/links/:slug                                                   */
+/*    GET    /s/:slug          -> 302 redirect to the long URL (+ click count)  */
+/* -------------------------------------------------------------------------- */
+
+const withShort = (l) => ({ ...l, shortUrl: `${BASE_URL}/s/${l.slug}` })
+
+app.post('/api/links', (req, res) => {
+  let { url } = req.body || {}
+  if (!url || !String(url).trim()) return res.status(400).json({ error: 'url is required' })
+  url = String(url).trim()
+  if (!/^https?:\/\//i.test(url)) url = `https://${url}`
+  const slug = crypto.randomBytes(3).toString('hex') // 6 hex chars
+  const link = links.add({ slug, url, clicks: 0, createdAt: Date.now() })
+  res.json(withShort(link))
+})
+
+app.get('/api/links', (_req, res) => {
+  res.json(links.all().map(withShort))
+})
+
+app.delete('/api/links/:slug', (req, res) => {
+  links.remove(req.params.slug)
+  res.json({ ok: true })
+})
+
+app.get('/s/:slug', (req, res) => {
+  const link = links.get(req.params.slug)
+  if (!link) {
+    return res
+      .status(404)
+      .type('html')
+      .send('<h1 style="font-family:sans-serif">Short link not found</h1>')
+  }
+  links.update(link.slug, { clicks: (link.clicks || 0) + 1 })
+  res.redirect(302, link.url)
 })
 
 app.listen(PORT, () => {

@@ -32,6 +32,8 @@ export const CONNECTABLE: PlatformId[] = [
   'tiktok',
   'youtube',
   'pinterest',
+  'twitch',
+  'patreon',
 ]
 
 // Demo seed (used when no backend is configured).
@@ -41,6 +43,8 @@ const INITIAL: Record<string, Account> = {
   tiktok: { connected: false, connecting: false },
   youtube: { connected: false, connecting: false },
   pinterest: { connected: false, connecting: false },
+  twitch: { connected: false, connecting: false },
+  patreon: { connected: false, connecting: false },
 }
 
 // Plausible handles/follower counts assigned on connect in demo mode.
@@ -50,6 +54,8 @@ const PROFILE: Record<string, { handle: string; followers: string }> = {
   tiktok: { handle: '@alexcreates', followers: '92K' },
   youtube: { handle: 'Alex Creates', followers: '41K' },
   pinterest: { handle: 'alexcreates', followers: '18K' },
+  twitch: { handle: 'alexcreates', followers: '23K' },
+  patreon: { handle: 'Alex Creates', followers: '1.4K' },
 }
 
 interface ConnectionsValue {

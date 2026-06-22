@@ -18,7 +18,15 @@ export const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5185'
 /** The OAuth redirect/callback URL for a given platform. */
 export const redirectUri = (platform) => `${BASE_URL}/auth/${platform}/callback`
 
-export const PLATFORM_IDS = ['youtube', 'tiktok', 'instagram', 'facebook', 'pinterest']
+export const PLATFORM_IDS = [
+  'youtube',
+  'tiktok',
+  'instagram',
+  'facebook',
+  'pinterest',
+  'twitch',
+  'patreon',
+]
 
 export const creds = {
   youtube: {
@@ -41,6 +49,14 @@ export const creds = {
   pinterest: {
     clientId: process.env.PINTEREST_APP_ID,
     clientSecret: process.env.PINTEREST_APP_SECRET,
+  },
+  twitch: {
+    clientId: process.env.TWITCH_CLIENT_ID,
+    clientSecret: process.env.TWITCH_CLIENT_SECRET,
+  },
+  patreon: {
+    clientId: process.env.PATREON_CLIENT_ID,
+    clientSecret: process.env.PATREON_CLIENT_SECRET,
   },
 }
 

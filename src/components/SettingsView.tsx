@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import Toggle from './Toggle'
 import { useToast } from './Toast'
+import { useImageUpload } from './ImageUpload'
 import { useConnections, CONNECTABLE } from './Connections'
 import { PLATFORMS } from '../data'
 import type { PlatformId } from '../types'
@@ -157,6 +158,7 @@ function ProfileSection() {
   const [name, setName] = useState('Alex Rivera')
   const [email, setEmail] = useState('alex@schedlytics.io')
   const [bio, setBio] = useState('Creator & marketer. Fashion, lifestyle, and a little chaos.')
+  const avatar = useImageUpload('https://i.pravatar.cc/120?img=12', () => addToast('Photo updated'))
 
   return (
     <div className="card p-5">
@@ -164,16 +166,17 @@ function ProfileSection() {
 
       <div className="mb-6 flex items-center gap-4">
         <img
-          src="https://i.pravatar.cc/120?img=12"
+          src={avatar.preview}
           alt="Avatar"
           className="h-16 w-16 rounded-2xl object-cover ring-2 ring-cyan-accent/30"
         />
         <button
-          onClick={() => addToast('Avatar upload opened', 'info')}
+          onClick={avatar.open}
           className="rounded-lg border border-white/10 bg-navy-900/60 px-3.5 py-2 text-sm font-medium text-slate-200 hover:text-white"
         >
           Change photo
         </button>
+        {avatar.input}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

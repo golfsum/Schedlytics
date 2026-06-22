@@ -7,6 +7,8 @@ export type PlatformId =
   | 'tiktok'
   | 'pinterest'
   | 'youtube'
+  | 'twitch'
+  | 'patreon'
 
 export interface Platform {
   id: PlatformId
@@ -44,6 +46,8 @@ export interface CalendarPost {
   slot: number
   /** How many slots tall the block is */
   span: number
+  /** Week offset relative to the current week (0 = this week) */
+  week?: number
 }
 
 /** A row in the Cross-Platform Sync panel. */
