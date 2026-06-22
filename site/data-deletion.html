@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Request deletion of your Schedlytics data." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>Data Deletion, Schedlytics</title>
+  </head>
+  <body>
+    <header class="nav">
+      <div class="container nav-inner">
+        <a class="brand" href="index.html">
+          <svg viewBox="0 0 64 64" width="34" height="34" aria-hidden="true">
+            <defs>
+              <linearGradient id="slbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22324F" /><stop offset="1" stop-color="#15233A" /></linearGradient>
+              <linearGradient id="slcal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#CCDDF4" /><stop offset="1" stop-color="#9CBDE7" /></linearGradient>
+              <linearGradient id="slar" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#D6A73A" /><stop offset="1" stop-color="#F1CF7B" /></linearGradient>
+            </defs>
+            <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#slbg)" />
+            <rect x="22" y="13" width="4" height="9" rx="2" fill="#AFCBEC" /><rect x="38" y="13" width="4" height="9" rx="2" fill="#AFCBEC" />
+            <rect x="15" y="18" width="34" height="31" rx="4" fill="url(#slcal)" />
+            <g stroke="#6E95CB" stroke-linecap="round">
+              <line x1="15.5" y1="27" x2="48.5" y2="27" stroke-width="1.6" /><line x1="26" y1="27" x2="26" y2="49" stroke-width="1.3" /><line x1="37" y1="27" x2="37" y2="49" stroke-width="1.3" /><line x1="15.5" y1="36" x2="48.5" y2="36" stroke-width="1.3" /><line x1="15.5" y1="43" x2="48.5" y2="43" stroke-width="1.3" />
+            </g>
+            <path d="M13 48 L25 40 L32 44 L50 22 M50 22 L42 23 M50 22 L49 31" fill="none" stroke="url(#slar)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span>Sched<span class="accent">lytics</span></span>
+        </a>
+        <nav class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="privacy.html">Privacy</a>
+          <a href="terms.html">Terms</a>
+        </nav>
+        <a class="btn btn-primary" href="http://localhost:5185">Open App</a>
+      </div>
+    </header>
+
+    <section class="legal">
+      <div class="container legal-wrap">
+        <h1>Data Deletion</h1>
+        <p class="updated">Last updated June 22, 2026</p>
+
+        <p>
+          You can ask Schedlytics to delete all data we hold about you at any time. This includes your
+          account details, the access tokens for any platforms you connected (Instagram, Facebook,
+          TikTok, YouTube, Pinterest), and the posts and schedules you created.
+        </p>
+
+        <h2>Option 1: Request deletion here</h2>
+        <p>
+          Enter the email address linked to your Schedlytics account and submit the form. We will
+          remove your stored data and the access tokens we hold for your connected platforms, then
+          send a confirmation.
+        </p>
+
+        <div class="card-panel">
+          <form id="del-form">
+            <div class="field">
+              <label for="email">Account email</label>
+              <input id="email" name="email" type="email" placeholder="you@example.com" required />
+            </div>
+            <div class="field">
+              <label for="reason">Reason (optional)</label>
+              <textarea id="reason" name="reason" rows="3" placeholder="Tell us why, if you would like"></textarea>
+            </div>
+            <button class="btn btn-primary btn-lg" type="submit" id="del-submit">Request data deletion</button>
+            <div class="result" id="del-result"></div>
+          </form>
+        </div>
+
+        <h2>Option 2: Email us</h2>
+        <p>
+          You can also email
+          <a href="mailto:privacy@schedlytics.app">privacy@schedlytics.app</a>
+          from your account email with the subject "Data deletion request". We will confirm once your
+          data is removed.
+        </p>
+
+        <h2>Option 3: Revoke access at the platform</h2>
+        <p>
+          You can remove Schedlytics access directly from each platform. This immediately stops our
+          access to that account:
+        </p>
+        <ul>
+          <li>Instagram and Facebook: Settings, then Security, then Apps and Websites.</li>
+          <li>YouTube and Google: myaccount.google.com, then Security, then Third party access.</li>
+          <li>TikTok: Settings and privacy, then Security, then Manage app permissions.</li>
+          <li>Pinterest: Settings, then Apps, then Connected apps.</li>
+        </ul>
+
+        <div class="note">
+          What gets deleted: your account record, all stored OAuth access and refresh tokens, your
+          cached profile and stats, and the posts, captions, schedules, and links you created.
+          Deletion is permanent and cannot be undone.
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="container footer-inner">
+        <span class="muted">Schedlytics</span>
+        <nav class="footer-links">
+          <a href="index.html">Home</a>
+          <a href="privacy.html">Privacy Policy</a>
+          <a href="terms.html">Terms of Service</a>
+          <a href="data-deletion.html">Data Deletion</a>
+        </nav>
+        <p class="copy">&copy; 2026 Schedlytics. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script>
+      // Posts the deletion request to the backend. When this page is served by
+      // the Schedlytics backend, the relative URL resolves to the same origin.
+      const form = document.getElementById('del-form')
+      const result = document.getElementById('del-result')
+      const submit = document.getElementById('del-submit')
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        result.className = 'result'
+        submit.disabled = true
+        submit.textContent = 'Submitting...'
+        try {
+          const res = await fetch('/api/data-deletion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: document.getElementById('email').value,
+              reason: document.getElementById('reason').value,
+            }),
+          })
+          const data = await res.json()
+          if (!res.ok) throw new Error(data.error || 'Request failed')
+          result.className = 'result ok'
+          result.textContent =
+            'Your data deletion request was received. Confirmation code: ' +
+            data.confirmationCode +
+            '. ' +
+            data.message
+          form.reset()
+        } catch (err) {
+          result.className = 'result err'
+          result.textContent =
+            'We could not submit your request automatically. Please email privacy@schedlytics.app. (' +
+            err.message +
+            ')'
+        } finally {
+          submit.disabled = false
+          submit.textContent = 'Request data deletion'
+        }
+      })
+    </script>
+  </body>
+</html>

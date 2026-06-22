@@ -1,0 +1,118 @@
+/**
+ * ============================================================================
+ *  Instagram integration  —  Instagram Graph API (via Facebook Login)
+ * ============================================================================
+ *
+ *  Reading Instagram insights requires a **Professional** (Business or Creator)
+ *  Instagram account that is linked to a Facebook Page. The flow:
+ *    1. User logs in with Facebook (shared _meta.js helper)
+ *    2. Find the user's Page → the Page's linked instagram_business_account
+ *    3. Read that IG account's followers + insights
+ *
+ *  Scopes (read-only — login + stats):
+ *    - instagram_basic
+ *    - instagram_manage_insights
+ *    - pages_show_list
+ *    - pages_read_engagement
+ *  (Add instagram_content_publish later for posting.)
+ *
+ *  OAuth plumbing is shared — see _meta.js.
+ * ============================================================================
+ */
+
+import { GRAPH, buildAuthUrl, exchangeForLongLivedToken, getManagedPages } from './_meta.js'
+
+const SCOPES = [
+  'instagram_basic',
+  'instagram_manage_insights',
+  'pages_show_list',
+  'pages_read_engagement',
+]
+
+export const instagram = {
+  id: 'instagram',
+  name: 'Instagram',
+
+  getAuthUrl(state) {
+    return buildAuthUrl('instagram', SCOPES, state)
+  },
+
+  async exchangeCode(code) {
+    const tokens = await exchangeForLongLivedToken('instagram', code)
+
+    // Resolve the IG Business Account id via the user's first Page.
+    const pages = await getManagedPages(tokens.accessToken)
+    let igUserId = null
+    let pageToken = null
+    for (const page of pages) {
+      const res = await fetch(
+        `${GRAPH}/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`,
+      )
+      if (!res.ok) continue
+      const linked = (await res.json()).instagram_business_account
+      if (linked?.id) {
+        igUserId = linked.id
+        pageToken = page.access_token
+        break
+      }
+    }
+    if (!igUserId) {
+      throw new Error(
+        'No Instagram Business account found. Link a Professional IG account to a Facebook Page.',
+      )
+    }
+    return { ...tokens, igUserId, pageAccessToken: pageToken }
+  },
+
+  async refresh(_refreshToken, existing) {
+    return existing
+  },
+
+  /** Read IG profile stats + reach/impressions insights. */
+  async getStats(_accessToken, record) {
+    const igId = record.igUserId
+    const token = record.pageAccessToken
+
+    const profileRes = await fetch(
+      `${GRAPH}/${igId}?fields=username,followers_count,media_count,profile_picture_url&access_token=${token}`,
+    )
+    if (!profileRes.ok) throw new Error(`Instagram profile read failed: ${await profileRes.text()}`)
+    const profile = await profileRes.json()
+
+    let reach = 0
+    let impressions = 0
+    try {
+      const insRes = await fetch(
+        `${GRAPH}/${igId}/insights?metric=reach,impressions&period=week&access_token=${token}`,
+      )
+      if (insRes.ok) {
+        const ins = (await insRes.json()).data || []
+        reach = latestValue(ins.find((m) => m.name === 'reach'))
+        impressions = latestValue(ins.find((m) => m.name === 'impressions'))
+      }
+    } catch {
+      /* insights are best-effort */
+    }
+
+    return {
+      platform: 'instagram',
+      handle: `@${profile.username}`,
+      name: profile.username,
+      avatar: profile.profile_picture_url,
+      followers: Number(profile.followers_count || 0),
+      metrics: [
+        { label: 'followers', value: Number(profile.followers_count || 0) },
+        { label: 'posts', value: Number(profile.media_count || 0) },
+        { label: 'reach (7d)', value: reach },
+        { label: 'impressions (7d)', value: impressions },
+      ],
+      raw: profile,
+    }
+  },
+}
+
+function latestValue(metric) {
+  const values = metric?.values
+  if (!values?.length) return 0
+  return Number(values[values.length - 1].value || 0)
+}

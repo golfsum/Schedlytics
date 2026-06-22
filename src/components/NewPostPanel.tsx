@@ -1,0 +1,306 @@
+import { useState } from 'react'
+import {
+  X,
+  Check,
+  ChevronDown,
+  ImagePlus,
+  Play,
+  MapPin,
+  Tag,
+  Type,
+  Clock,
+  CalendarDays,
+  Send,
+} from 'lucide-react'
+import Toggle from './Toggle'
+import { useToast } from './Toast'
+import { PLATFORM_LIST, PLATFORMS } from '../data'
+import type { CalendarPost, PlatformId } from '../types'
+
+interface NewPostPanelProps {
+  onClose: () => void
+  onSchedule: (post: Omit<CalendarPost, 'id'>) => void
+}
+
+const CONTENT_TYPES = ['Reel', 'Post', 'Story', 'Carousel'] as const
+
+export default function NewPostPanel({ onClose, onSchedule }: NewPostPanelProps) {
+  const [selected, setSelected] = useState<PlatformId[]>(['instagram', 'facebook'])
+  const [contentType, setContentType] = useState<(typeof CONTENT_TYPES)[number]>('Reel')
+  const [caption, setCaption] = useState('New summer look! #fashion #summer ☀️')
+  const [geotag, setGeotag] = useState(true)
+  const [shopping, setShopping] = useState(true)
+  const [altText, setAltText] = useState(true)
+  const [day, setDay] = useState(0)
+  const [time, setTime] = useState('10:00')
+  const [scheduled, setScheduled] = useState(false)
+  const { addToast } = useToast()
+
+  const togglePlatform = (id: PlatformId) =>
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
+    )
+
+  const handleSchedule = () => {
+    if (selected.length === 0) {
+      addToast('Select at least one platform', 'info')
+      return
+    }
+    const primary = selected[0] ?? 'instagram'
+    const platform: PlatformId = contentType === 'Reel' ? 'reels' : primary
+    onSchedule({
+      platform,
+      label: caption.slice(0, 22) || 'New post',
+      day,
+      slot: Math.max(0, ['9:00', '10:00', '11:00', '12:00', '1:00', '2:00'].indexOf(time)),
+      span: 1,
+    })
+    addToast('Post Scheduled! 🎉')
+    setScheduled(true)
+    setTimeout(() => {
+      setScheduled(false)
+      onClose()
+    }, 1200)
+  }
+
+  return (
+    <aside className="flex h-full w-full animate-slide-in-right flex-col overflow-y-auto border-l border-white/5 bg-navy-850/95 backdrop-blur-md">
+      {/* header */}
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/5 bg-navy-850/95 px-5 py-4 backdrop-blur">
+        <h2 className="text-lg font-bold text-white">New Post</h2>
+        <button
+          onClick={onClose}
+          className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div className="space-y-6 p-5">
+        {/* Platform + content type */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Platform Selector</Label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {PLATFORM_LIST.filter((p) => p.id !== 'reels').map((p) => {
+                const isOn = selected.includes(p.id)
+                const { Icon } = p
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => togglePlatform(p.id)}
+                    title={p.name}
+                    className={`relative grid h-11 w-11 place-items-center rounded-xl border transition-all ${
+                      isOn
+                        ? `border-transparent bg-gradient-to-br ${p.gradient} text-white shadow-md`
+                        : 'border-white/10 bg-navy-900/60 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {isOn && (
+                      <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-emerald-400 ring-2 ring-navy-850">
+                        <Check className="h-2.5 w-2.5 text-navy-900" strokeWidth={3.5} />
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div>
+            <Label>Content Type</Label>
+            <div className="relative mt-2">
+              <select
+                value={contentType}
+                onChange={(e) => setContentType(e.target.value as (typeof CONTENT_TYPES)[number])}
+                className="w-full appearance-none rounded-xl border border-white/5 bg-navy-900/60 px-3.5 py-3 text-sm font-medium text-slate-200 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+              >
+                {CONTENT_TYPES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            </div>
+          </div>
+        </div>
+
+        {/* Visual upload */}
+        <div>
+          <Label>Visual Upload</Label>
+          <div className="group relative mt-2 overflow-hidden rounded-xl border border-white/10">
+            <img
+              src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=640&q=70"
+              alt="Post preview"
+              className="h-40 w-full object-cover"
+            />
+            <div className="absolute inset-0 grid place-items-center bg-navy-950/30 opacity-0 transition-opacity group-hover:opacity-100">
+              <span className="flex items-center gap-2 rounded-lg bg-navy-900/80 px-3 py-1.5 text-xs font-medium text-white">
+                <ImagePlus className="h-4 w-4" /> Replace media
+              </span>
+            </div>
+            <button className="absolute left-1/2 top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-navy-900 shadow-lg transition-transform group-hover:scale-110">
+              <Play className="h-5 w-5 translate-x-0.5 fill-navy-900" />
+            </button>
+          </div>
+        </div>
+
+        {/* Caption */}
+        <div>
+          <Label>Caption</Label>
+          <textarea
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            rows={3}
+            className="mt-2 w-full resize-none rounded-xl border border-white/5 bg-navy-900/60 px-3.5 py-3 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+          />
+          <div className="mt-1 text-right text-[11px] text-slate-500">
+            {caption.length}/2200
+          </div>
+        </div>
+
+        {/* Tagging tools */}
+        <div>
+          <Label>Tagging Tools</Label>
+          <div className="mt-2 space-y-1">
+            <TagRow
+              icon={<MapPin className="h-4 w-4 text-cyan-accent" />}
+              label="Add Geotag"
+              checked={geotag}
+              onChange={setGeotag}
+            />
+            <TagRow
+              icon={<Tag className="h-4 w-4 text-cyan-accent" />}
+              label="Tag Products"
+              hint="Shopping Tags"
+              checked={shopping}
+              onChange={setShopping}
+            />
+            <TagRow
+              icon={<Type className="h-4 w-4 text-cyan-accent" />}
+              label="Add Alt Text"
+              checked={altText}
+              onChange={setAltText}
+            />
+          </div>
+        </div>
+
+        {/* Scheduling */}
+        <div>
+          <Label>Scheduling &amp; Time</Label>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <SelectField
+              icon={<CalendarDays className="h-4 w-4 text-slate-400" />}
+              value={day}
+              onChange={(v) => setDay(Number(v))}
+              options={['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(
+                (d, i) => ({ label: i === 0 ? 'Tomorrow' : d, value: i }),
+              )}
+            />
+            <SelectField
+              icon={<Clock className="h-4 w-4 text-slate-400" />}
+              value={time}
+              onChange={(v) => setTime(String(v))}
+              options={['9:00', '10:00', '11:00', '12:00', '1:00', '2:00'].map((t) => ({
+                label: `${t} AM`,
+                value: t,
+              }))}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* schedule button */}
+      <div className="sticky bottom-0 mt-auto border-t border-white/5 bg-navy-850/95 p-5 backdrop-blur">
+        <button
+          onClick={handleSchedule}
+          disabled={scheduled}
+          className="flex w-full items-center justify-center gap-2 rounded-xl gradient-cyan py-3.5 text-sm font-bold text-navy-900 shadow-glow transition-transform hover:scale-[1.01] disabled:opacity-80"
+        >
+          {scheduled ? (
+            <>
+              <Check className="h-4 w-4" strokeWidth={3} /> Scheduled!
+            </>
+          ) : (
+            <>
+              <Send className="h-4 w-4" /> Schedule Post
+            </>
+          )}
+        </button>
+        <p className="mt-2 text-center text-[11px] text-slate-500">
+          Posting to{' '}
+          <span className="text-slate-300">
+            {selected.map((s) => PLATFORMS[s].name).join(', ') || 'no platforms'}
+          </span>
+        </p>
+      </div>
+    </aside>
+  )
+}
+
+/* ---------------------------------- bits ---------------------------------- */
+
+function Label({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-sm font-semibold text-white">{children}</span>
+  )
+}
+
+function TagRow({
+  icon,
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  icon: React.ReactNode
+  label: string
+  hint?: string
+  checked: boolean
+  onChange: (v: boolean) => void
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg px-1 py-1.5">
+      {icon}
+      <span className="text-sm text-slate-200">{label}</span>
+      <div className="ml-auto flex items-center gap-2.5">
+        {hint && <span className="text-xs text-slate-500">{hint}</span>}
+        <Toggle checked={checked} onChange={onChange} size="sm" label={label} />
+      </div>
+    </div>
+  )
+}
+
+function SelectField({
+  icon,
+  value,
+  onChange,
+  options,
+}: {
+  icon: React.ReactNode
+  value: string | number
+  onChange: (v: string) => void
+  options: { label: string; value: string | number }[]
+}) {
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
+        {icon}
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full appearance-none rounded-xl border border-white/5 bg-navy-900/60 py-3 pl-9 pr-7 text-sm font-medium text-slate-200 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+    </div>
+  )
+}

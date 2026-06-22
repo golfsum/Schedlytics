@@ -1,0 +1,133 @@
+/**
+ * Thin client for the Schedlytics OAuth/stats backend (see /server).
+ *
+ * If VITE_API_URL is set, the app talks to the real backend and drives genuine
+ * OAuth + live stats. If it is unset, `backendEnabled` is false and the UI keeps
+ * its built-in simulated connection flow so the demo still works standalone.
+ */
+import type { PlatformId } from '../types'
+
+const API = import.meta.env.VITE_API_URL?.replace(/\/$/, '')
+
+/** True when a backend URL is configured. */
+export const backendEnabled = Boolean(API)
+
+export interface RemoteAccount {
+  connected: boolean
+  connecting: boolean
+  handle?: string
+  name?: string
+  avatar?: string
+  followers?: number
+}
+
+export interface RemoteStats {
+  platform: PlatformId
+  handle: string
+  name: string
+  avatar?: string
+  followers: number
+  metrics: { label: string; value: number }[]
+}
+
+/** Kick off the OAuth flow by navigating to the backend's start route. */
+export function startConnect(platform: PlatformId): void {
+  if (!API) return
+  window.location.href = `${API}/auth/${platform}/start`
+}
+
+/** Current connection status + cached profile for every platform. */
+export async function fetchAccounts(): Promise<Record<string, RemoteAccount>> {
+  if (!API) return {}
+  const res = await fetch(`${API}/api/accounts`, { credentials: 'include' })
+  if (!res.ok) throw new Error(`accounts ${res.status}`)
+  return res.json()
+}
+
+/** Live stats for one connected platform. */
+export async function fetchStats(platform: PlatformId): Promise<RemoteStats> {
+  if (!API) throw new Error('backend disabled')
+  const res = await fetch(`${API}/api/${platform}/stats`, { credentials: 'include' })
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `stats ${res.status}`)
+  return res.json()
+}
+
+/** Disconnect a platform (revoke locally / remove stored tokens). */
+export async function disconnectAccount(platform: PlatformId): Promise<void> {
+  if (!API) return
+  await fetch(`${API}/api/${platform}/disconnect`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+}
+
+/* -------------------------------------------------------------------------- */
+/*  YouTube extras — Analytics API, posting (Data v3), Reporting API           */
+/* -------------------------------------------------------------------------- */
+
+async function getJson<T>(path: string): Promise<T> {
+  if (!API) throw new Error('backend disabled')
+  const res = await fetch(`${API}${path}`, { credentials: 'include' })
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `${res.status}`)
+  return res.json() as Promise<T>
+}
+
+export interface DailyMetric {
+  day: string
+  views: number
+  estimatedMinutesWatched: number
+  likes: number
+  comments: number
+  shares: number
+  subscribersGained: number
+  subscribersLost: number
+}
+
+/** Analytics API — daily time series (powers the engagement-trend chart). */
+export function fetchYouTubeDaily(startDate?: string, endDate?: string) {
+  const qs = new URLSearchParams()
+  if (startDate) qs.set('startDate', startDate)
+  if (endDate) qs.set('endDate', endDate)
+  return getJson<DailyMetric[]>(`/api/youtube/analytics?${qs}`)
+}
+
+/** Analytics API — audience age × gender breakdown. */
+export function fetchYouTubeDemographics() {
+  return getJson<Record<string, string | number>[]>(`/api/youtube/analytics/demographics`)
+}
+
+/** Analytics API — traffic source breakdown. */
+export function fetchYouTubeTraffic() {
+  return getJson<Record<string, string | number>[]>(`/api/youtube/analytics/traffic`)
+}
+
+/** Analytics API — top videos by views. */
+export function fetchYouTubeTopVideos(max = 10) {
+  return getJson<Record<string, string | number>[]>(`/api/youtube/top-videos?max=${max}`)
+}
+
+/** Data API v3 — publish a video by URL (server fetches + resumable-uploads it). */
+export async function publishYouTubeVideo(body: {
+  videoUrl: string
+  title: string
+  description?: string
+  tags?: string[]
+  privacyStatus?: 'private' | 'unlisted' | 'public'
+}) {
+  if (!API) throw new Error('backend disabled')
+  const res = await fetch(`${API}/api/youtube/upload`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `${res.status}`)
+  return res.json()
+}
+
+/** Reporting API — list available report types / jobs / a job's reports. */
+export const youtubeReporting = {
+  reportTypes: () => getJson<unknown>(`/api/youtube/reporting/report-types`),
+  jobs: () => getJson<unknown>(`/api/youtube/reporting/jobs`),
+  jobReports: (jobId: string) => getJson<unknown>(`/api/youtube/reporting/jobs/${jobId}/reports`),
+}
