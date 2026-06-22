@@ -1,0 +1,15 @@
+{
+  "name": "schedlytics-capture",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless-browser capture of real screenshots + drag-and-drop GIF for the marketing site",
+  "scripts": {
+    "capture": "node capture.mjs"
+  },
+  "dependencies": {
+    "gifenc": "^1.0.3",
+    "pngjs": "^7.0.0",
+    "playwright": "^1.49.0"
+  }
+}

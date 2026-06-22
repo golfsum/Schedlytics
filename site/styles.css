@@ -263,6 +263,65 @@ a:hover {
   height: 100%;
 }
 
+/* real product screenshot inside the browser frame */
+.preview-img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* animated demo (drag and drop gif) */
+.demo-frame {
+  max-width: 900px;
+  margin: 0 auto;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--navy-850), var(--navy-900));
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+}
+.demo-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.demo-caption {
+  text-align: center;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* screenshot gallery */
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.gallery figure {
+  margin: 0;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(30, 41, 59, 0.5);
+  overflow: hidden;
+}
+.gallery figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.gallery figcaption {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+@media (max-width: 860px) {
+  .gallery {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ----------------------------------------------------------- sections --- */
 
 .section {
@@ -337,6 +396,12 @@ a:hover {
   width: 12px;
   height: 12px;
   border-radius: 999px;
+}
+.platform-pill svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+  flex-shrink: 0;
 }
 
 /* call to action band */

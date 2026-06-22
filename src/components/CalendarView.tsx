@@ -115,6 +115,7 @@ export default function CalendarView({
                   return (
                     <div
                       key={cellKey}
+                      data-cell={cellKey}
                       onDragOver={(e) => {
                         e.preventDefault()
                         setHoverCell(cellKey)
