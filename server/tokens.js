@@ -7,7 +7,7 @@ export async function ensureFreshToken(platform, record) {
   if (typeof platform.refresh !== 'function') return record
   try {
     const refreshed = await platform.refresh(record.refreshToken, record)
-    return store.set(platform.id, refreshed)
+    return await store.set(platform.id, refreshed)
   } catch (err) {
     console.warn(`[${platform.id}] refresh failed, using existing token:`, err.message)
     return record
@@ -19,7 +19,7 @@ export async function ensureFreshToken(platform, record) {
  * refreshing first if needed. Throws a 401-tagged error if not connected.
  */
 export async function validAccessToken(platform) {
-  let record = store.get(platform.id)
+  let record = await store.get(platform.id)
   if (!record?.accessToken) {
     const err = new Error('Not connected')
     err.status = 401

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "{dist,site}/**"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/auth/(.*)", "destination": "/api" },
+    { "source": "/s/(.*)", "destination": "/api" },
+    { "source": "/health", "destination": "/api" },
+    { "source": "/welcome", "destination": "/api" },
+    { "source": "/privacy", "destination": "/api" },
+    { "source": "/terms", "destination": "/api" },
+    { "source": "/data-deletion", "destination": "/api" },
+    { "source": "/styles.css", "destination": "/api" },
+    { "source": "/site-media/(.*)", "destination": "/api" }
+  ]
+}

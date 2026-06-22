@@ -9,10 +9,14 @@ import type { PlatformId } from '../types'
 
 const API = import.meta.env.VITE_API_URL?.replace(/\/$/, '')
 
-/** True when a backend URL is configured. */
-export const backendEnabled = Boolean(API)
+/**
+ * Backend mode is on when VITE_API_URL is set, OR in a production build (where
+ * the app is served by the same deployment as the API, so it calls same-origin
+ * "/api"). In local dev with no VITE_API_URL, backend mode is off (demo mode).
+ */
+export const backendEnabled = Boolean(API) || import.meta.env.PROD
 
-/** Base URL of the backend (empty string when not configured). */
+/** Base URL of the backend. Empty string means same-origin (calls "/api/..."). */
 export const apiBase = API ?? ''
 
 export interface RemoteAccount {

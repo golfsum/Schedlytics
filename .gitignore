@@ -18,6 +18,9 @@ npm-debug.log*
 .env.*
 !.env.example
 
+# vercel
+.vercel
+
 # typescript build artifacts (these previously broke vite config resolution)
 *.tsbuildinfo
 vite.config.js

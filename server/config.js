@@ -9,11 +9,16 @@ dotenv.config()
 export const PORT = Number(process.env.PORT) || 8787
 
 // Public base URL of THIS backend (must match the redirect URIs you register
-// in each developer console). For local dev this is http://localhost:8787.
-export const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`
+// in each developer console). On Vercel, VERCEL_URL is provided automatically;
+// set BASE_URL to your custom domain for stable OAuth redirect URIs.
+export const BASE_URL = (
+  process.env.BASE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://localhost:${PORT}`)
+).replace(/\/+$/, '') // never allow a trailing slash (avoids redirect_uri mismatch)
 
-// Where to send the user back to in the React app after a connection finishes.
-export const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5185'
+// Where to send the user back to after a connection finishes. Defaults to the
+// backend's own origin (same-origin single deployment); override for split dev.
+export const FRONTEND_URL = process.env.FRONTEND_URL || BASE_URL
 
 /** The OAuth redirect/callback URL for a given platform. */
 export const redirectUri = (platform) => `${BASE_URL}/auth/${platform}/callback`
@@ -62,3 +67,13 @@ export const creds = {
 
 /** Graph API version used for all Meta (Facebook/Instagram) calls. */
 export const META_GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v21.0'
+
+/**
+ * ashrt.link integration. When apiUrl is set, Schedlytics mints its short links
+ * through the ashrt.link service (so links live on that domain with shared
+ * stats). When unset, Schedlytics uses its own built-in shortener.
+ */
+export const ashrt = {
+  apiUrl: (process.env.ASHRT_API_URL || '').replace(/\/$/, ''),
+  apiKey: process.env.ASHRT_API_KEY || '',
+}

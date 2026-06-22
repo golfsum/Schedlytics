@@ -14,6 +14,13 @@
       "runtimeArgs": ["start", "--prefix", "server"],
       "port": 8787,
       "autoPort": true
+    },
+    {
+      "name": "ashrt-link",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["../ashrt.link/server.js"],
+      "port": 4000,
+      "autoPort": true
     }
   ]
 }
