@@ -39,30 +39,30 @@ export interface RemoteStats {
 
 /** Kick off the OAuth flow by navigating to the backend's start route. */
 export function startConnect(platform: PlatformId): void {
-  if (!API) return
-  window.location.href = `${API}/auth/${platform}/start`
+  if (!backendEnabled) return
+  window.location.href = `${apiBase}/auth/${platform}/start`
 }
 
 /** Current connection status + cached profile for every platform. */
 export async function fetchAccounts(): Promise<Record<string, RemoteAccount>> {
-  if (!API) return {}
-  const res = await fetch(`${API}/api/accounts`, { credentials: 'include' })
+  if (!backendEnabled) return {}
+  const res = await fetch(`${apiBase}/api/accounts`, { credentials: 'include' })
   if (!res.ok) throw new Error(`accounts ${res.status}`)
   return res.json()
 }
 
 /** Live stats for one connected platform. */
 export async function fetchStats(platform: PlatformId): Promise<RemoteStats> {
-  if (!API) throw new Error('backend disabled')
-  const res = await fetch(`${API}/api/${platform}/stats`, { credentials: 'include' })
+  if (!backendEnabled) throw new Error('backend disabled')
+  const res = await fetch(`${apiBase}/api/${platform}/stats`, { credentials: 'include' })
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `stats ${res.status}`)
   return res.json()
 }
 
 /** Disconnect a platform (revoke locally / remove stored tokens). */
 export async function disconnectAccount(platform: PlatformId): Promise<void> {
-  if (!API) return
-  await fetch(`${API}/api/${platform}/disconnect`, {
+  if (!backendEnabled) return
+  await fetch(`${apiBase}/api/${platform}/disconnect`, {
     method: 'POST',
     credentials: 'include',
   })
@@ -73,8 +73,8 @@ export async function disconnectAccount(platform: PlatformId): Promise<void> {
 /* -------------------------------------------------------------------------- */
 
 async function getJson<T>(path: string): Promise<T> {
-  if (!API) throw new Error('backend disabled')
-  const res = await fetch(`${API}${path}`, { credentials: 'include' })
+  if (!backendEnabled) throw new Error('backend disabled')
+  const res = await fetch(`${apiBase}${path}`, { credentials: 'include' })
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `${res.status}`)
   return res.json() as Promise<T>
 }
@@ -121,8 +121,8 @@ export async function publishYouTubeVideo(body: {
   tags?: string[]
   privacyStatus?: 'private' | 'unlisted' | 'public'
 }) {
-  if (!API) throw new Error('backend disabled')
-  const res = await fetch(`${API}/api/youtube/upload`, {
+  if (!backendEnabled) throw new Error('backend disabled')
+  const res = await fetch(`${apiBase}/api/youtube/upload`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
