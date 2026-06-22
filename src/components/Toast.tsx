@@ -16,7 +16,7 @@ interface ToastItem {
 }
 
 interface ToastContextValue {
-  addToast: (message: string, type?: ToastType) => void
+  addToast: (message: string, type?: ToastType, duration?: number) => void
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null)
@@ -40,11 +40,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   )
 
   const addToast = useCallback(
-    (message: string, type: ToastType = 'success') => {
+    // duration 0 = sticky (stays until manually dismissed)
+    (message: string, type: ToastType = 'success', duration = 3200) => {
       const id = ++nextId
       setToasts((t) => [...t, { id, message, type }])
-      // auto-dismiss
-      setTimeout(() => remove(id), 3200)
+      if (duration > 0) setTimeout(() => remove(id), duration)
     },
     [remove],
   )

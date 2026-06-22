@@ -129,7 +129,8 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
       addToast(`${PLATFORMS[connected as PlatformId].name} connected! 🔗`)
       refresh()
     } else if (error) {
-      addToast(`Connection failed: ${error}`, 'info')
+      // sticky (duration 0) so the reason stays on screen until dismissed
+      addToast(`Connection failed: ${error}`, 'info', 0)
     }
     if (connected || error) {
       // Clean the query string so a refresh doesn't re-toast.

@@ -12,8 +12,9 @@ import { dirname, join } from 'node:path'
  * zero-config. Everything is async so the two backends are interchangeable.
  */
 
-const KV_URL = process.env.KV_REST_API_URL
-const KV_TOKEN = process.env.KV_REST_API_TOKEN
+// Accept either Vercel KV or Upstash Redis env var names.
+const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL
+const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN
 export const useKV = Boolean(KV_URL && KV_TOKEN)
 
 const __dirname = dirname(fileURLToPath(import.meta.url))

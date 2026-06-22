@@ -62,7 +62,7 @@ const STATE_TTL = 600 // seconds
 /*  Health + config introspection                                              */
 /* -------------------------------------------------------------------------- */
 
-app.get('/health', (_req, res) => res.json({ ok: true }))
+app.get('/health', (_req, res) => res.json({ ok: true, store: store.driver }))
 
 // Which platforms have credentials configured (so the UI can hint setup).
 app.get('/api/config', (_req, res) => {
