@@ -260,7 +260,7 @@ async function uploadDirectToYouTube(
   file: File,
   meta: YTUploadMeta,
   onProgress?: (fraction: number) => void,
-): Promise<{ id?: string; url?: string }> {
+): Promise<{ id?: string; url?: string; privacyStatus?: string }> {
   const tokenRes = await fetch(`${apiBase}/api/youtube/upload-token`, { credentials: 'include' })
   if (!tokenRes.ok) throw new Error('no upload token')
   const { accessToken } = (await tokenRes.json()) as { accessToken?: string }
@@ -282,7 +282,7 @@ async function uploadDirectToYouTube(
   if (!uploadUrl) throw new Error('no upload url') // Location not exposed -> fall back
 
   // PUT via XHR so we get real upload progress (fetch can't report it).
-  const data = await new Promise<{ id?: string }>((resolve, reject) => {
+  const data = await new Promise<{ id?: string; status?: { privacyStatus?: string } }>((resolve, reject) => {
     const xhr = new XMLHttpRequest()
     xhr.open('PUT', uploadUrl)
     xhr.setRequestHeader('Content-Type', fileType)
@@ -304,7 +304,11 @@ async function uploadDirectToYouTube(
     xhr.send(file)
   })
   onProgress?.(1)
-  return { id: data.id, url: data.id ? `https://www.youtube.com/watch?v=${data.id}` : undefined }
+  return {
+    id: data.id,
+    url: data.id ? `https://www.youtube.com/watch?v=${data.id}` : undefined,
+    privacyStatus: data.status?.privacyStatus,
+  }
 }
 
 /**
@@ -316,7 +320,7 @@ async function uploadViaRelay(
   file: File,
   meta: YTUploadMeta,
   onProgress?: (fraction: number) => void,
-): Promise<{ id?: string; url?: string }> {
+): Promise<{ id?: string; url?: string; privacyStatus?: string }> {
   const sess = await fetch(`${apiBase}/api/youtube/upload-session`, {
     method: 'POST',
     credentials: 'include',
@@ -337,6 +341,7 @@ async function uploadViaRelay(
   const fileType = file.type || 'video/*'
   let start = 0
   let id: string | undefined
+  let privacyStatus: string | undefined
   while (start < total) {
     const end = Math.min(start + YT_CHUNK, total)
     const res = await fetch(`${apiBase}/api/youtube/upload-chunk`, {
@@ -351,15 +356,16 @@ async function uploadViaRelay(
       body: file.slice(start, end),
     })
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `upload ${res.status}`)
-    const data = (await res.json()) as { done: boolean; id?: string }
+    const data = (await res.json()) as { done: boolean; id?: string; status?: { privacyStatus?: string } }
     onProgress?.(end / total)
     if (data.done) {
       id = data.id
+      privacyStatus = data.status?.privacyStatus
       break
     }
     start = end
   }
-  return { id, url: id ? `https://www.youtube.com/watch?v=${id}` : undefined }
+  return { id, url: id ? `https://www.youtube.com/watch?v=${id}` : undefined, privacyStatus }
 }
 
 /**
@@ -371,7 +377,7 @@ export async function publishYouTubeFile(
   file: File,
   meta: YTUploadMeta,
   onProgress?: (fraction: number) => void,
-): Promise<{ id?: string; url?: string }> {
+): Promise<{ id?: string; url?: string; privacyStatus?: string }> {
   if (!backendEnabled) throw new Error('backend disabled')
   try {
     return await uploadDirectToYouTube(file, meta, onProgress)

@@ -80,6 +80,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   const [scheduleAt, setScheduleAt] = useState<Date | null>(null)
   const [chapters, setChapters] = useState<Chapter[]>([{ time: '0:00', label: 'Intro' }])
   const [videoUrl, setVideoUrl] = useState('')
+  const [privacy, setPrivacy] = useState<'public' | 'unlisted' | 'private'>('public')
 
   // Per-platform default description (boilerplate: links, socials) that persists.
   const [defaults, setDefaults] = usePersistedState<Partial<Record<PlatformId, string>>>(
@@ -217,6 +218,15 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
       (platform === 'tiktok' && hasVideoFile) ||
       (platform === 'instagram' && Boolean(videoUrl.trim())))
 
+  // Describe the privacy YouTube actually applied (it may force private on
+  // unverified apps regardless of the chosen visibility).
+  const youtubePrivacyNote = (actual?: string) => {
+    if (actual === 'public') return 'Live on YouTube now.'
+    if (actual === 'unlisted') return 'Uploaded as unlisted - anyone with the link can watch.'
+    if (privacy === 'private') return 'Uploaded as a private video.'
+    return `You chose ${privacy}, but YouTube keeps uploads private until your Google app is verified for public posting.`
+  }
+
   // Surface a clear success modal (and keep a bell entry as a record).
   const showPublished = (url: string | undefined, note: string) => {
     setPublished({ platform, url, note })
@@ -242,11 +252,11 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
               title: title.trim() || 'Untitled',
               description: composeDescription(),
               tags,
-              privacyStatus: 'private',
+              privacyStatus: privacy,
             },
             (f) => setUploadPct(f),
           )
-          showPublished(result.url, 'Uploaded as a private video. Set it to public on YouTube when ready.')
+          showPublished(result.url, youtubePrivacyNote(result.privacyStatus))
         } else {
           // Fall back to uploading from a public URL.
           const result = await publishYouTubeVideo({
@@ -254,12 +264,11 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             title: title.trim() || 'Untitled',
             description: composeDescription(),
             tags,
-            privacyStatus: 'private',
+            privacyStatus: privacy,
           })
-          showPublished(
-            (result as { url?: string }).url,
-            'Uploaded as a private video. Set it to public on YouTube when ready.',
-          )
+          const r = result as { id?: string; status?: { privacyStatus?: string } }
+          const watchUrl = r.id ? `https://www.youtube.com/watch?v=${r.id}` : undefined
+          showPublished(watchUrl, youtubePrivacyNote(r.status?.privacyStatus))
           setVideoUrl('')
         }
       } else if (willPublishNow && platform === 'facebook') {
@@ -579,6 +588,28 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             </span>
             <Toggle checked={abTest} onChange={setAbTest} size="sm" label="A/B test" />
           </div>
+
+          {platform === 'youtube' && (
+            <div>
+              <span className="mb-2 block text-sm font-semibold text-white">Visibility</span>
+              <div className="flex rounded-lg border border-white/5 bg-navy-900/60 p-0.5 text-xs">
+                {(['public', 'unlisted', 'private'] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setPrivacy(v)}
+                    className={`flex-1 rounded-md px-3 py-1.5 font-medium capitalize transition-colors ${
+                      privacy === v ? 'gradient-cyan text-navy-900' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[11px] text-slate-500">
+                New uploads stay private until your Google app is verified, then this setting applies.
+              </p>
+            </div>
+          )}
 
           <div>
             <span className="mb-2 block text-sm font-semibold text-white">Scheduled time</span>
