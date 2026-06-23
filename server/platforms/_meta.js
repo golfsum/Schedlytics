@@ -71,7 +71,7 @@ export async function exchangeForLongLivedToken(platform, code) {
 
   return {
     accessToken: long.access_token,
-    // long-lived user tokens last ~60 days; Meta has no refresh_token —
+    // long-lived user tokens last ~60 days; Meta has no refresh_token - 
     // you re-exchange before expiry or ask the user to reconnect.
     expiresAt: Date.now() + (long.expires_in || 60 * 24 * 3600) * 1000,
   }

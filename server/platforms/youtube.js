@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- *  YouTube integration  —  ALL THREE YouTube APIs
+ *  YouTube integration - ALL THREE YouTube APIs
  * ============================================================================
  *
  *  Self-contained so it can be submitted on its own for Google's OAuth
@@ -21,14 +21,14 @@
  *
  *  Scopes:
  *    - youtube.readonly                       (read channels/videos)
- *    - youtube.upload                         (RESTRICTED — uploads; needs Google audit)
+ *    - youtube.upload                         (RESTRICTED - uploads; needs Google audit)
  *    - https://www.googleapis.com/auth/youtube (manage: thumbnails, playlists)
  *    - yt-analytics.readonly                  (Analytics + Reporting metrics)
  *    - userinfo.profile
  *    (Add yt-analytics-monetary.readonly for estimatedRevenue.)
  *
  *  Quota: stats/analytics queries are cheap; an upload (videos.insert) costs
- *  ~1,600 of the default 10,000 units/day — that is the quota-extension request.
+ *  ~1,600 of the default 10,000 units/day - that is the quota-extension request.
  * ============================================================================
  */
 
@@ -103,10 +103,10 @@ export const youtube = {
   },
 
   /* ====================================================================== */
-  /*  1) DATA API v3  —  lifetime stats + metadata                           */
+  /*  1) DATA API v3 - lifetime stats + metadata                           */
   /* ====================================================================== */
 
-  /** Channel snapshot (cumulative counts) — used for the connect/profile card. */
+  /** Channel snapshot (cumulative counts) - used for the connect/profile card. */
   async getStats(accessToken) {
     const data = await getJson(
       `${DATA_API}/channels?part=snippet,statistics&mine=true`,
@@ -191,7 +191,7 @@ export const youtube = {
           })
         }
       } catch {
-        /* comments disabled or unavailable for this video — skip it */
+        /* comments disabled or unavailable for this video - skip it */
       }
     }
 
@@ -200,7 +200,7 @@ export const youtube = {
   },
 
   /* ====================================================================== */
-  /*  1b) DATA API v3  —  POSTING (resumable upload)                         */
+  /*  1b) DATA API v3 - POSTING (resumable upload)                         */
   /* ====================================================================== */
 
   /**
@@ -228,7 +228,7 @@ export const youtube = {
       status: { privacyStatus, selfDeclaredMadeForKids: false },
     }
 
-    // (1) Open a resumable session — returns an upload URL in the Location header.
+    // (1) Open a resumable session - returns an upload URL in the Location header.
     const init = await fetch(
       `${UPLOAD_API}/videos?uploadType=resumable&part=snippet,status`,
       {
@@ -271,7 +271,7 @@ export const youtube = {
   },
 
   /* ====================================================================== */
-  /*  2) ANALYTICS API  —  time-series + dimensional metrics                 */
+  /*  2) ANALYTICS API - time-series + dimensional metrics                 */
   /* ====================================================================== */
 
   /** Low-level query against youtubeAnalytics.reports. Returns {columnHeaders, rows}. */
@@ -290,7 +290,7 @@ export const youtube = {
     return getJson(`${ANALYTICS_API}/reports?${params}`, accessToken)
   },
 
-  /** Daily time series — this is what powers the "Engagement Trend" chart. */
+  /** Daily time series - this is what powers the "Engagement Trend" chart. */
   async getDailyMetrics(accessToken, range = {}) {
     const result = await this.getAnalytics(accessToken, {
       ...range,
@@ -336,7 +336,7 @@ export const youtube = {
   },
 
   /* ====================================================================== */
-  /*  3) REPORTING API  —  bulk async CSV reports                            */
+  /*  3) REPORTING API - bulk async CSV reports                            */
   /* ====================================================================== */
 
   /** Catalog of report types you can subscribe to (e.g. channel_basic_a2). */

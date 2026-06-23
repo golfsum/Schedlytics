@@ -1,11 +1,11 @@
 /**
- * Credential doctor — checks whether the app credentials in .env are valid and
+ * Credential doctor - checks whether the app credentials in .env are valid and
  * recognized by each provider, WITHOUT printing any secret values.
  *
  * It uses app-level / negative-probe auth calls (no user data, no OAuth login):
  *   - Meta / Twitch: request an app (client_credentials) token.
  *   - Google/YouTube, TikTok, Pinterest, Patreon: send a deliberately invalid
- *     grant and read the error — "invalid_client" means the ID/secret are wrong,
+ *     grant and read the error - "invalid_client" means the ID/secret are wrong,
  *     while "invalid_grant" means the credentials are accepted (only the code is bad).
  *
  * Run:  node check-credentials.mjs   (from the server/ directory)

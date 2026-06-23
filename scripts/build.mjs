@@ -25,7 +25,7 @@ mkdirSync(out, { recursive: true })
 // Marketing + legal pages at the root.
 cpSync(join(root, 'site'), out, { recursive: true })
 
-// Marketing images are referenced as /site-media/* — move them there and drop
+// Marketing images are referenced as /site-media/* - move them there and drop
 // the original /assets copy so it cannot clash with the app's /app/assets.
 rmSync(join(out, 'assets'), { recursive: true, force: true })
 if (existsSync(join(root, 'site', 'assets'))) {

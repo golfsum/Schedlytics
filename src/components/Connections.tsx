@@ -115,7 +115,7 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
         return next
       })
     } catch {
-      /* backend unreachable — keep what we have */
+      /* backend unreachable - keep what we have */
     }
   }, [])
 

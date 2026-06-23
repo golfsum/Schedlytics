@@ -1,5 +1,5 @@
 /**
- * YouTube-specific routes — the extras beyond the generic /api/:platform/stats.
+ * YouTube-specific routes - the extras beyond the generic /api/:platform/stats.
  * Mounted at /api/youtube.
  *
  *   Analytics API:

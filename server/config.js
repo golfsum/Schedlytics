@@ -3,7 +3,7 @@ dotenv.config()
 
 /**
  * Central configuration. Every secret comes from environment variables
- * (see .env.example) — nothing sensitive is hard-coded.
+ * (see .env.example) - nothing sensitive is hard-coded.
  */
 
 export const PORT = Number(process.env.PORT) || 8787

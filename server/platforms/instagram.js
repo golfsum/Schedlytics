@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- *  Instagram integration  —  Instagram Graph API (via Facebook Login)
+ *  Instagram integration - Instagram Graph API (via Facebook Login)
  * ============================================================================
  *
  *  Reading Instagram insights requires a **Professional** (Business or Creator)
@@ -9,14 +9,14 @@
  *    2. Find the user's Page → the Page's linked instagram_business_account
  *    3. Read that IG account's followers + insights
  *
- *  Scopes (read-only — login + stats):
+ *  Scopes (read-only - login + stats):
  *    - instagram_basic
  *    - instagram_manage_insights
  *    - pages_show_list
  *    - pages_read_engagement
  *  (Add instagram_content_publish later for posting.)
  *
- *  OAuth plumbing is shared — see _meta.js.
+ *  OAuth plumbing is shared - see _meta.js.
  * ============================================================================
  */
 

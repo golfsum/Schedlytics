@@ -44,7 +44,7 @@ const SEED: Message[] = [
   { id: 2, platform: 'tiktok', name: '@dancewithjay', avatar: 'https://i.pravatar.cc/80?img=8', text: 'Can we collab on the next reel?', time: '18m', unread: true },
   { id: 3, platform: 'facebook', name: 'Carlos M.', avatar: 'https://i.pravatar.cc/80?img=14', text: 'Is the discount code still valid?', time: '1h', unread: true },
   { id: 4, platform: 'instagram', name: 'theglowco', avatar: 'https://i.pravatar.cc/80?img=20', text: 'Shipping to Canada yet?', time: '3h', unread: false },
-  { id: 5, platform: 'pinterest', name: 'home.edit', avatar: 'https://i.pravatar.cc/80?img=25', text: 'Pinned your fall lookbook — gorgeous!', time: '1d', unread: false },
+  { id: 5, platform: 'pinterest', name: 'home.edit', avatar: 'https://i.pravatar.cc/80?img=25', text: 'Pinned your fall lookbook, gorgeous!', time: '1d', unread: false },
 ]
 
 interface InboxContextValue {
@@ -90,7 +90,7 @@ export function InboxProvider({ children }: { children: ReactNode }) {
         setSelectedId(msgs[0].id)
         setSource('youtube')
       } else {
-        // No comments — show an inline empty state, not a popup.
+        // No comments - show an inline empty state, not a popup.
         setMessages([])
         setSelectedId(null)
       }

@@ -33,7 +33,7 @@ export function useNotifications() {
 
 let nid = 100
 
-// Sample notifications — only seeded in demo mode / when auth is off.
+// Sample notifications - only seeded in demo mode / when auth is off.
 const SEED: AppNotification[] = [
   { id: 1, type: 'success', title: 'Reel performing well', message: '“Styling reel” hit 12.4K views', time: '2m ago', unread: true },
   { id: 2, type: 'info', title: 'New comment', message: 'From @mia.styles on your latest post', time: '18m ago', unread: true },

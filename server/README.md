@@ -1,4 +1,4 @@
-# Schedlytics — Social API Backend
+# Schedlytics - Social API Backend
 
 OAuth login + live stats for **YouTube, TikTok, Instagram, Facebook, and Pinterest**.
 Each platform is an isolated module under [`platforms/`](platforms) so it can be
@@ -9,7 +9,7 @@ Google's API audit / quota-extension request).
 server/
 ├── index.js              # Express app: OAuth start/callback + stats routes
 ├── config.js             # env-driven config (no hard-coded secrets)
-├── store.js              # token storage (JSON file — swap for a DB in prod)
+├── store.js              # token storage (JSON file - swap for a DB in prod)
 └── platforms/
     ├── index.js          # registry
     ├── youtube.js        # Google OAuth 2.0 + YouTube Data API v3
@@ -78,7 +78,7 @@ The legal pages give you real URLs for the platform app reviews, e.g.
 `{BASE_URL}/privacy` and `{BASE_URL}/data-deletion` (Meta/TikTok/Pinterest all
 require a Privacy Policy URL and a Data Deletion URL).
 
-### YouTube — all three APIs
+### YouTube - all three APIs
 
 `platforms/youtube.js` leverages every YouTube API:
 
@@ -116,7 +116,7 @@ Requires enabling **all three** APIs in Google Cloud and these scopes:
 ### Notes & gotchas
 - **Instagram** stats require a **Professional** (Business/Creator) IG account linked to a Facebook Page.
 - **Facebook** posting/insights target **Pages**, not personal profiles.
-- **YouTube** uploads (not needed for stats) cost ~1,600 quota units each — that's the quota-extension request. `prompt=consent` + `access_type=offline` ensure a refresh token.
+- **YouTube** uploads (not needed for stats) cost ~1,600 quota units each - that's the quota-extension request. `prompt=consent` + `access_type=offline` ensure a refresh token.
 - **TikTok** and most Meta scopes require **App Review** before non-test users can connect.
 - All five start limited (sandbox/dev/trial) and need review for production access.
 

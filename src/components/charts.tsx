@@ -83,7 +83,7 @@ export function CorrelationMatrix() {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Engagement trend — line/area chart                                          */
+/*  Engagement trend - line/area chart                                          */
 /* -------------------------------------------------------------------------- */
 
 export function EngagementTrend() {
@@ -228,7 +228,7 @@ export function AreaChart({
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Conversion by platform — bar chart                                          */
+/*  Conversion by platform - bar chart                                          */
 /* -------------------------------------------------------------------------- */
 
 export function ConversionBars() {

@@ -60,14 +60,14 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
         <StatCard
           Icon={Users}
           label="Total Followers"
-          value={sampleData ? '182.4K' : '—'}
+          value={sampleData ? '182.4K' : '-'}
           delta={sampleData ? '+4.2%' : 'No data yet'}
           up={sampleData || undefined}
         />
         <StatCard
           Icon={Heart}
           label="Engagement Rate"
-          value={sampleData ? '6.8%' : '—'}
+          value={sampleData ? '6.8%' : '-'}
           delta={sampleData ? '+0.9%' : 'No data yet'}
           up={sampleData || undefined}
         />
@@ -80,7 +80,7 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
         <StatCard
           Icon={DollarSign}
           label="Revenue (30d)"
-          value={sampleData ? '$12.6k' : '—'}
+          value={sampleData ? '$12.6k' : '-'}
           delta={sampleData ? '+18%' : 'No data yet'}
           up={sampleData || undefined}
         />

@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- *  Pinterest integration  —  Pinterest API v5 (OAuth 2.0)
+ *  Pinterest integration - Pinterest API v5 (OAuth 2.0)
  * ============================================================================
  *
  *  Self-contained module for Pinterest login + account stats.
@@ -11,7 +11,7 @@
  *    - Apps start with "Trial access"; request "Standard access" via review
  *    - .env: PINTEREST_APP_ID, PINTEREST_APP_SECRET
  *
- *  Scopes (read-only — login + stats):
+ *  Scopes (read-only - login + stats):
  *    - user_accounts:read
  *    - pins:read
  *    - boards:read
@@ -75,7 +75,7 @@ export const pinterest = {
       }),
     })
     if (!res.ok) throw new Error(`Pinterest token refresh failed: ${await res.text()}`)
-    // Pinterest may not return a new refresh_token — keep the old one.
+    // Pinterest may not return a new refresh_token - keep the old one.
     return { ...normalizeTokens(await res.json()), refreshToken }
   },
 

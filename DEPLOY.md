@@ -51,7 +51,7 @@ served by the function; the app and its hashed `/assets/*` bundles come from
 
 ```
 BASE_URL=https://your-schedlytics-domain        # your production domain
-# (do NOT set VITE_API_URL — the app calls same-origin /api in production)
+# (do NOT set VITE_API_URL - the app calls same-origin /api in production)
 
 # Firebase Auth (login at /app). Public client config from the Firebase console.
 # Leave blank to keep the app open (no login).

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Schedlytics OAuth + stats backend — one module per social platform",
+  "description": "Schedlytics OAuth + stats backend - one module per social platform",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

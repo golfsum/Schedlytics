@@ -4,7 +4,7 @@ interface LogoProps {
 }
 
 /**
- * Schedlytics brand icon — a navy tile holding a light-blue calendar grid
+ * Schedlytics brand icon - a navy tile holding a light-blue calendar grid
  * with a gold upward trend arrow (scheduling + growth analytics).
  * Reused by both the sidebar logo and the favicon.
  */

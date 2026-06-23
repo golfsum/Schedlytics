@@ -73,7 +73,7 @@ app.get('/api/config', (_req, res) => {
 })
 
 /* -------------------------------------------------------------------------- */
-/*  OAuth — start                                                              */
+/*  OAuth - start                                                              */
 /*    GET /auth/:platform/start  → 302 redirect to the provider's consent page */
 /* -------------------------------------------------------------------------- */
 
@@ -94,7 +94,7 @@ app.get('/auth/:platform/start', async (req, res) => {
 })
 
 /* -------------------------------------------------------------------------- */
-/*  OAuth — callback                                                           */
+/*  OAuth - callback                                                           */
 /*    GET /auth/:platform/callback?code=...&state=...                          */
 /*    Exchanges the code, stores tokens, returns the user to the React app.    */
 /* -------------------------------------------------------------------------- */
@@ -136,7 +136,7 @@ app.get('/auth/:platform/callback', async (req, res) => {
 })
 
 /* -------------------------------------------------------------------------- */
-/*  Accounts — connection status for every platform                            */
+/*  Accounts - connection status for every platform                            */
 /* -------------------------------------------------------------------------- */
 
 app.get('/api/accounts', async (_req, res) => {
@@ -152,7 +152,7 @@ app.get('/api/accounts', async (_req, res) => {
 })
 
 /* -------------------------------------------------------------------------- */
-/*  Stats — live fetch for one platform (auto-refreshes the token if needed)   */
+/*  Stats - live fetch for one platform (auto-refreshes the token if needed)   */
 /* -------------------------------------------------------------------------- */
 
 app.get('/api/:platform/stats', async (req, res) => {

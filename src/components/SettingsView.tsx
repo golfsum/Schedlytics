@@ -146,9 +146,9 @@ function AccountsSection() {
       <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-white/5 bg-navy-900/40 p-4 text-xs leading-relaxed text-slate-400">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-cyan-accent" />
         <span>
-          Connections use OAuth — Schedlytics never stores your password. In this demo the
-          handshake is simulated; a production build exchanges the auth code server-side and
-          stores only a revocable access token.
+          We connect through OAuth, so Schedlytics never sees or stores your password. The demo
+          just simulates the handshake. In production we exchange the login code on the server and
+          keep only an access token you can revoke any time.
         </span>
       </div>
     </div>

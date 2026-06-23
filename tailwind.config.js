@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Schedlytics brand palette — dark navy base, cyan accent
+        // Schedlytics brand palette - dark navy base, cyan accent
         navy: {
           950: '#0B1120', // deepest background
           900: '#0F172A', // main canvas

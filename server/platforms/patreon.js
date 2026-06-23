@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- *  Patreon integration  —  OAuth 2.0 + API v2
+ *  Patreon integration - OAuth 2.0 + API v2
  * ============================================================================
  *
  *  Self-contained module for Patreon login + creator/campaign stats.
@@ -10,7 +10,7 @@
  *    - Redirect URI:  {BASE_URL}/auth/patreon/callback
  *    - .env: PATREON_CLIENT_ID, PATREON_CLIENT_SECRET
  *
- *  Scopes (read-only — login + stats):
+ *  Scopes (read-only - login + stats):
  *    - identity        (the logged-in user's profile)
  *    - campaigns       (the creator's campaign, including patron_count)
  *  (Add campaigns.members later to read individual patrons.)

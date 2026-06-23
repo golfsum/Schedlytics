@@ -9,7 +9,7 @@
  *   no backend running (within the same browser).
  *
  * Either way the generated link is on a domain that actually resolves and
- * redirects — never the unowned "sched.ly" placeholder.
+ * redirects - never the unowned "sched.ly" placeholder.
  */
 import { apiBase, backendEnabled } from './socialApi'
 
@@ -101,7 +101,7 @@ export async function listShortLinks(): Promise<ShortLink[]> {
     try {
       return await apiList()
     } catch {
-      // backend unreachable — fall back to local links so the page still works
+      // backend unreachable - fall back to local links so the page still works
     }
   }
   seedIfEmpty()
@@ -115,7 +115,7 @@ export async function createShortLink(rawUrl: string): Promise<ShortLink> {
     try {
       return await apiCreate(url)
     } catch {
-      // backend unreachable — still give the user a working (local) short link
+      // backend unreachable - still give the user a working (local) short link
     }
   }
   return createLocal(url)

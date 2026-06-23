@@ -1,19 +1,19 @@
 /**
  * ============================================================================
- *  Facebook integration  —  Facebook Login + Pages API (Graph API)
+ *  Facebook integration - Facebook Login + Pages API (Graph API)
  * ============================================================================
  *
  *  Posting/insights target Facebook *Pages* (personal-profile publishing was
  *  deprecated). After login we pick the first Page the user manages and read
  *  its follower count and insights.
  *
- *  Scopes (read-only — login + stats):
+ *  Scopes (read-only - login + stats):
  *    - pages_show_list          (list the user's Pages)
  *    - pages_read_engagement    (read Page content/engagement)
  *    - read_insights            (Page insights metrics)
  *  (Add pages_manage_posts later for publishing.)
  *
- *  OAuth plumbing is shared — see _meta.js.
+ *  OAuth plumbing is shared - see _meta.js.
  * ============================================================================
  */
 
@@ -34,7 +34,7 @@ export const facebook = {
     // Resolve a Page + its long-lived Page token now and cache it on the record.
     const pages = await getManagedPages(tokens.accessToken)
     const page = pages[0]
-    if (!page) throw new Error('No Facebook Page found — the user must manage at least one Page')
+    if (!page) throw new Error('No Facebook Page found - the user must manage at least one Page')
     return {
       ...tokens,
       pageId: page.id,

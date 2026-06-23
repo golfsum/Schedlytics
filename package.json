@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Schedlytics — sleek dark-mode scheduling & analytics dashboard for influencers and marketers",
+  "description": "Schedlytics - sleek dark-mode scheduling & analytics dashboard for influencers and marketers",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

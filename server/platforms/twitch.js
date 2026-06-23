@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- *  Twitch integration  —  OAuth 2.0 + Helix API
+ *  Twitch integration - OAuth 2.0 + Helix API
  * ============================================================================
  *
  *  Self-contained module for Twitch login + channel stats.
@@ -10,7 +10,7 @@
  *    - OAuth Redirect URL:  {BASE_URL}/auth/twitch/callback
  *    - .env: TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET
  *
- *  Scopes (read-only — login + stats):
+ *  Scopes (read-only - login + stats):
  *    - user:read:email          (basic profile)
  *    - moderator:read:followers (follower count for the channel)
  *

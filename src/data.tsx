@@ -103,7 +103,7 @@ export const NAV_ITEMS: NavItem[] = [
 ]
 
 /* -------------------------------------------------------------------------- */
-/*  Calendar — weekly schedule                                                  */
+/*  Calendar - weekly schedule                                                  */
 /* -------------------------------------------------------------------------- */
 
 export const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
@@ -128,7 +128,7 @@ export const INITIAL_POSTS: CalendarPost[] = [
 ]
 
 /* -------------------------------------------------------------------------- */
-/*  Analytics — Cross-Platform Sync                                             */
+/*  Analytics - Cross-Platform Sync                                             */
 /* -------------------------------------------------------------------------- */
 
 export const CHANNEL_STATS: ChannelStat[] = [
@@ -142,10 +142,10 @@ export const CHANNEL_STATS: ChannelStat[] = [
 ]
 
 /* -------------------------------------------------------------------------- */
-/*  Analytics — chart datasets                                                  */
+/*  Analytics - chart datasets                                                  */
 /* -------------------------------------------------------------------------- */
 
-/** Correlation matrix — Post Frequency (rows) vs Revenue cohorts (cols). */
+/** Correlation matrix - Post Frequency (rows) vs Revenue cohorts (cols). */
 export const CORRELATION_ROWS = ['1', '2', '4', '6', '1-24']
 export const CORRELATION_COLS = ['1', '4', '8', '12', '26']
 export const CORRELATION_MATRIX: number[][] = [

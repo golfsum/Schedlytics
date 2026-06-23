@@ -8,16 +8,20 @@ import {
   Hash,
   Image as ImageIcon,
   Film,
-  Clock,
-  ChevronDown,
   FlaskConical,
   Send,
   UploadCloud,
+  Plus,
+  Trash2,
+  ListOrdered,
+  X,
 } from 'lucide-react'
 import Toggle from './Toggle'
 import ThumbnailPicker from './ThumbnailPicker'
+import DateTimePicker from './DateTimePicker'
 import { useToast } from './Toast'
 import { useImageUpload } from './ImageUpload'
+import { usePersistedState } from '../lib/usePersisted'
 import { aiTitles, aiCaptions, aiHashtags, type Suggestion } from '../lib/aiSuggest'
 import { PLATFORM_LIST, PLATFORMS } from '../data'
 import type { PlatformId } from '../types'
@@ -34,6 +38,17 @@ const THUMB_CAPS: Record<string, { custom: boolean; frame: boolean; note: string
   patreon: { custom: true, frame: false, note: 'Upload a cover image for the post.' },
 }
 
+/** Platforms whose descriptions render timestamps as clickable chapters. */
+const TIMESTAMP_PLATFORMS: Partial<Record<PlatformId, string>> = {
+  youtube: 'YouTube turns these into chapters (first must be 0:00).',
+  facebook: 'Facebook shows these as video chapters.',
+}
+
+interface Chapter {
+  time: string
+  label: string
+}
+
 export default function MediaStudioView() {
   const { addToast } = useToast()
   const [platform, setPlatform] = useState<PlatformId>('youtube')
@@ -43,8 +58,22 @@ export default function MediaStudioView() {
   const [title, setTitle] = useState('')
   const [caption, setCaption] = useState('')
   const [tags, setTags] = useState<string[]>([])
+  const [tagInput, setTagInput] = useState('')
   const [abTest, setAbTest] = useState(false)
   const [publishing, setPublishing] = useState(false)
+  const [scheduleAt, setScheduleAt] = useState<Date | null>(null)
+  const [chapters, setChapters] = useState<Chapter[]>([{ time: '0:00', label: 'Intro' }])
+
+  // Per-platform default description (boilerplate: links, socials) that persists.
+  const [defaults, setDefaults] = usePersistedState<Partial<Record<PlatformId, string>>>(
+    'sl_default_descriptions',
+    {},
+  )
+  const defaultDescription = defaults[platform] || ''
+  const setDefaultDescription = (text: string) =>
+    setDefaults((d) => ({ ...d, [platform]: text }))
+
+  const supportsTimestamps = Boolean(TIMESTAMP_PLATFORMS[platform])
 
   // AI suggestion state
   const [titleSugs, setTitleSugs] = useState<Suggestion[]>([])
@@ -71,9 +100,52 @@ export default function MediaStudioView() {
   const toggleTag = (t: string) =>
     setTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]))
 
+  const addTags = (raw: string) => {
+    const parts = raw
+      .split(/[\s,]+/)
+      .map((t) => t.trim().replace(/^#+/, ''))
+      .filter(Boolean)
+      .map((t) => `#${t}`)
+    if (parts.length) setTags((prev) => Array.from(new Set([...prev, ...parts])))
+    setTagInput('')
+  }
+
+  const onTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',' || e.key === ' ') {
+      e.preventDefault()
+      if (tagInput.trim()) addTags(tagInput)
+    } else if (e.key === 'Backspace' && !tagInput && tags.length) {
+      setTags((prev) => prev.slice(0, -1))
+    }
+  }
+
+  // Chapter helpers (item 5).
+  const setChapter = (i: number, patch: Partial<Chapter>) =>
+    setChapters((c) => c.map((ch, idx) => (idx === i ? { ...ch, ...patch } : ch)))
+  const addChapter = () => setChapters((c) => [...c, { time: '', label: '' }])
+  const removeChapter = (i: number) => setChapters((c) => c.filter((_, idx) => idx !== i))
+
+  /** Assemble the full description: video caption + chapters + saved default. */
+  const composeDescription = () => {
+    const blocks: string[] = []
+    if (caption.trim()) blocks.push(caption.trim())
+    if (supportsTimestamps) {
+      const lines = chapters
+        .filter((c) => c.time.trim() && c.label.trim())
+        .map((c) => `${c.time.trim()} ${c.label.trim()}`)
+      if (lines.length) blocks.push(['Chapters:', ...lines].join('\n'))
+    }
+    if (tags.length) blocks.push(tags.join(' '))
+    if (defaultDescription.trim()) blocks.push(defaultDescription.trim())
+    return blocks.join('\n\n')
+  }
+
   const publish = () => {
     setPublishing(true)
-    addToast(`Scheduled to ${plat.name}! 🚀`)
+    const when = scheduleAt
+      ? `for ${scheduleAt.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
+      : 'to publish now'
+    addToast(`Scheduled to ${plat.name} ${when}! 🚀`)
     setTimeout(() => setPublishing(false), 1400)
   }
 
@@ -189,9 +261,9 @@ export default function MediaStudioView() {
             <Suggestions items={titleSugs} onPick={(s) => setTitle(s)} />
           </Field>
 
-          {/* Caption */}
+          {/* Caption / Description */}
           <Field
-            label="Caption"
+            label="Caption / Description"
             loading={loading === 'caption'}
             onGenerate={() => run('caption', () => aiCaptions(title), setCaptionSugs)}
           >
@@ -199,7 +271,7 @@ export default function MediaStudioView() {
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               rows={3}
-              placeholder="Write a caption or generate one tuned for engagement"
+              placeholder="What this specific post is about"
               className="w-full resize-none rounded-lg border border-white/5 bg-navy-900/60 px-3.5 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
             />
             <Suggestions items={captionSugs} onPick={(s) => setCaption(s)} />
@@ -234,15 +306,106 @@ export default function MediaStudioView() {
                 })}
               </div>
             )}
-            <div className="flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-lg border border-white/5 bg-navy-900/60 px-3 py-2">
+            <div className="flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-lg border border-white/5 bg-navy-900/60 px-3 py-2 focus-within:border-cyan-accent/40 focus-within:ring-2 focus-within:ring-cyan-accent/20">
               <Hash className="h-4 w-4 shrink-0 text-cyan-accent" />
-              {tags.length === 0 ? (
-                <span className="text-sm text-slate-500">Picked hashtags appear here</span>
-              ) : (
-                <span className="text-sm text-cyan-accent">{tags.join(' ')}</span>
-              )}
+              {tags.map((t) => (
+                <span
+                  key={t}
+                  className="flex items-center gap-1 rounded-full bg-cyan-accent/15 py-0.5 pl-2 pr-1 text-xs font-medium text-cyan-accent"
+                >
+                  {t}
+                  <button
+                    onClick={() => toggleTag(t)}
+                    className="grid h-4 w-4 place-items-center rounded-full hover:bg-cyan-accent/20"
+                    title="Remove"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+              <input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={onTagKeyDown}
+                onBlur={() => tagInput.trim() && addTags(tagInput)}
+                placeholder={tags.length === 0 ? 'Type a hashtag and press Enter' : 'Add more…'}
+                className="min-w-[120px] flex-1 bg-transparent text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none"
+              />
             </div>
           </Field>
+
+          {/* Timestamps / Chapters (platforms that support it) */}
+          {supportsTimestamps && (
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <ListOrdered className="h-4 w-4 text-cyan-accent" />
+                <span className="text-sm font-semibold text-white">Timestamps / Chapters</span>
+              </div>
+              <div className="space-y-2">
+                {chapters.map((c, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input
+                      value={c.time}
+                      onChange={(e) => setChapter(i, { time: e.target.value })}
+                      placeholder="0:00"
+                      className="w-20 rounded-lg border border-white/5 bg-navy-900/60 px-2.5 py-2 text-center text-sm tabular-nums text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+                    />
+                    <input
+                      value={c.label}
+                      onChange={(e) => setChapter(i, { label: e.target.value })}
+                      placeholder="Chapter title"
+                      className="flex-1 rounded-lg border border-white/5 bg-navy-900/60 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+                    />
+                    <button
+                      onClick={() => removeChapter(i)}
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-400 hover:text-rose-300"
+                      title="Remove"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={addChapter}
+                className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-cyan-accent hover:underline"
+              >
+                <Plus className="h-3.5 w-3.5" /> Add timestamp
+              </button>
+              <p className="mt-1.5 text-[11px] text-slate-500">{TIMESTAMP_PLATFORMS[platform]}</p>
+            </div>
+          )}
+
+          {/* Default description that persists per platform (item 4) */}
+          <Field
+            label="Default description (saved)"
+            loading={false}
+            generateLabel={defaultDescription ? 'Saved ✓' : 'Auto-saves'}
+            onGenerate={() => addToast('Your default description saves automatically')}
+          >
+            <textarea
+              value={defaultDescription}
+              onChange={(e) => setDefaultDescription(e.target.value)}
+              rows={3}
+              placeholder={`Boilerplate added to every ${plat.name} post: links, socials, business email…`}
+              className="w-full resize-none rounded-lg border border-white/5 bg-navy-900/60 px-3.5 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+            />
+            <p className="mt-1.5 text-[11px] text-slate-500">
+              Appended to the end of every {plat.name} post and remembered next time.
+            </p>
+          </Field>
+
+          {/* Combined description preview */}
+          {composeDescription() && (
+            <details className="rounded-lg border border-white/5 bg-navy-900/40 px-3.5 py-2.5">
+              <summary className="cursor-pointer text-sm font-semibold text-white">
+                Preview full description
+              </summary>
+              <pre className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-xs leading-relaxed text-slate-300">
+                {composeDescription()}
+              </pre>
+            </details>
+          )}
 
           {/* A/B + schedule + publish */}
           <div className="flex items-center justify-between rounded-lg border border-white/5 bg-navy-900/50 px-3.5 py-2.5">
@@ -254,16 +417,7 @@ export default function MediaStudioView() {
 
           <div>
             <span className="mb-2 block text-sm font-semibold text-white">Scheduled time</span>
-            <div className="relative">
-              <Clock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <select className="w-full appearance-none rounded-lg border border-white/5 bg-navy-900/60 py-2.5 pl-9 pr-8 text-sm text-slate-200 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20">
-                <option>Tomorrow, 10:00 AM</option>
-                <option>Tomorrow, 2:00 PM</option>
-                <option>Saturday, 9:00 AM</option>
-                <option>Publish now</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            </div>
+            <DateTimePicker value={scheduleAt} onChange={setScheduleAt} />
           </div>
 
           <button
@@ -272,7 +426,13 @@ export default function MediaStudioView() {
             className="mt-auto flex items-center justify-center gap-2 rounded-lg gradient-cyan py-3 text-sm font-bold text-navy-900 shadow-glow transition-transform hover:scale-[1.01] disabled:opacity-80"
           >
             {publishing ? <Check className="h-4 w-4" strokeWidth={3} /> : <Send className="h-4 w-4" />}
-            {publishing ? 'Scheduled!' : `Schedule to ${plat.name}`}
+            {publishing
+              ? scheduleAt
+                ? 'Scheduled!'
+                : 'Published!'
+              : scheduleAt
+                ? `Schedule to ${plat.name}`
+                : `Publish to ${plat.name}`}
           </button>
         </section>
       </div>

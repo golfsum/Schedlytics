@@ -30,7 +30,7 @@ export default function PostBlock({
       }}
       onDragEnd={onDragEnd}
       onClick={() => onClick(post)}
-      title={`${platform.name} — ${post.label} (click to edit)`}
+      title={`${platform.name}: ${post.label} (click to edit)`}
       className={`group flex cursor-grab items-center gap-1.5 rounded-lg bg-gradient-to-r ${platform.gradient} px-2 py-1.5 text-white shadow-md transition-all hover:shadow-glow active:cursor-grabbing ${
         dragging ? 'opacity-40' : 'opacity-100'
       }`}

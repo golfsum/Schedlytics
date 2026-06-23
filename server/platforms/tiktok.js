@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- *  TikTok integration  —  Login Kit v2 (OAuth) + Display API
+ *  TikTok integration - Login Kit v2 (OAuth) + Display API
  * ============================================================================
  *
  *  Self-contained so it can be submitted on its own for TikTok's app review.
@@ -11,11 +11,11 @@
  *    - Request scopes below; the app starts in Sandbox until audited
  *    - Put client key/secret in .env as TIKTOK_CLIENT_KEY / _SECRET
  *
- *  Scopes (read-only — login + stats):
+ *  Scopes (read-only - login + stats):
  *    - user.info.basic   (open_id, display_name, avatar)
  *    - user.info.stats   (follower_count, likes_count, video_count)
  *    - video.list        (recent videos + their stats)
- *  (Add video.publish later for posting — requires the Content Posting API
+ *  (Add video.publish later for posting - requires the Content Posting API
  *   and a separate audit.)
  * ============================================================================
  */
@@ -32,7 +32,7 @@ export const tiktok = {
   id: 'tiktok',
   name: 'TikTok',
 
-  /** Step 1 — consent URL. Note TikTok uses `client_key`, not client_id. */
+  /** Step 1 - consent URL. Note TikTok uses `client_key`, not client_id. */
   getAuthUrl(state) {
     const params = new URLSearchParams({
       client_key: creds.tiktok.clientKey,
@@ -44,7 +44,7 @@ export const tiktok = {
     return `${AUTH_ENDPOINT}?${params.toString()}`
   },
 
-  /** Step 2 — exchange the code for tokens. */
+  /** Step 2 - exchange the code for tokens. */
   async exchangeCode(code) {
     const res = await fetch(TOKEN_ENDPOINT, {
       method: 'POST',
@@ -61,7 +61,7 @@ export const tiktok = {
     return normalizeTokens(await res.json())
   },
 
-  /** Step 3 — refresh. */
+  /** Step 3 - refresh. */
   async refresh(refreshToken) {
     const res = await fetch(TOKEN_ENDPOINT, {
       method: 'POST',
@@ -77,7 +77,7 @@ export const tiktok = {
     return normalizeTokens(await res.json())
   },
 
-  /** Step 4 — user info + stats. */
+  /** Step 4 - user info + stats. */
   async getStats(accessToken) {
     const fields = [
       'open_id',
@@ -111,7 +111,7 @@ export const tiktok = {
     }
   },
 
-  /** Optional — recent videos with engagement stats. */
+  /** Optional - recent videos with engagement stats. */
   async getRecentVideos(accessToken, max = 10) {
     const fields = 'id,title,view_count,like_count,comment_count,share_count,create_time'
     const res = await fetch(`${API}/video/list/?fields=${fields}`, {

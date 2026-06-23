@@ -9,6 +9,9 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useToast } from './Toast'
+import { useAuth } from './Auth'
+import { usePersistedState } from '../lib/usePersisted'
+import LinkInBioModal, { type BioLink } from './LinkInBioModal'
 import {
   listShortLinks,
   createShortLink,
@@ -17,16 +20,35 @@ import {
   type ShortLink,
 } from '../lib/shortLinks'
 
+const DEFAULT_BIO_LINKS: BioLink[] = [
+  { id: 'bio_shop', label: 'Shop My Feed', url: '' },
+  { id: 'bio_yt', label: 'Latest YouTube', url: '' },
+  { id: 'bio_contact', label: 'Contact', url: '' },
+]
+
 /* -------------------------------------------------------------------------- */
 /*  Shared card: Link-in-bio builder + URL shortener                            */
 /* -------------------------------------------------------------------------- */
 
 export function LinkEngagementTools() {
   const { addToast } = useToast()
+  const { user } = useAuth()
   const [longUrl, setLongUrl] = useState('')
   const [link, setLink] = useState<ShortLink | null>(null)
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [bioTitle, setBioTitle] = usePersistedState('sl_bio_title', user?.name || 'My Links')
+  const [bioLinks, setBioLinks] = usePersistedState<BioLink[]>('sl_bio_links', DEFAULT_BIO_LINKS)
+  const [editingBio, setEditingBio] = useState(false)
+
+  const openBioLink = (l: BioLink) => {
+    if (l.url) {
+      window.open(l.url, '_blank', 'noopener,noreferrer')
+    } else {
+      addToast(`Add a URL for "${l.label}" in the editor`, 'info')
+      setEditingBio(true)
+    }
+  }
 
   const generate = async () => {
     if (!longUrl.trim()) {
@@ -77,14 +99,15 @@ export function LinkEngagementTools() {
                   alt=""
                   className="h-9 w-9 rounded-full ring-2 ring-cyan-accent/40"
                 />
-                <span className="text-[10px] font-semibold text-white">Schedlytics</span>
-                {['Shop My Feed', 'Latest YouTube', 'Contact'].map((l) => (
+                <span className="max-w-full truncate text-[10px] font-semibold text-white">{bioTitle}</span>
+                {(bioLinks.length ? bioLinks : DEFAULT_BIO_LINKS).slice(0, 4).map((l) => (
                   <button
-                    key={l}
-                    onClick={() => addToast(`Opening "${l}" block editor`, 'info')}
-                    className="w-full rounded-md gradient-cyan-soft py-1 text-center text-[9px] font-semibold text-cyan-accent transition-transform hover:scale-[1.03]"
+                    key={l.id}
+                    onClick={() => openBioLink(l)}
+                    className="w-full truncate rounded-md gradient-cyan-soft px-1 py-1 text-center text-[9px] font-semibold text-cyan-accent transition-transform hover:scale-[1.03]"
+                    title={l.url || 'No URL set yet'}
                   >
-                    {l}
+                    {l.label || 'Untitled'}
                   </button>
                 ))}
               </div>
@@ -96,7 +119,7 @@ export function LinkEngagementTools() {
                 Customize a micro landing page for every platform.
               </p>
               <button
-                onClick={() => addToast('Link-in-bio editor opened ✨')}
+                onClick={() => setEditingBio(true)}
                 className="mt-3 flex items-center gap-2 rounded-lg gradient-cyan px-3.5 py-2 text-sm font-bold text-navy-900 transition-transform hover:scale-[1.02]"
               >
                 <ExternalLink className="h-4 w-4" />
@@ -152,6 +175,20 @@ export function LinkEngagementTools() {
           )}
         </div>
       </div>
+
+      {editingBio && (
+        <LinkInBioModal
+          title={bioTitle}
+          links={bioLinks}
+          onClose={() => setEditingBio(false)}
+          onSave={(t, links) => {
+            setBioTitle(t)
+            setBioLinks(links)
+            setEditingBio(false)
+            addToast('Link in bio saved ✨')
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -271,7 +308,7 @@ export default function LinkToolsView() {
           ))}
           {items.length === 0 && (
             <p className="py-8 text-center text-sm text-slate-500">
-              No links yet — shorten one above to get started.
+              No links yet. Shorten one above to get started.
             </p>
           )}
         </div>

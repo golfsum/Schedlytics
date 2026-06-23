@@ -87,7 +87,7 @@ export async function disconnectAccount(platform: PlatformId): Promise<void> {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  YouTube extras — Analytics API, posting (Data v3), Reporting API           */
+/*  YouTube extras - Analytics API, posting (Data v3), Reporting API           */
 /* -------------------------------------------------------------------------- */
 
 async function getJson<T>(path: string): Promise<T> {
@@ -108,7 +108,7 @@ export interface DailyMetric {
   subscribersLost: number
 }
 
-/** Analytics API — daily time series (powers the engagement-trend chart). */
+/** Analytics API - daily time series (powers the engagement-trend chart). */
 export function fetchYouTubeDaily(startDate?: string, endDate?: string) {
   const qs = new URLSearchParams()
   if (startDate) qs.set('startDate', startDate)
@@ -116,17 +116,17 @@ export function fetchYouTubeDaily(startDate?: string, endDate?: string) {
   return getJson<DailyMetric[]>(`/api/youtube/analytics?${qs}`)
 }
 
-/** Analytics API — audience age × gender breakdown. */
+/** Analytics API - audience age × gender breakdown. */
 export function fetchYouTubeDemographics() {
   return getJson<Record<string, string | number>[]>(`/api/youtube/analytics/demographics`)
 }
 
-/** Analytics API — traffic source breakdown. */
+/** Analytics API - traffic source breakdown. */
 export function fetchYouTubeTraffic() {
   return getJson<Record<string, string | number>[]>(`/api/youtube/analytics/traffic`)
 }
 
-/** Analytics API — top videos by views. */
+/** Analytics API - top videos by views. */
 export function fetchYouTubeTopVideos(max = 10) {
   return getJson<Record<string, string | number>[]>(`/api/youtube/top-videos?max=${max}`)
 }
@@ -142,12 +142,12 @@ export interface YouTubeComment {
   videoId?: string
 }
 
-/** Data API v3 — recent comment threads across the connected channel. */
+/** Data API v3 - recent comment threads across the connected channel. */
 export function fetchYouTubeComments(max = 20) {
   return getJson<YouTubeComment[]>(`/api/youtube/comments?max=${max}`)
 }
 
-/** Data API v3 — publish a video by URL (server fetches + resumable-uploads it). */
+/** Data API v3 - publish a video by URL (server fetches + resumable-uploads it). */
 export async function publishYouTubeVideo(body: {
   videoUrl: string
   title: string
@@ -166,7 +166,7 @@ export async function publishYouTubeVideo(body: {
   return res.json()
 }
 
-/** Reporting API — list available report types / jobs / a job's reports. */
+/** Reporting API - list available report types / jobs / a job's reports. */
 export const youtubeReporting = {
   reportTypes: () => getJson<unknown>(`/api/youtube/reporting/report-types`),
   jobs: () => getJson<unknown>(`/api/youtube/reporting/jobs`),
