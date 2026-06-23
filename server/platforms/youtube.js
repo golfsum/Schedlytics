@@ -167,41 +167,58 @@ export const youtube = {
     }
 
     // 1. Channel-wide thread feed (needs force-ssl). Most reliable for new comments.
+    let out = []
     if (channelId) {
       try {
         const data = await getJson(
           `${DATA_API}/commentThreads?part=snippet&order=time&maxResults=${Math.min(max, 100)}&allThreadsRelatedToChannelId=${channelId}`,
           accessToken,
         )
-        const out = (data.items || []).map(threadToComment)
-        if (out.length) return out.slice(0, max)
+        out = (data.items || []).map(threadToComment)
       } catch {
         /* scope not granted yet (needs reconnect) or none - fall back */
       }
     }
 
     // 2. Fallback: scan recent uploads per-video (works with youtube.readonly).
-    if (!uploads) return []
-    const pl = await getJson(
-      `${DATA_API}/playlistItems?part=contentDetails&playlistId=${uploads}&maxResults=10`,
-      accessToken,
-    )
-    const videoIds = (pl.items || []).map((i) => i.contentDetails?.videoId).filter(Boolean)
-
-    const out = []
-    for (const videoId of videoIds) {
-      try {
-        const data = await getJson(
-          `${DATA_API}/commentThreads?part=snippet&order=time&maxResults=10&videoId=${videoId}`,
-          accessToken,
-        )
-        for (const it of data.items || []) out.push(threadToComment(it))
-      } catch {
-        /* comments disabled or unavailable for this video - skip it */
+    if (!out.length && uploads) {
+      const pl = await getJson(
+        `${DATA_API}/playlistItems?part=contentDetails&playlistId=${uploads}&maxResults=10`,
+        accessToken,
+      )
+      const videoIds = (pl.items || []).map((i) => i.contentDetails?.videoId).filter(Boolean)
+      for (const videoId of videoIds) {
+        try {
+          const data = await getJson(
+            `${DATA_API}/commentThreads?part=snippet&order=time&maxResults=10&videoId=${videoId}`,
+            accessToken,
+          )
+          for (const it of data.items || []) out.push(threadToComment(it))
+        } catch {
+          /* comments disabled or unavailable for this video - skip it */
+        }
       }
+      out.sort((a, b) => (Date.parse(b.time) || 0) - (Date.parse(a.time) || 0))
     }
-    out.sort((a, b) => (Date.parse(b.time) || 0) - (Date.parse(a.time) || 0))
-    return out.slice(0, max)
+
+    out = out.slice(0, max)
+    await this.attachVideoTitles(accessToken, out)
+    return out
+  },
+
+  /** Look up the title of each comment's video and attach it (best-effort). */
+  async attachVideoTitles(accessToken, comments) {
+    const ids = [...new Set(comments.map((c) => c.videoId).filter(Boolean))]
+    if (!ids.length) return comments
+    try {
+      const data = await getJson(`${DATA_API}/videos?part=snippet&id=${ids.join(',')}`, accessToken)
+      const titles = {}
+      for (const v of data.items || []) titles[v.id] = v.snippet?.title
+      for (const c of comments) if (c.videoId) c.videoTitle = titles[c.videoId]
+    } catch {
+      /* best-effort - leave titles unset */
+    }
+    return comments
   },
 
   /**

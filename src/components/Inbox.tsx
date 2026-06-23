@@ -18,6 +18,9 @@ export interface Message {
   commentId?: string
   /** Likes on the comment (read-only; YouTube has no like-a-comment API). */
   likeCount?: number
+  /** The video the comment is on, for a deep link. */
+  videoId?: string
+  videoTitle?: string
 }
 
 /** YouTube comment text can contain HTML + entities; clean it for display. */
@@ -91,6 +94,8 @@ export function InboxProvider({ children }: { children: ReactNode }) {
           unread: true,
           commentId: c.id,
           likeCount: c.likeCount,
+          videoId: c.videoId,
+          videoTitle: c.videoTitle,
         }))
         setMessages(msgs)
         setSelectedId(msgs[0].id)

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Send, CheckCheck, Circle, RefreshCw, Loader2, ThumbsUp } from 'lucide-react'
+import { Send, CheckCheck, Circle, RefreshCw, Loader2, ThumbsUp, Play, ExternalLink } from 'lucide-react'
 import { PLATFORMS } from '../data'
 import { useToast } from './Toast'
 import { useNotifications } from './Notifications'
@@ -147,11 +147,26 @@ export default function InboxView() {
               {/* header */}
               <div className="flex items-center gap-3 border-b border-white/5 px-5 py-4">
                 <img src={selected.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
-                <div>
+                <div className="min-w-0">
                   <div className="font-semibold text-white">{selected.name}</div>
-                  <div className="text-xs text-slate-500">
-                    via {PLATFORMS[selected.platform].name}
-                  </div>
+                  <div className="text-xs text-slate-500">via {PLATFORMS[selected.platform].name}</div>
+                  {selected.videoId && (
+                    <a
+                      href={
+                        selected.commentId
+                          ? `https://www.youtube.com/watch?v=${selected.videoId}&lc=${selected.commentId}`
+                          : `https://www.youtube.com/watch?v=${selected.videoId}`
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-0.5 flex items-center gap-1 text-xs font-medium text-cyan-accent hover:underline"
+                      title="Open this comment on YouTube"
+                    >
+                      <Play className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{selected.videoTitle || 'View video'}</span>
+                      <ExternalLink className="h-3 w-3 shrink-0" />
+                    </a>
+                  )}
                 </div>
               </div>
 

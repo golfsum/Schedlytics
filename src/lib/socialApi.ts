@@ -261,6 +261,7 @@ export interface YouTubeComment {
   likeCount: number
   replyCount: number
   videoId?: string
+  videoTitle?: string
 }
 
 /** Data API v3 - recent comment threads across the connected channel. */
