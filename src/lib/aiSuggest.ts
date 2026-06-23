@@ -1,16 +1,34 @@
 /**
  * AI suggestion engine for titles, captions, and hashtags.
  *
- * This is a simulated generator that produces plausible, trend-styled options
- * from a topic. It's intentionally behind small async functions so you can swap
- * the bodies for a real LLM call (e.g. POST /api/ai/titles backed by the Claude
- * API) without touching the UI.
+ * When the backend has an Anthropic key configured, suggestions come from
+ * Claude (POST /api/ai). Otherwise we fall back to the built-in offline
+ * generator below, so the feature works with or without a key.
  */
+import { backendEnabled, apiBase } from './socialApi'
 
 export interface Suggestion {
   text: string
   /** 0-100 "trend potential" score used to rank and badge options. */
   trend: number
+}
+
+/** Try the Claude-backed endpoint; return null to signal "use the fallback". */
+async function fetchAi(kind: 'title' | 'caption' | 'tags', topic: string): Promise<Suggestion[] | null> {
+  if (!backendEnabled) return null
+  try {
+    const res = await fetch(`${apiBase}/api/ai`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind, topic }),
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as { suggestions?: Suggestion[] }
+    return data.suggestions && data.suggestions.length ? data.suggestions : null
+  } catch {
+    return null
+  }
 }
 
 const cap = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase())
@@ -118,14 +136,20 @@ function makeHashtags(input: string): Suggestion[] {
 /* Swap the bodies for real API calls; the UI awaits these.                  */
 
 export async function aiTitles(topic: string): Promise<Suggestion[]> {
+  const real = await fetchAi('title', topic)
+  if (real) return real
   await delay(650)
   return makeTitles(topic)
 }
 export async function aiCaptions(topic: string): Promise<Suggestion[]> {
+  const real = await fetchAi('caption', topic)
+  if (real) return real
   await delay(650)
   return makeCaptions(topic)
 }
 export async function aiHashtags(topic: string): Promise<Suggestion[]> {
+  const real = await fetchAi('tags', topic)
+  if (real) return real
   await delay(500)
   return makeHashtags(topic)
 }

@@ -3,7 +3,7 @@ import { Maximize2, MoreHorizontal, Settings2, Loader2 } from 'lucide-react'
 import Toggle from './Toggle'
 import { useToast } from './Toast'
 import { useConnections, CONNECTABLE } from './Connections'
-import { backendEnabled, sampleData, fetchStats, type RemoteStats } from '../lib/socialApi'
+import { backendEnabled, sampleData, fetchStats, fetchYouTubeDaily, type RemoteStats, type DailyMetric } from '../lib/socialApi'
 import { CHANNEL_STATS, PLATFORMS } from '../data'
 import { CorrelationMatrix, EngagementTrend, ConversionBars } from './charts'
 
@@ -181,6 +181,23 @@ function Stat({ value, label, accent }: { value: string; label: string; accent?:
 /* -------------------------------------------------------------------------- */
 
 function UnifiedCorrelation() {
+  const { accounts } = useConnections()
+  const ytConnected = Boolean(accounts.youtube?.connected)
+  const [daily, setDaily] = useState<DailyMetric[] | 'error' | null>(null)
+
+  // Pull real YouTube daily views for the engagement chart when connected.
+  useEffect(() => {
+    if (backendEnabled && ytConnected && daily === null) {
+      fetchYouTubeDaily()
+        .then(setDaily)
+        .catch(() => setDaily('error'))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ytConnected])
+
+  const liveYouTube = backendEnabled && ytConnected
+  const hasDaily = Array.isArray(daily) && daily.length > 0
+
   return (
     <section className="flex flex-col gap-5">
       <div className="card p-5">
@@ -199,8 +216,25 @@ function UnifiedCorrelation() {
             <h3 className="text-sm font-semibold text-white">Engagement Trend</h3>
             <MoreHorizontal className="h-4 w-4 text-slate-500" />
           </div>
-          <p className="mb-2 text-xs text-slate-500">{sampleData ? 'Oct 20 – 26' : 'Last 7 days'}</p>
-          {sampleData ? <EngagementTrend /> : <EmptyChart />}
+          <p className="mb-2 text-xs text-slate-500">
+            {sampleData ? 'Oct 20 – 26' : liveYouTube ? 'YouTube views, last 30 days' : 'Last 7 days'}
+          </p>
+          {sampleData ? (
+            <EngagementTrend />
+          ) : liveYouTube ? (
+            daily === null ? (
+              <ChartLoading />
+            ) : hasDaily ? (
+              <EngagementTrend
+                data={(daily as DailyMetric[]).map((d) => d.views)}
+                labels={sparseLabels((daily as DailyMetric[]).map((d) => d.day))}
+              />
+            ) : (
+              <EmptyChart />
+            )
+          ) : (
+            <EmptyChart />
+          )}
         </div>
 
         <div className="card p-5">
@@ -213,6 +247,25 @@ function UnifiedCorrelation() {
         </div>
       </div>
     </section>
+  )
+}
+
+/** Build a sparse label row: just the first and last dates (M/D), rest blank. */
+function sparseLabels(days: string[]): string[] {
+  const fmt = (d: string) => {
+    const parts = d.split('-')
+    return parts.length === 3 ? `${Number(parts[1])}/${Number(parts[2])}` : d
+  }
+  return days.map((d, i) => (i === 0 || i === days.length - 1 ? fmt(d) : ''))
+}
+
+function ChartLoading() {
+  return (
+    <div className="grid h-28 place-items-center text-xs text-slate-500">
+      <span className="flex items-center gap-2">
+        <Loader2 className="h-4 w-4 animate-spin" /> Loading analytics…
+      </span>
+    </div>
   )
 }
 

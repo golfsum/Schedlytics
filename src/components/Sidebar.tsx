@@ -2,6 +2,7 @@ import { Sparkles } from 'lucide-react'
 import Logo from './Logo'
 import { NAV_ITEMS } from '../data'
 import { useInbox } from './Inbox'
+import { usePlan } from './Plan'
 import type { NavId } from '../types'
 
 interface SidebarProps {
@@ -13,6 +14,7 @@ interface SidebarProps {
 /** Left-hand primary navigation rail. */
 export default function Sidebar({ active, onNavigate, onUpgrade }: SidebarProps) {
   const { unreadCount } = useInbox()
+  const { plan } = usePlan()
   return (
     <aside className="hidden w-[232px] shrink-0 flex-col border-r border-white/5 bg-navy-950/80 px-4 py-6 md:flex">
       {/* Brand */}
@@ -57,22 +59,24 @@ export default function Sidebar({ active, onNavigate, onUpgrade }: SidebarProps)
         })}
       </nav>
 
-      {/* Upgrade card */}
-      <div className="mt-4 rounded-2xl border border-white/5 gradient-cyan-soft p-4">
-        <div className="flex items-center gap-2 text-cyan-accent">
-          <Sparkles className="h-4 w-4" />
-          <span className="text-xs font-semibold uppercase tracking-wide">Pro plan</span>
+      {/* Upgrade card - only while on the Free plan */}
+      {plan === 'free' && (
+        <div className="mt-4 rounded-2xl border border-white/5 gradient-cyan-soft p-4">
+          <div className="flex items-center gap-2 text-cyan-accent">
+            <Sparkles className="h-4 w-4" />
+            <span className="text-xs font-semibold uppercase tracking-wide">Pro plan</span>
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-slate-300">
+            Unlock unlimited channels, AI captions &amp; deep analytics.
+          </p>
+          <button
+            onClick={onUpgrade}
+            className="mt-3 w-full rounded-lg gradient-cyan py-2 text-xs font-bold text-navy-900 transition-transform hover:scale-[1.02]"
+          >
+            Upgrade
+          </button>
         </div>
-        <p className="mt-2 text-xs leading-relaxed text-slate-300">
-          Unlock unlimited channels, AI captions &amp; deep analytics.
-        </p>
-        <button
-          onClick={onUpgrade}
-          className="mt-3 w-full rounded-lg gradient-cyan py-2 text-xs font-bold text-navy-900 transition-transform hover:scale-[1.02]"
-        >
-          Upgrade
-        </button>
-      </div>
+      )}
     </aside>
   )
 }

@@ -15,6 +15,7 @@ import {
 import Toggle from './Toggle'
 import { useToast } from './Toast'
 import { useImageUpload } from './ImageUpload'
+import { sampleData } from '../lib/socialApi'
 import { PLATFORM_LIST, PLATFORMS } from '../data'
 import type { CalendarPost, PlatformId } from '../types'
 
@@ -26,18 +27,20 @@ interface NewPostPanelProps {
 const CONTENT_TYPES = ['Reel', 'Post', 'Story', 'Carousel'] as const
 
 export default function NewPostPanel({ onClose, onSchedule }: NewPostPanelProps) {
-  const [selected, setSelected] = useState<PlatformId[]>(['instagram', 'facebook'])
+  const [selected, setSelected] = useState<PlatformId[]>(sampleData ? ['instagram', 'facebook'] : [])
   const [contentType, setContentType] = useState<(typeof CONTENT_TYPES)[number]>('Reel')
-  const [caption, setCaption] = useState('New summer look! #fashion #summer ☀️')
-  const [geotag, setGeotag] = useState(true)
-  const [shopping, setShopping] = useState(true)
-  const [altText, setAltText] = useState(true)
+  const [caption, setCaption] = useState(sampleData ? 'New summer look! #fashion #summer ☀️' : '')
+  const [geotag, setGeotag] = useState(sampleData)
+  const [shopping, setShopping] = useState(sampleData)
+  const [altText, setAltText] = useState(sampleData)
   const [day, setDay] = useState(0)
   const [time, setTime] = useState('10:00')
   const [scheduled, setScheduled] = useState(false)
   const { addToast } = useToast()
   const media = useImageUpload(
-    'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=640&q=70',
+    sampleData
+      ? 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=640&q=70'
+      : undefined,
     () => addToast('Media updated'),
   )
 
@@ -135,21 +138,32 @@ export default function NewPostPanel({ onClose, onSchedule }: NewPostPanelProps)
         {/* Visual upload */}
         <div>
           <Label>Visual Upload</Label>
-          <button
-            type="button"
-            onClick={media.open}
-            className="group relative mt-2 block w-full overflow-hidden rounded-xl border border-white/10"
-          >
-            <img src={media.preview} alt="Post preview" className="h-40 w-full object-cover" />
-            <div className="absolute inset-0 grid place-items-center bg-navy-950/30 opacity-0 transition-opacity group-hover:opacity-100">
-              <span className="flex items-center gap-2 rounded-lg bg-navy-900/80 px-3 py-1.5 text-xs font-medium text-white">
-                <ImagePlus className="h-4 w-4" /> Replace media
+          {media.preview ? (
+            <button
+              type="button"
+              onClick={media.open}
+              className="group relative mt-2 block w-full overflow-hidden rounded-xl border border-white/10"
+            >
+              <img src={media.preview} alt="Post preview" className="h-40 w-full object-cover" />
+              <div className="absolute inset-0 grid place-items-center bg-navy-950/30 opacity-0 transition-opacity group-hover:opacity-100">
+                <span className="flex items-center gap-2 rounded-lg bg-navy-900/80 px-3 py-1.5 text-xs font-medium text-white">
+                  <ImagePlus className="h-4 w-4" /> Replace media
+                </span>
+              </div>
+              <span className="pointer-events-none absolute left-1/2 top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-navy-900 shadow-lg transition-transform group-hover:scale-110">
+                <Play className="h-5 w-5 translate-x-0.5 fill-navy-900" />
               </span>
-            </div>
-            <span className="pointer-events-none absolute left-1/2 top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-navy-900 shadow-lg transition-transform group-hover:scale-110">
-              <Play className="h-5 w-5 translate-x-0.5 fill-navy-900" />
-            </span>
-          </button>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={media.open}
+              className="mt-2 flex h-40 w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 text-slate-400 transition-colors hover:border-cyan-accent/40 hover:text-cyan-accent"
+            >
+              <ImagePlus className="h-6 w-6" />
+              <span className="text-xs font-medium">Upload a photo or video</span>
+            </button>
+          )}
           {media.input}
         </div>
 

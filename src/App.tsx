@@ -12,14 +12,15 @@ import UpgradeModal from './components/UpgradeModal'
 import LinkToolsView from './components/LinkTools'
 import InboxView from './components/InboxView'
 import { useToast } from './components/Toast'
-import { demoMode, sampleData } from './lib/socialApi'
+import { useSeededState } from './lib/usePersisted'
+import { demoMode } from './lib/socialApi'
 import { INITIAL_POSTS } from './data'
 import type { CalendarPost, NavId } from './types'
 
 export default function App() {
   const { addToast } = useToast()
   const [nav, setNav] = useState<NavId>('calendar')
-  const [posts, setPosts] = useState<CalendarPost[]>(sampleData ? INITIAL_POSTS : [])
+  const [posts, setPosts] = useSeededState<CalendarPost[]>('sl_posts', INITIAL_POSTS, [])
   const [panelOpen, setPanelOpen] = useState(false)
   const [editingPost, setEditingPost] = useState<CalendarPost | null>(null)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
@@ -51,7 +52,7 @@ export default function App() {
 
       {/* main column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onNavigate={setNav} onUpgrade={() => setUpgradeOpen(true)} />
+        <Topbar onNavigate={setNav} onUpgrade={() => setUpgradeOpen(true)} posts={posts} />
 
         {demoMode && (
           <div className="flex items-center gap-2 border-b border-cyan-accent/20 bg-cyan-accent/10 px-4 py-2 text-xs text-cyan-accent sm:px-6">
@@ -80,7 +81,9 @@ export default function App() {
               />
             )}
 
-            {nav === 'media-studio' && <MediaStudioView />}
+            {nav === 'media-studio' && (
+              <MediaStudioView onSchedule={addPost} onScheduled={() => setNav('calendar')} />
+            )}
             {nav === 'analytics' && <AnalyticsView />}
             {nav === 'link-tools' && <LinkToolsView />}
             {nav === 'inbox' && <InboxView />}

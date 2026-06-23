@@ -13,14 +13,24 @@ import {
   LogOut,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { useToast } from './Toast'
 import { useNotifications, type NotificationType } from './Notifications'
 import { useAuth } from './Auth'
-import type { NavId } from '../types'
+import { useProfile, initialsOf } from './Profile'
+import { useConnections, CONNECTABLE } from './Connections'
+import { NAV_ITEMS, PLATFORMS } from '../data'
+import type { CalendarPost, NavId } from '../types'
 
 interface TopbarProps {
   onNavigate: (id: NavId) => void
   onUpgrade: () => void
+  posts: CalendarPost[]
+}
+
+interface SearchResult {
+  nav: NavId
+  label: string
+  sub: string
+  Icon: LucideIcon
 }
 
 const TYPE_ICON: Record<NotificationType, LucideIcon> = {
@@ -35,29 +45,71 @@ const TYPE_COLOR: Record<NotificationType, string> = {
 }
 
 /** Global top bar with working search, notifications, and account menu. */
-export default function Topbar({ onNavigate, onUpgrade }: TopbarProps) {
-  const { addToast } = useToast()
+export default function Topbar({ onNavigate, onUpgrade, posts }: TopbarProps) {
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications()
-  const { user, signOutUser } = useAuth()
+  const { signOutUser } = useAuth()
+  const profile = useProfile()
+  const { accounts } = useConnections()
 
-  const avatar = user?.photoURL || 'https://i.pravatar.cc/80?img=12'
-  const name = user?.name || 'Account'
-  const email = user?.email || ''
+  const avatar = profile.photoURL
+  const name = profile.name || 'Account'
+  const email = profile.email || ''
   const [notifOpen, setNotifOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [expanded, setExpanded] = useState<number | null>(null)
+  const [query, setQuery] = useState('')
 
   const notifRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
     function onDown(e: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false)
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setQuery('')
     }
     document.addEventListener('mousedown', onDown)
     return () => document.removeEventListener('mousedown', onDown)
   }, [])
+
+  // Live search across pages, connected channels, and scheduled posts.
+  const q = query.trim().toLowerCase()
+  const results: SearchResult[] = q
+    ? [
+        ...NAV_ITEMS.filter((n) => n.label.toLowerCase().includes(q)).map((n) => ({
+          nav: n.id,
+          label: n.label,
+          sub: 'Page',
+          Icon: n.Icon,
+        })),
+        ...CONNECTABLE.filter(
+          (id) =>
+            accounts[id]?.connected &&
+            (PLATFORMS[id].name.toLowerCase().includes(q) ||
+              (accounts[id]?.handle || '').toLowerCase().includes(q)),
+        ).map((id) => ({
+          nav: 'analytics' as NavId,
+          label: PLATFORMS[id].name,
+          sub: accounts[id]?.handle || 'Connected channel',
+          Icon: PLATFORMS[id].Icon,
+        })),
+        ...posts
+          .filter((p) => p.label.toLowerCase().includes(q))
+          .slice(0, 5)
+          .map((p) => ({
+            nav: 'calendar' as NavId,
+            label: p.label,
+            sub: `Scheduled post · ${PLATFORMS[p.platform].name}`,
+            Icon: PLATFORMS[p.platform].Icon,
+          })),
+      ].slice(0, 8)
+    : []
+
+  const runSearch = (nav: NavId) => {
+    setQuery('')
+    onNavigate(nav)
+  }
 
   const openNotifs = () => {
     setMenuOpen(false)
@@ -81,20 +133,48 @@ export default function Topbar({ onNavigate, onUpgrade }: TopbarProps) {
 
       {/* search */}
       <form
+        ref={searchRef}
         className="relative flex-1 max-w-xl"
         onSubmit={(e) => {
           e.preventDefault()
-          const q = new FormData(e.currentTarget).get('q')?.toString().trim()
-          if (q) addToast(`Searching for "${q}"…`, 'info')
+          if (results[0]) runSearch(results[0].nav)
         }}
       >
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
         <input
-          name="q"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           type="text"
           placeholder="Search posts, channels, analytics…"
           className="w-full rounded-xl border border-white/5 bg-navy-800/70 py-2.5 pl-10 pr-4 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
         />
+
+        {q && (
+          <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-white/10 bg-navy-800 shadow-panel animate-fade-in">
+            {results.length === 0 ? (
+              <p className="px-4 py-6 text-center text-sm text-slate-500">No matches for "{query}".</p>
+            ) : (
+              <div className="max-h-80 overflow-y-auto py-1.5">
+                {results.map((r, i) => (
+                  <button
+                    key={`${r.nav}-${r.label}-${i}`}
+                    type="button"
+                    onClick={() => runSearch(r.nav)}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-white/5"
+                  >
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-navy-900/70 text-cyan-accent">
+                      <r.Icon className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-slate-100">{r.label}</span>
+                      <span className="block truncate text-xs text-slate-500">{r.sub}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </form>
 
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
@@ -183,7 +263,7 @@ export default function Topbar({ onNavigate, onUpgrade }: TopbarProps) {
             onClick={openMenu}
             className="flex items-center gap-2.5 rounded-xl border border-white/5 bg-navy-800/70 py-1.5 pl-1.5 pr-2.5 transition-colors hover:border-white/10"
           >
-            <img src={avatar} alt={name} className="h-8 w-8 rounded-lg object-cover" />
+            <Avatar url={avatar} name={name} email={email} className="h-8 w-8 text-sm" />
             <span className="hidden max-w-[120px] truncate text-sm font-semibold text-slate-100 sm:block">{name}</span>
             <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
           </button>
@@ -191,7 +271,7 @@ export default function Topbar({ onNavigate, onUpgrade }: TopbarProps) {
           {menuOpen && (
             <div className="absolute right-0 mt-2 w-64 animate-fade-in overflow-hidden rounded-2xl border border-white/10 bg-navy-800 shadow-panel">
               <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3">
-                <img src={avatar} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                <Avatar url={avatar} name={name} email={email} className="h-10 w-10 text-base" />
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-white">{name}</div>
                   <div className="truncate text-xs text-slate-500">{email}</div>
@@ -225,6 +305,20 @@ export default function Topbar({ onNavigate, onUpgrade }: TopbarProps) {
         </div>
       </div>
     </header>
+  )
+}
+
+/** Square avatar that shows the photo when present, else gradient initials. */
+function Avatar({ url, name, email, className }: { url: string; name: string; email: string; className: string }) {
+  if (url) {
+    return <img src={url} alt={name} className={`shrink-0 rounded-lg object-cover ${className}`} />
+  }
+  return (
+    <span
+      className={`grid shrink-0 place-items-center rounded-lg gradient-cyan font-bold text-navy-900 ${className}`}
+    >
+      {initialsOf(name, email)}
+    </span>
   )
 }
 

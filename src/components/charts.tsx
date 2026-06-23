@@ -86,18 +86,24 @@ export function CorrelationMatrix() {
 /*  Engagement trend - line/area chart                                          */
 /* -------------------------------------------------------------------------- */
 
-export function EngagementTrend() {
+export function EngagementTrend({
+  data = ENGAGEMENT_TREND,
+  labels = ENGAGEMENT_LABELS,
+}: {
+  data?: number[]
+  labels?: string[]
+} = {}) {
   return (
     <div>
       <InteractiveLine
-        data={ENGAGEMENT_TREND}
+        data={data}
         color="#22D3EE"
         gradientId="trendFill"
         className="h-24 w-full"
         format={(v) => `${v}`}
       />
       <div className="mt-1 flex justify-between text-[10px] text-slate-500">
-        {ENGAGEMENT_LABELS.map((l, i) => (
+        {labels.map((l, i) => (
           <span key={i}>{l}</span>
         ))}
       </div>

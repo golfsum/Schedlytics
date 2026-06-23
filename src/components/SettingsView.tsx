@@ -15,8 +15,9 @@ import Toggle from './Toggle'
 import { useToast } from './Toast'
 import { useImageUpload } from './ImageUpload'
 import { useConnections, CONNECTABLE } from './Connections'
-import { useAuth } from './Auth'
-import { sampleData } from '../lib/socialApi'
+import { useProfile, initialsOf } from './Profile'
+import { usePlan, PLAN_INFO } from './Plan'
+import UpgradeModal from './UpgradeModal'
 import { PLATFORMS } from '../data'
 import type { PlatformId } from '../types'
 
@@ -159,14 +160,30 @@ function AccountsSection() {
 
 function ProfileSection() {
   const { addToast } = useToast()
-  const { user } = useAuth()
-  const [name, setName] = useState(user?.name || '')
-  const [email, setEmail] = useState(user?.email || '')
-  const [bio, setBio] = useState(
-    sampleData ? 'Creator & marketer. Fashion, lifestyle, and a little chaos.' : '',
-  )
-  const fallbackAvatar = user?.photoURL || (sampleData ? 'https://i.pravatar.cc/120?img=12' : '')
-  const avatar = useImageUpload(fallbackAvatar, () => addToast('Photo updated'))
+  const profile = useProfile()
+  const [name, setName] = useState(profile.name)
+  const [email, setEmail] = useState(profile.email)
+  const [bio, setBio] = useState(profile.bio)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const avatar = useImageUpload(profile.photoURL || undefined, (_, file) => {
+    setPhotoFile(file)
+    addToast('Photo selected')
+  })
+
+  const handleSave = async () => {
+    let photoURL = profile.photoURL
+    // A freshly picked file is a blob URL; convert to a data URL so it persists.
+    if (photoFile) {
+      try {
+        photoURL = await fileToDataUrl(photoFile)
+      } catch {
+        /* keep existing photo on failure */
+      }
+    }
+    profile.save({ name: name.trim(), email: email.trim(), bio: bio.trim(), photoURL })
+    setPhotoFile(null)
+    addToast('Profile saved ✓')
+  }
 
   return (
     <div className="card p-5">
@@ -181,7 +198,7 @@ function ProfileSection() {
           />
         ) : (
           <div className="grid h-16 w-16 place-items-center rounded-2xl gradient-cyan text-xl font-bold text-navy-900 ring-2 ring-cyan-accent/30">
-            {(name || email || '?').trim().charAt(0).toUpperCase()}
+            {initialsOf(name, email)}
           </div>
         )}
         <button
@@ -221,7 +238,7 @@ function ProfileSection() {
 
       <div className="mt-5 flex justify-end">
         <button
-          onClick={() => addToast('Profile saved ✓')}
+          onClick={handleSave}
           className="rounded-lg gradient-cyan px-5 py-2.5 text-sm font-bold text-navy-900 shadow-glow transition-transform hover:scale-[1.02]"
         >
           Save Changes
@@ -274,35 +291,53 @@ function NotificationsSection() {
 /* --------------------------------- billing -------------------------------- */
 
 function BillingSection() {
-  const { addToast } = useToast()
+  const { plan } = usePlan()
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
+  const info = PLAN_INFO[plan]
+  const isFree = plan === 'free'
+
+  // Per-plan limits shown in the summary strip.
+  const limits: [string, string][] = isFree
+    ? [
+        ['Channels', '2'],
+        ['Scheduled posts', '30'],
+        ['Team seats', '1'],
+      ]
+    : [
+        ['Channels', 'Unlimited'],
+        ['Scheduled posts', '∞'],
+        ['Team seats', plan === 'business' ? 'Unlimited' : '5'],
+      ]
 
   return (
     <div className="space-y-5">
       <div className="card overflow-hidden">
         <div className="gradient-cyan-soft p-5">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 text-cyan-accent">
                 <Sparkles className="h-4 w-4" />
                 <span className="text-xs font-semibold uppercase tracking-wide">Current plan</span>
               </div>
-              <div className="mt-2 text-2xl font-bold text-white">Pro</div>
-              <div className="text-sm text-slate-300">$29 / month · renews Jul 21, 2026</div>
+              <div className="mt-2 text-2xl font-bold text-white">{info.name}</div>
+              <div className="text-sm text-slate-300">
+                {isFree ? 'No payment due. Upgrade any time.' : `${info.price} / month`}
+              </div>
             </div>
             <button
-              onClick={() => addToast('Plan management opened', 'info')}
-              className="rounded-lg border border-white/15 bg-navy-900/40 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-900/70"
+              onClick={() => setUpgradeOpen(true)}
+              className={`shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition-transform hover:scale-[1.02] ${
+                isFree
+                  ? 'gradient-cyan text-navy-900 shadow-glow'
+                  : 'border border-white/15 bg-navy-900/40 text-white hover:bg-navy-900/70'
+              }`}
             >
-              Manage plan
+              {isFree ? 'Upgrade' : 'Change plan'}
             </button>
           </div>
         </div>
         <div className="grid grid-cols-3 divide-x divide-white/5 border-t border-white/5">
-          {[
-            ['Channels', 'Unlimited'],
-            ['Scheduled posts', '∞'],
-            ['Team seats', '5'],
-          ].map(([k, v]) => (
+          {limits.map(([k, v]) => (
             <div key={k} className="p-4 text-center">
               <div className="text-lg font-bold text-white">{v}</div>
               <div className="text-xs text-slate-500">{k}</div>
@@ -313,27 +348,39 @@ function BillingSection() {
 
       <div className="card p-5">
         <h2 className="mb-4 text-lg font-bold text-white">Payment Method</h2>
-        <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-navy-900/50 p-4">
-          <span className="grid h-10 w-14 place-items-center rounded-lg bg-gradient-to-br from-slate-700 to-slate-600 text-xs font-bold text-white">
-            VISA
-          </span>
-          <div className="flex-1">
-            <div className="text-sm font-semibold text-white">•••• •••• •••• 4242</div>
-            <div className="text-xs text-slate-500">Expires 09/27</div>
+        {isFree ? (
+          <div className="flex items-center gap-3 rounded-xl border border-dashed border-white/10 bg-navy-900/40 p-4">
+            <span className="grid h-10 w-14 place-items-center rounded-lg bg-navy-800 text-slate-500">
+              <CreditCard className="h-5 w-5" />
+            </span>
+            <div className="flex-1 text-sm text-slate-400">
+              No payment method on file. You only need one when you upgrade to a paid plan.
+            </div>
           </div>
-          <button
-            onClick={() => addToast('Card update form opened', 'info')}
-            className="rounded-lg border border-white/10 bg-navy-800 px-3.5 py-2 text-sm font-medium text-slate-200 hover:text-white"
-          >
-            Update
-          </button>
-        </div>
+        ) : (
+          <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4 text-sm text-slate-300">
+            Payment checkout is not connected in this build, so no card is stored. Your{' '}
+            <span className="font-semibold text-white">{info.name}</span> plan is active for preview.
+          </div>
+        )}
       </div>
+
+      {upgradeOpen && <UpgradeModal onClose={() => setUpgradeOpen(false)} />}
     </div>
   )
 }
 
 /* ---------------------------------- bits ---------------------------------- */
+
+/** Read a File as a base64 data URL so an uploaded avatar survives a reload. */
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
+}
 
 function Labeled({
   label,

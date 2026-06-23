@@ -1,9 +1,20 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Sparkles, Clock, Plus as PlusIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Sparkles, Clock, Plus as PlusIcon, Trash2 } from 'lucide-react'
 import PostBlock from './PostBlock'
 import { LinkEngagementTools } from './LinkTools'
+import { useToast } from './Toast'
+import { useSeededState } from '../lib/usePersisted'
+import AddStoryModal, { type Story } from './AddStoryModal'
+import AddReelModal, { type Reel, type ReelStatus } from './AddReelModal'
 import { WEEKDAYS, TIME_SLOTS, PLATFORMS } from '../data'
-import type { CalendarPost, PlatformId } from '../types'
+import type { CalendarPost } from '../types'
+
+/** Story/reel images may be an Unsplash photo id (samples) or empty (user-added). */
+function mediaUrl(img: string, w: number) {
+  if (!img) return ''
+  if (/^(https?:|data:|blob:)/.test(img)) return img
+  return `https://images.unsplash.com/${img}?auto=format&fit=crop&w=${w}&q=60`
+}
 
 interface CalendarViewProps {
   posts: CalendarPost[]
@@ -198,24 +209,29 @@ export default function CalendarView({
 /*  Stories lane                                                                */
 /* -------------------------------------------------------------------------- */
 
-interface Story {
-  platform: PlatformId
-  time: string
-  img: string
-}
-
-const STORIES: Record<number, Story[]> = {
-  0: [{ platform: 'instagram', time: '9:00 AM', img: 'photo-1483985988355-763728e1935b' }],
-  1: [
-    { platform: 'instagram', time: '11:00 AM', img: 'photo-1469334031218-e382a71b716b' },
-    { platform: 'facebook', time: '4:00 PM', img: 'photo-1441986300917-64674bd600d8' },
-  ],
-  2: [],
-  3: [{ platform: 'instagram', time: '10:30 AM', img: 'photo-1487412720507-e7ab37603c6f' }],
-  4: [{ platform: 'facebook', time: '2:00 PM', img: 'photo-1445205170230-053b83016050' }],
-}
+const SAMPLE_STORIES: Story[] = [
+  { id: 's1', day: 0, platform: 'instagram', time: '9:00 AM', img: 'photo-1483985988355-763728e1935b' },
+  { id: 's2', day: 1, platform: 'instagram', time: '11:00 AM', img: 'photo-1469334031218-e382a71b716b' },
+  { id: 's3', day: 1, platform: 'facebook', time: '4:00 PM', img: 'photo-1441986300917-64674bd600d8' },
+  { id: 's4', day: 3, platform: 'instagram', time: '10:30 AM', img: 'photo-1487412720507-e7ab37603c6f' },
+  { id: 's5', day: 4, platform: 'facebook', time: '2:00 PM', img: 'photo-1445205170230-053b83016050' },
+]
 
 function StoriesView() {
+  const { addToast } = useToast()
+  const [stories, setStories] = useSeededState<Story[]>('sl_stories', SAMPLE_STORIES, [])
+  const [addingDay, setAddingDay] = useState<number | null>(null)
+
+  const add = (story: Story) => {
+    setStories((prev) => [...prev, story])
+    setAddingDay(null)
+    addToast('Story added 📸')
+  }
+  const remove = (id: string) => {
+    setStories((prev) => prev.filter((s) => s.id !== id))
+    addToast('Story removed', 'info')
+  }
+
   return (
     <div className="card p-5">
       <h2 className="mb-1 text-lg font-bold text-white">Stories</h2>
@@ -224,39 +240,60 @@ function StoriesView() {
         {WEEKDAYS.map((day, i) => (
           <div key={day} className="space-y-3">
             <div className="text-center text-sm font-semibold text-slate-300">{day}</div>
-            {(STORIES[i] || []).map((s, idx) => {
-              const plat = PLATFORMS[s.platform]
-              const { Icon } = plat
-              return (
-                <div
-                  key={idx}
-                  className="group relative aspect-[9/16] overflow-hidden rounded-xl border border-white/10"
-                >
-                  <img
-                    src={`https://images.unsplash.com/${s.img}?auto=format&fit=crop&w=240&q=60`}
-                    alt=""
-                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-navy-950/80 to-transparent" />
-                  <span
-                    className={`absolute left-2 top-2 grid h-6 w-6 place-items-center rounded-md bg-gradient-to-br ${plat.gradient} text-white`}
+            {stories
+              .filter((s) => s.day === i)
+              .map((s) => {
+                const plat = PLATFORMS[s.platform]
+                const { Icon } = plat
+                const src = mediaUrl(s.img, 240)
+                return (
+                  <div
+                    key={s.id}
+                    className="group relative aspect-[9/16] overflow-hidden rounded-xl border border-white/10"
                   >
-                    <Icon className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="absolute bottom-2 left-2 flex items-center gap-1 text-[11px] font-medium text-white">
-                    <Clock className="h-3 w-3" /> {s.time}
-                  </span>
-                </div>
-              )
-            })}
+                    {src ? (
+                      <img
+                        src={src}
+                        alt=""
+                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className={`h-full w-full bg-gradient-to-br ${plat.gradient} opacity-80`} />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-navy-950/80 to-transparent" />
+                    <span
+                      className={`absolute left-2 top-2 grid h-6 w-6 place-items-center rounded-md bg-gradient-to-br ${plat.gradient} text-white`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                    </span>
+                    <button
+                      onClick={() => remove(s.id)}
+                      className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-md bg-navy-950/70 text-slate-300 opacity-0 transition-opacity hover:text-rose-300 group-hover:opacity-100"
+                      title="Remove story"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                    <span className="absolute bottom-2 left-2 flex items-center gap-1 text-[11px] font-medium text-white">
+                      <Clock className="h-3 w-3" /> {s.time}
+                    </span>
+                  </div>
+                )
+              })}
             {/* add slot */}
-            <button className="flex aspect-[9/16] w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 text-slate-500 transition-colors hover:border-cyan-accent/40 hover:text-cyan-accent">
+            <button
+              onClick={() => setAddingDay(i)}
+              className="flex aspect-[9/16] w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 text-slate-500 transition-colors hover:border-cyan-accent/40 hover:text-cyan-accent"
+            >
               <PlusIcon className="h-5 w-5" />
               <span className="text-[11px] font-medium">Add story</span>
             </button>
           </div>
         ))}
       </div>
+
+      {addingDay !== null && (
+        <AddStoryModal day={addingDay} onClose={() => setAddingDay(null)} onAdd={add} />
+      )}
     </div>
   )
 }
@@ -265,52 +302,61 @@ function StoriesView() {
 /*  Reels planner                                                               */
 /* -------------------------------------------------------------------------- */
 
-interface Reel {
-  title: string
-  platform: PlatformId
-  when: string
-  status: 'Scheduled' | 'Draft' | 'In review'
-  img: string
-}
-
-const REELS: Reel[] = [
-  { title: 'Summer styling in 30s', platform: 'reels', when: 'Mon, 9:00 AM', status: 'Scheduled', img: 'photo-1490481651871-ab68de25d43d' },
-  { title: 'Trending audio remix', platform: 'tiktok', when: 'Tue, 12:00 PM', status: 'Draft', img: 'photo-1516280440614-37939bbacd81' },
-  { title: 'Behind the shoot', platform: 'reels', when: 'Thu, 5:00 PM', status: 'In review', img: 'photo-1469334031218-e382a71b716b' },
-  { title: 'Product unboxing', platform: 'youtube', when: 'Fri, 10:00 AM', status: 'Scheduled', img: 'photo-1441984904996-e0b6ba687e04' },
+const SAMPLE_REELS: Reel[] = [
+  { id: 'r1', title: 'Summer styling in 30s', platform: 'reels', when: 'Mon, 9:00 AM', status: 'Scheduled', img: 'photo-1490481651871-ab68de25d43d' },
+  { id: 'r2', title: 'Trending audio remix', platform: 'tiktok', when: 'Tue, 12:00 PM', status: 'Draft', img: 'photo-1516280440614-37939bbacd81' },
+  { id: 'r3', title: 'Behind the shoot', platform: 'reels', when: 'Thu, 5:00 PM', status: 'In review', img: 'photo-1469334031218-e382a71b716b' },
+  { id: 'r4', title: 'Product unboxing', platform: 'youtube', when: 'Fri, 10:00 AM', status: 'Scheduled', img: 'photo-1441984904996-e0b6ba687e04' },
 ]
 
-const STATUS_STYLE: Record<Reel['status'], string> = {
+const STATUS_STYLE: Record<ReelStatus, string> = {
   Scheduled: 'bg-cyan-accent/15 text-cyan-accent',
   Draft: 'bg-slate-500/20 text-slate-300',
   'In review': 'bg-amber-500/15 text-amber-300',
 }
 
 function ReelsPlanner() {
+  const { addToast } = useToast()
+  const [reels, setReels] = useSeededState<Reel[]>('sl_reels', SAMPLE_REELS, [])
+  const [adding, setAdding] = useState(false)
+
+  const add = (reel: Reel) => {
+    setReels((prev) => [...prev, reel])
+    setAdding(false)
+    addToast('Reel planned 🎬')
+  }
+  const remove = (id: string) => {
+    setReels((prev) => prev.filter((r) => r.id !== id))
+    addToast('Reel removed', 'info')
+  }
+
   return (
     <div className="card p-5">
       <h2 className="mb-1 text-lg font-bold text-white">Reels Planner</h2>
       <p className="mb-4 text-xs text-slate-500">Storyboard and schedule your short-form video.</p>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {REELS.map((r) => {
+        {reels.map((r) => {
           const plat = PLATFORMS[r.platform]
           const { Icon } = plat
+          const src = mediaUrl(r.img, 320)
           return (
-            <div key={r.title} className="overflow-hidden rounded-xl border border-white/5 bg-navy-900/50">
+            <div key={r.id} className="group overflow-hidden rounded-xl border border-white/5 bg-navy-900/50">
               <div className="relative aspect-video">
-                <img
-                  src={`https://images.unsplash.com/${r.img}?auto=format&fit=crop&w=320&q=60`}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-                <div className="absolute inset-0 grid place-items-center bg-navy-950/30">
-                  <span className="grid h-9 w-9 place-items-center rounded-full bg-white/90 text-navy-900">
-                    <PlusIcon className="h-4 w-4 rotate-45" />
-                  </span>
-                </div>
+                {src ? (
+                  <img src={src} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className={`h-full w-full bg-gradient-to-br ${plat.gradient} opacity-80`} />
+                )}
                 <span className={`absolute left-2 top-2 grid h-6 w-6 place-items-center rounded-md bg-gradient-to-br ${plat.gradient} text-white`}>
                   <Icon className="h-3.5 w-3.5" />
                 </span>
+                <button
+                  onClick={() => remove(r.id)}
+                  className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-md bg-navy-950/70 text-slate-300 opacity-0 transition-opacity hover:text-rose-300 group-hover:opacity-100"
+                  title="Remove reel"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               </div>
               <div className="p-3">
                 <div className="truncate text-sm font-semibold text-white">{r.title}</div>
@@ -324,11 +370,16 @@ function ReelsPlanner() {
         })}
 
         {/* plan new */}
-        <button className="flex min-h-[200px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 text-slate-500 transition-colors hover:border-cyan-accent/40 hover:text-cyan-accent">
+        <button
+          onClick={() => setAdding(true)}
+          className="flex min-h-[200px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 text-slate-500 transition-colors hover:border-cyan-accent/40 hover:text-cyan-accent"
+        >
           <PlusIcon className="h-6 w-6" />
           <span className="text-sm font-medium">Plan a Reel</span>
         </button>
       </div>
+
+      {adding && <AddReelModal onClose={() => setAdding(false)} onAdd={add} />}
     </div>
   )
 }

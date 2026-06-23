@@ -11,6 +11,7 @@ import { links } from './links-store.js'
 import { stateStore } from './kv.js'
 import { validAccessToken } from './tokens.js'
 import youtubeRoutes from './routes/youtube.js'
+import aiRoutes from './routes/ai.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const SITE_DIR = join(__dirname, '..', 'site')
@@ -34,6 +35,8 @@ app.use(
 
 // Platform-specific routes (extras beyond generic stats).
 app.use('/api/youtube', youtubeRoutes)
+// AI suggestions (Claude-backed when ANTHROPIC_API_KEY is set).
+app.use('/api/ai', aiRoutes)
 
 /* -------------------------------------------------------------------------- */
 /*  Marketing + legal site (landing, privacy, terms, data deletion)            */

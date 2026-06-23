@@ -1,5 +1,6 @@
 import { X, Check, Sparkles } from 'lucide-react'
 import { useToast } from './Toast'
+import { usePlan, type PlanId } from './Plan'
 
 interface UpgradeModalProps {
   onClose: () => void
@@ -35,8 +36,10 @@ const PLANS: Plan[] = [
 /** Plan-comparison modal triggered by the Upgrade buttons. */
 export default function UpgradeModal({ onClose }: UpgradeModalProps) {
   const { addToast } = useToast()
+  const { plan: current, setPlan } = usePlan()
 
   const choose = (plan: Plan) => {
+    setPlan(plan.id as PlanId)
     addToast(`🎉 You're on the Schedlytics ${plan.name} plan!`)
     onClose()
   }
@@ -100,20 +103,22 @@ export default function UpgradeModal({ onClose }: UpgradeModalProps) {
               </ul>
               <button
                 onClick={() => choose(plan)}
-                className={`mt-5 rounded-lg py-2.5 text-sm font-bold transition-transform hover:scale-[1.02] ${
+                disabled={current === plan.id}
+                className={`mt-5 rounded-lg py-2.5 text-sm font-bold transition-transform hover:scale-[1.02] disabled:cursor-default disabled:opacity-60 disabled:hover:scale-100 ${
                   plan.recommended
                     ? 'gradient-cyan text-navy-900 shadow-glow'
                     : 'border border-white/15 bg-navy-800 text-white hover:bg-navy-700'
                 }`}
               >
-                Choose {plan.name}
+                {current === plan.id ? 'Current plan' : `Choose ${plan.name}`}
               </button>
             </div>
           ))}
         </div>
 
         <p className="border-t border-white/5 px-6 py-4 text-center text-xs text-slate-500">
-          Cancel anytime. Prices in USD. This is a demo, no payment is taken.
+          Prices in USD. Payment checkout is not connected yet, so your plan changes here without a
+          charge.
         </p>
       </div>
     </div>

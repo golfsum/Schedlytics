@@ -20,11 +20,21 @@ import Toggle from './Toggle'
 import ThumbnailPicker from './ThumbnailPicker'
 import DateTimePicker from './DateTimePicker'
 import { useToast } from './Toast'
+import { useNotifications } from './Notifications'
+import { useConnections } from './Connections'
 import { useImageUpload } from './ImageUpload'
 import { usePersistedState } from '../lib/usePersisted'
+import { backendEnabled, publishYouTubeVideo } from '../lib/socialApi'
 import { aiTitles, aiCaptions, aiHashtags, type Suggestion } from '../lib/aiSuggest'
 import { PLATFORM_LIST, PLATFORMS } from '../data'
-import type { PlatformId } from '../types'
+import type { CalendarPost, PlatformId } from '../types'
+
+interface MediaStudioViewProps {
+  /** Add a scheduled post to the shared calendar. */
+  onSchedule: (post: Omit<CalendarPost, 'id'>) => void
+  /** Called after a successful schedule (e.g. to jump to the calendar). */
+  onScheduled: () => void
+}
 
 /** Per-platform thumbnail capabilities. */
 const THUMB_CAPS: Record<string, { custom: boolean; frame: boolean; note: string }> = {
@@ -49,8 +59,10 @@ interface Chapter {
   label: string
 }
 
-export default function MediaStudioView() {
+export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudioViewProps) {
   const { addToast } = useToast()
+  const { push } = useNotifications()
+  const { accounts } = useConnections()
   const [platform, setPlatform] = useState<PlatformId>('youtube')
   const [mediaMode, setMediaMode] = useState<'video' | 'image'>('video')
   const image = useImageUpload(undefined, () => addToast('Image added'))
@@ -63,6 +75,7 @@ export default function MediaStudioView() {
   const [publishing, setPublishing] = useState(false)
   const [scheduleAt, setScheduleAt] = useState<Date | null>(null)
   const [chapters, setChapters] = useState<Chapter[]>([{ time: '0:00', label: 'Intro' }])
+  const [videoUrl, setVideoUrl] = useState('')
 
   // Per-platform default description (boilerplate: links, socials) that persists.
   const [defaults, setDefaults] = usePersistedState<Partial<Record<PlatformId, string>>>(
@@ -74,6 +87,8 @@ export default function MediaStudioView() {
     setDefaults((d) => ({ ...d, [platform]: text }))
 
   const supportsTimestamps = Boolean(TIMESTAMP_PLATFORMS[platform])
+  const ytConnected = Boolean(accounts.youtube?.connected)
+  const canUploadYouTube = platform === 'youtube' && backendEnabled && ytConnected
 
   // AI suggestion state
   const [titleSugs, setTitleSugs] = useState<Suggestion[]>([])
@@ -140,13 +155,61 @@ export default function MediaStudioView() {
     return blocks.join('\n\n')
   }
 
-  const publish = () => {
+  /** Map the chosen date/time onto the calendar's weekday + slot grid. */
+  const buildPost = (): Omit<CalendarPost, 'id'> => {
+    const d = scheduleAt ?? new Date()
+    const jsDay = d.getDay() // 0 Sun .. 6 Sat
+    const day = jsDay === 0 || jsDay === 6 ? 0 : jsDay - 1 // weekend falls back to Monday
+    const hourToSlot: Record<number, number> = { 9: 0, 10: 1, 11: 2, 12: 3, 13: 4, 14: 5 }
+    const slot = hourToSlot[d.getHours()] ?? 0
+    return {
+      platform,
+      label: (title.trim() || caption.trim() || 'Untitled post').slice(0, 40),
+      day,
+      slot,
+      span: 1,
+    }
+  }
+
+  const publish = async () => {
+    if (!title.trim() && !caption.trim()) {
+      addToast('Add a title or caption first', 'info')
+      return
+    }
     setPublishing(true)
-    const when = scheduleAt
-      ? `for ${scheduleAt.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
-      : 'to publish now'
-    addToast(`Scheduled to ${plat.name} ${when}! 🚀`)
-    setTimeout(() => setPublishing(false), 1400)
+    try {
+      // Real upload when YouTube is connected, a public video URL is given, and
+      // we are publishing now (not scheduling for later).
+      if (canUploadYouTube && videoUrl.trim() && !scheduleAt) {
+        await publishYouTubeVideo({
+          videoUrl: videoUrl.trim(),
+          title: title.trim() || 'Untitled',
+          description: composeDescription(),
+          tags,
+          privacyStatus: 'private',
+        })
+        addToast('Uploaded to YouTube as a private video! 🚀')
+        setVideoUrl('')
+      } else {
+        onSchedule(buildPost())
+        const when = scheduleAt
+          ? scheduleAt.toLocaleString(undefined, {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            })
+          : 'now'
+        addToast(`Added to your calendar (${plat.name}, ${when}) 🗓️`)
+        onScheduled()
+      }
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e)
+      addToast('Could not publish. See the bell for details.', 'info', 6000)
+      push({ type: 'error', title: 'Publish failed', message: 'Tap to see the full reason', detail })
+    } finally {
+      setPublishing(false)
+    }
   }
 
   return (
@@ -420,19 +483,38 @@ export default function MediaStudioView() {
             <DateTimePicker value={scheduleAt} onChange={setScheduleAt} />
           </div>
 
+          {/* Direct YouTube upload (only when connected). Publishing now with a
+              public video URL uploads it straight to the channel as private. */}
+          {canUploadYouTube && (
+            <div>
+              <span className="mb-2 block text-sm font-semibold text-white">
+                Video URL <span className="font-normal text-slate-500">(optional, uploads to YouTube)</span>
+              </span>
+              <input
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder="https://… direct link to your video file"
+                className="w-full rounded-lg border border-white/5 bg-navy-900/60 px-3.5 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+              />
+              <p className="mt-1.5 text-[11px] text-slate-500">
+                With a URL and "Publish now", we upload it to your channel as a private video. Leave
+                blank to just schedule it on the calendar.
+              </p>
+            </div>
+          )}
+
           <button
             onClick={publish}
             disabled={publishing}
             className="mt-auto flex items-center justify-center gap-2 rounded-lg gradient-cyan py-3 text-sm font-bold text-navy-900 shadow-glow transition-transform hover:scale-[1.01] disabled:opacity-80"
           >
-            {publishing ? <Check className="h-4 w-4" strokeWidth={3} /> : <Send className="h-4 w-4" />}
-            {publishing
-              ? scheduleAt
-                ? 'Scheduled!'
-                : 'Published!'
-              : scheduleAt
-                ? `Schedule to ${plat.name}`
-                : `Publish to ${plat.name}`}
+            {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {(() => {
+              const uploading = canUploadYouTube && videoUrl.trim() && !scheduleAt
+              if (publishing) return uploading ? 'Uploading…' : scheduleAt ? 'Scheduling…' : 'Adding…'
+              if (uploading) return 'Upload to YouTube'
+              return scheduleAt ? `Schedule to ${plat.name}` : `Add ${plat.name} post`
+            })()}
           </button>
         </section>
       </div>
