@@ -19,6 +19,7 @@ import {
 import Toggle from './Toggle'
 import ThumbnailPicker from './ThumbnailPicker'
 import DateTimePicker from './DateTimePicker'
+import PublishResultModal from './PublishResultModal'
 import { useToast } from './Toast'
 import { useNotifications } from './Notifications'
 import { useConnections } from './Connections'
@@ -75,6 +76,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   const [abTest, setAbTest] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [uploadPct, setUploadPct] = useState(0)
+  const [published, setPublished] = useState<{ platform: PlatformId; url?: string; note: string } | null>(null)
   const [scheduleAt, setScheduleAt] = useState<Date | null>(null)
   const [chapters, setChapters] = useState<Chapter[]>([{ time: '0:00', label: 'Intro' }])
   const [videoUrl, setVideoUrl] = useState('')
@@ -93,6 +95,20 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   const connected = Boolean(accounts[platform]?.connected)
   const canUploadYouTube = platform === 'youtube' && backendEnabled && ytConnected
   const hasVideoFile = Boolean(mediaFile && mediaFile.type.startsWith('video/'))
+
+  // Clear the per-post fields for a fresh post (keeps the saved default description).
+  const resetComposer = () => {
+    setTitle('')
+    setCaption('')
+    setTags([])
+    setTagInput('')
+    setMediaFile(null)
+    setMediaPreview(undefined)
+    setThumbnail(undefined)
+    setVideoUrl('')
+    setChapters([{ time: '0:00', label: 'Intro' }])
+    setScheduleAt(null)
+  }
 
   const openFilePicker = () => fileRef.current?.click()
   const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -201,7 +217,9 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
       (platform === 'tiktok' && hasVideoFile) ||
       (platform === 'instagram' && Boolean(videoUrl.trim())))
 
-  const notifyResult = (url?: string) => {
+  // Surface a clear success modal (and keep a bell entry as a record).
+  const showPublished = (url: string | undefined, note: string) => {
+    setPublished({ platform, url, note })
     if (url) {
       push({ type: 'success', title: `Published to ${plat.name}`, message: 'View the post', detail: url })
     }
@@ -228,8 +246,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             },
             (f) => setUploadPct(f),
           )
-          addToast('Uploaded your video to YouTube (private)! 🚀')
-          notifyResult(result.url)
+          showPublished(result.url, 'Uploaded as a private video. Set it to public on YouTube when ready.')
         } else {
           // Fall back to uploading from a public URL.
           const result = await publishYouTubeVideo({
@@ -239,8 +256,10 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             tags,
             privacyStatus: 'private',
           })
-          addToast('Uploaded to YouTube as a private video! 🚀')
-          notifyResult((result as { url?: string }).url)
+          showPublished(
+            (result as { url?: string }).url,
+            'Uploaded as a private video. Set it to public on YouTube when ready.',
+          )
           setVideoUrl('')
         }
       } else if (willPublishNow && platform === 'facebook') {
@@ -249,21 +268,18 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
         const result = mediaFile
           ? await publishMedia('facebook', mediaFile, { message })
           : await publishPost('facebook', { text: message })
-        addToast(`Posted to ${plat.name}! 🚀`)
-        notifyResult(result.url)
+        showPublished(result.url, 'Posted to your Facebook Page.')
       } else if (willPublishNow && platform === 'tiktok' && mediaFile) {
         // Upload the picked video to TikTok (private until the app is audited).
         const result = await publishMedia('tiktok', mediaFile, {
           title: title.trim() || caption.trim(),
         })
-        addToast('Uploaded to TikTok (private until your app is audited) 🚀')
-        notifyResult(result.url)
+        showPublished(result.url, 'Uploaded to TikTok as private (until your app is audited).')
       } else if (willPublishNow && platform === 'instagram') {
         // Instagram needs a public media URL (entered in the Media URL field).
         const igCaption = [title.trim(), composeDescription()].filter(Boolean).join('\n\n')
         const result = await publishPost('instagram', { mediaUrl: videoUrl.trim(), caption: igCaption })
-        addToast('Posted to Instagram! 🚀')
-        notifyResult(result.url)
+        showPublished(result.url, 'Posted to your Instagram.')
       } else {
         // Schedule onto the calendar (no direct publishing for this platform,
         // or the user chose a future time).
@@ -614,6 +630,19 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
           </button>
         </section>
       </div>
+
+      {published && (
+        <PublishResultModal
+          platform={published.platform}
+          url={published.url}
+          note={published.note}
+          onClose={() => setPublished(null)}
+          onNewPost={() => {
+            setPublished(null)
+            resetComposer()
+          }}
+        />
+      )}
     </div>
   )
 }
