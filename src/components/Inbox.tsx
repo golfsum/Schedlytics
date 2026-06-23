@@ -5,6 +5,7 @@ import { useToast } from './Toast'
 import { useNotifications } from './Notifications'
 import { useConnections } from './Connections'
 import { backendEnabled, sampleData, fetchYouTubeComments } from '../lib/socialApi'
+import { usePersistedState } from '../lib/usePersisted'
 
 export interface Message {
   id: number
@@ -76,6 +77,8 @@ export function InboxProvider({ children }: { children: ReactNode }) {
   const [selectedId, setSelectedId] = useState<number | null>(sampleData ? SEED[0].id : null)
   const [loading, setLoading] = useState(false)
   const [source, setSource] = useState<'demo' | 'youtube'>(sampleData ? 'demo' : 'youtube')
+  // Persisted set of comment ids already read, so a refetch keeps them read.
+  const [readIds, setReadIds] = usePersistedState<string[]>('sl_read_comments', [])
 
   const ytConnected = Boolean(accounts.youtube?.connected)
 
@@ -91,7 +94,7 @@ export function InboxProvider({ children }: { children: ReactNode }) {
           avatar: c.avatar || 'https://i.pravatar.cc/80?img=15',
           text: stripHtml(c.text || ''),
           time: timeAgo(c.time),
-          unread: true,
+          unread: c.id ? !readIds.includes(c.id) : true,
           commentId: c.id,
           likeCount: c.likeCount,
           videoId: c.videoId,
@@ -134,13 +137,20 @@ export function InboxProvider({ children }: { children: ReactNode }) {
 
   const unreadCount = messages.filter((m) => m.unread).length
 
+  const rememberRead = (ids: (string | undefined)[]) => {
+    const cids = ids.filter((c): c is string => Boolean(c))
+    if (cids.length) setReadIds((r) => Array.from(new Set([...r, ...cids])).slice(-1000))
+  }
+
   const select = (id: number) => {
     setSelectedId(id)
     setMessages((m) => m.map((x) => (x.id === id ? { ...x, unread: false } : x)))
+    rememberRead([messages.find((x) => x.id === id)?.commentId])
   }
 
   const markAllRead = () => {
     setMessages((m) => m.map((x) => ({ ...x, unread: false })))
+    rememberRead(messages.map((x) => x.commentId))
     addToast('All messages marked as read')
   }
 
