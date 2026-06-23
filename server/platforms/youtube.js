@@ -205,6 +205,66 @@ export const youtube = {
   },
 
   /**
+   * Diagnostic: report what the comment-fetch sees for this account, so we can
+   * tell why comments may be missing (scope, video privacy, propagation).
+   */
+  async commentsDiagnostic(accessToken) {
+    const out = { scopesHint: 'channel-wide needs youtube.force-ssl (reconnect)' }
+    try {
+      const ch = await getJson(`${DATA_API}/channels?part=contentDetails,id&mine=true`, accessToken)
+      const channel = ch.items?.[0]
+      out.channelId = channel?.id || null
+      const uploads = channel?.contentDetails?.relatedPlaylists?.uploads
+      out.uploadsPlaylist = uploads || null
+
+      // Channel-wide feed (force-ssl).
+      if (out.channelId) {
+        try {
+          const cw = await getJson(
+            `${DATA_API}/commentThreads?part=snippet&order=time&maxResults=25&allThreadsRelatedToChannelId=${out.channelId}`,
+            accessToken,
+          )
+          out.channelWide = { ok: true, count: (cw.items || []).length }
+        } catch (e) {
+          out.channelWide = { ok: false, error: e.message }
+        }
+      }
+
+      // Recent uploads + per-video comment attempts.
+      out.videos = []
+      if (uploads) {
+        const pl = await getJson(
+          `${DATA_API}/playlistItems?part=contentDetails&playlistId=${uploads}&maxResults=10`,
+          accessToken,
+        )
+        const ids = (pl.items || []).map((i) => i.contentDetails?.videoId).filter(Boolean)
+        // Privacy status of those videos.
+        const priv = {}
+        if (ids.length) {
+          const vids = await getJson(`${DATA_API}/videos?part=status,snippet&id=${ids.join(',')}`, accessToken)
+          for (const v of vids.items || []) priv[v.id] = { privacy: v.status?.privacyStatus, title: v.snippet?.title }
+        }
+        for (const id of ids) {
+          const row = { id, title: priv[id]?.title, privacy: priv[id]?.privacy }
+          try {
+            const data = await getJson(
+              `${DATA_API}/commentThreads?part=snippet&order=time&maxResults=10&videoId=${id}`,
+              accessToken,
+            )
+            row.comments = (data.items || []).length
+          } catch (e) {
+            row.commentsError = e.message
+          }
+          out.videos.push(row)
+        }
+      }
+    } catch (e) {
+      out.error = e.message
+    }
+    return out
+  },
+
+  /**
    * Reply to a top-level comment thread (needs the youtube.force-ssl scope).
    * @param parentId  the top-level comment id to reply under
    * @param text      the reply body

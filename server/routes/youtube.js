@@ -61,6 +61,10 @@ router.get('/comments', guard(async (req, res, token) => {
   res.json(await youtube.getComments(token, Number(req.query.max) || 20))
 }))
 
+router.get('/comments/debug', guard(async (_req, res, token) => {
+  res.json(await youtube.commentsDiagnostic(token))
+}))
+
 router.post('/comments/:parentId/reply', guard(async (req, res, token) => {
   const text = (req.body?.text || '').toString()
   if (!text.trim()) return res.status(400).json({ error: 'text is required' })
