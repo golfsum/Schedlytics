@@ -10,7 +10,9 @@ import { verifyIdToken } from '../lib/firebaseAuth.js'
 
 const router = express.Router()
 const settings = hashStore('schedlytics:settings', 'settings.json')
-const PROJECT_ID = process.env.FIREBASE_PROJECT_ID
+// Accept either the server-style name or the VITE_-prefixed one the frontend
+// already uses (Vercel exposes both to the function at runtime).
+const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID
 
 // Reject anything over ~1 MB to keep one user's blob sane.
 const MAX_BYTES = 1_000_000
