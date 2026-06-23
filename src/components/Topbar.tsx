@@ -4,10 +4,9 @@ import {
   Bell,
   ChevronDown,
   Menu,
-  Check,
-  TrendingUp,
-  MessageSquare,
-  BarChart3,
+  CheckCircle2,
+  Info,
+  AlertTriangle,
   User,
   Settings as SettingsIcon,
   Sparkles,
@@ -15,6 +14,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useToast } from './Toast'
+import { useNotifications, type NotificationType } from './Notifications'
 import type { NavId } from '../types'
 
 interface TopbarProps {
@@ -22,34 +22,28 @@ interface TopbarProps {
   onUpgrade: () => void
 }
 
-interface Notification {
-  id: number
-  Icon: LucideIcon
-  title: string
-  time: string
-  unread: boolean
+const TYPE_ICON: Record<NotificationType, LucideIcon> = {
+  success: CheckCircle2,
+  info: Info,
+  error: AlertTriangle,
 }
-
-const SEED_NOTIFS: Notification[] = [
-  { id: 1, Icon: TrendingUp, title: 'Your Reel "Styling reel" hit 12.4K views', time: '2m ago', unread: true },
-  { id: 2, Icon: MessageSquare, title: 'New comment from @mia.styles', time: '18m ago', unread: true },
-  { id: 3, Icon: Check, title: 'Post published to Instagram', time: '1h ago', unread: true },
-  { id: 4, Icon: BarChart3, title: 'Your weekly performance report is ready', time: '1d ago', unread: false },
-]
+const TYPE_COLOR: Record<NotificationType, string> = {
+  success: 'text-emerald-400',
+  info: 'text-cyan-accent',
+  error: 'text-rose-400',
+}
 
 /** Global top bar with working search, notifications, and account menu. */
 export default function Topbar({ onNavigate, onUpgrade }: TopbarProps) {
   const { addToast } = useToast()
-  const [notifs, setNotifs] = useState<Notification[]>(SEED_NOTIFS)
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications()
   const [notifOpen, setNotifOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [expanded, setExpanded] = useState<number | null>(null)
 
   const notifRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  const unread = notifs.filter((n) => n.unread).length
-
-  // Close either dropdown when clicking outside it.
   useEffect(() => {
     function onDown(e: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false)
@@ -68,11 +62,6 @@ export default function Topbar({ onNavigate, onUpgrade }: TopbarProps) {
     setMenuOpen((o) => !o)
   }
 
-  const markAllRead = () => {
-    setNotifs((n) => n.map((x) => ({ ...x, unread: false })))
-    addToast('All notifications marked as read')
-  }
-
   const goto = (id: NavId) => {
     setMenuOpen(false)
     onNavigate(id)
@@ -80,7 +69,6 @@ export default function Topbar({ onNavigate, onUpgrade }: TopbarProps) {
 
   return (
     <header className="relative z-40 flex h-16 shrink-0 items-center gap-3 border-b border-white/5 bg-navy-900/60 px-4 backdrop-blur-sm sm:px-6">
-      {/* mobile menu */}
       <button className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white md:hidden">
         <Menu className="h-5 w-5" />
       </button>
@@ -112,55 +100,73 @@ export default function Topbar({ onNavigate, onUpgrade }: TopbarProps) {
             aria-label="Notifications"
           >
             <Bell className="h-[18px] w-[18px]" />
-            {unread > 0 && (
+            {unreadCount > 0 && (
               <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-navy-900" />
             )}
           </button>
 
           {notifOpen && (
-            <div className="absolute right-0 mt-2 w-80 animate-fade-in overflow-hidden rounded-2xl border border-white/10 bg-navy-800 shadow-panel">
+            <div className="absolute right-0 mt-2 w-96 max-w-[calc(100vw-2rem)] animate-fade-in overflow-hidden rounded-2xl border border-white/10 bg-navy-800 shadow-panel">
               <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
                 <span className="text-sm font-bold text-white">Notifications</span>
-                {unread > 0 && (
-                  <button
-                    onClick={markAllRead}
-                    className="text-xs font-medium text-cyan-accent hover:underline"
-                  >
+                {unreadCount > 0 && (
+                  <button onClick={markAllRead} className="text-xs font-medium text-cyan-accent hover:underline">
                     Mark all read
                   </button>
                 )}
               </div>
-              <div className="max-h-80 overflow-y-auto">
-                {notifs.map((n) => (
-                  <button
-                    key={n.id}
-                    onClick={() =>
-                      setNotifs((list) => list.map((x) => (x.id === n.id ? { ...x, unread: false } : x)))
-                    }
-                    className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-white/5 ${
-                      n.unread ? 'bg-cyan-accent/5' : ''
-                    }`}
-                  >
-                    <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg gradient-cyan-soft text-cyan-accent">
-                      <n.Icon className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm text-slate-100">{n.title}</span>
-                      <span className="block text-xs text-slate-500">{n.time}</span>
-                    </span>
-                    {n.unread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-cyan-accent" />}
-                  </button>
-                ))}
+
+              <div className="max-h-[26rem] overflow-y-auto">
+                {notifications.length === 0 && (
+                  <p className="px-4 py-8 text-center text-sm text-slate-500">You are all caught up.</p>
+                )}
+                {notifications.map((n) => {
+                  const Icon = TYPE_ICON[n.type]
+                  const isOpen = expanded === n.id
+                  return (
+                    <div
+                      key={n.id}
+                      className={`border-b border-white/5 px-4 py-3 transition-colors last:border-b-0 ${
+                        n.unread ? 'bg-cyan-accent/5' : ''
+                      }`}
+                    >
+                      <button
+                        onClick={() => markRead(n.id)}
+                        className="flex w-full items-start gap-3 text-left"
+                      >
+                        <span className={`mt-0.5 shrink-0 ${TYPE_COLOR[n.type]}`}>
+                          <Icon className="h-[18px] w-[18px]" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-semibold text-slate-100">{n.title}</span>
+                          {n.message && (
+                            <span className="block break-words text-sm text-slate-300">{n.message}</span>
+                          )}
+                          <span className="mt-0.5 block text-xs text-slate-500">{n.time}</span>
+                        </span>
+                        {n.unread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-cyan-accent" />}
+                      </button>
+
+                      {n.detail && (
+                        <div className="mt-2 pl-[30px]">
+                          <button
+                            onClick={() => setExpanded(isOpen ? null : n.id)}
+                            className="flex items-center gap-1 text-xs font-medium text-cyan-accent hover:underline"
+                          >
+                            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                            {isOpen ? 'Hide details' : 'Show details'}
+                          </button>
+                          {isOpen && (
+                            <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-white/10 bg-navy-950 p-3 text-[11px] leading-relaxed text-slate-300">
+                              {n.detail}
+                            </pre>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
-              <button
-                onClick={() => {
-                  setNotifOpen(false)
-                  addToast('Opened notification center', 'info')
-                }}
-                className="block w-full border-t border-white/5 px-4 py-2.5 text-center text-xs font-medium text-cyan-accent hover:bg-white/5"
-              >
-                View all
-              </button>
             </div>
           )}
         </div>
@@ -171,25 +177,15 @@ export default function Topbar({ onNavigate, onUpgrade }: TopbarProps) {
             onClick={openMenu}
             className="flex items-center gap-2.5 rounded-xl border border-white/5 bg-navy-800/70 py-1.5 pl-1.5 pr-2.5 transition-colors hover:border-white/10"
           >
-            <img
-              src="https://i.pravatar.cc/80?img=12"
-              alt="Alex R."
-              className="h-8 w-8 rounded-lg object-cover"
-            />
+            <img src="https://i.pravatar.cc/80?img=12" alt="Alex R." className="h-8 w-8 rounded-lg object-cover" />
             <span className="hidden text-sm font-semibold text-slate-100 sm:block">Alex R.</span>
-            <ChevronDown
-              className={`h-4 w-4 text-slate-400 transition-transform ${menuOpen ? 'rotate-180' : ''}`}
-            />
+            <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {menuOpen && (
             <div className="absolute right-0 mt-2 w-64 animate-fade-in overflow-hidden rounded-2xl border border-white/10 bg-navy-800 shadow-panel">
               <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3">
-                <img
-                  src="https://i.pravatar.cc/80?img=12"
-                  alt=""
-                  className="h-10 w-10 rounded-lg object-cover"
-                />
+                <img src="https://i.pravatar.cc/80?img=12" alt="" className="h-10 w-10 rounded-lg object-cover" />
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-white">Alex Rivera</div>
                   <div className="truncate text-xs text-slate-500">alex@schedlytics.io</div>

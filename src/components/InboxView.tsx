@@ -3,6 +3,7 @@ import { Send, CheckCheck, Circle, RefreshCw, Loader2 } from 'lucide-react'
 import { PLATFORMS } from '../data'
 import type { PlatformId } from '../types'
 import { useToast } from './Toast'
+import { useNotifications } from './Notifications'
 import { useConnections } from './Connections'
 import { backendEnabled, fetchYouTubeComments } from '../lib/socialApi'
 
@@ -49,6 +50,7 @@ const SEED: Message[] = [
 
 export default function InboxView() {
   const { addToast } = useToast()
+  const { push } = useNotifications()
   const { accounts } = useConnections()
   const [messages, setMessages] = useState<Message[]>(SEED)
   const [selectedId, setSelectedId] = useState<number | null>(SEED[0].id)
@@ -79,7 +81,9 @@ export default function InboxView() {
         addToast('No YouTube comments found yet', 'info')
       }
     } catch (e) {
-      addToast(e instanceof Error ? `Could not load comments: ${e.message}` : 'Could not load comments', 'info', 6000)
+      const detail = e instanceof Error ? e.message : String(e)
+      addToast('Could not load YouTube comments. See the bell for details.', 'info', 6000)
+      push({ type: 'error', title: 'Could not load YouTube comments', message: 'Tap to see the full reason', detail })
     } finally {
       setLoading(false)
     }

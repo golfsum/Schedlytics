@@ -9,6 +9,7 @@ import {
 import type { PlatformId } from '../types'
 import { PLATFORMS } from '../data'
 import { useToast } from './Toast'
+import { useNotifications } from './Notifications'
 import {
   backendEnabled,
   startConnect,
@@ -94,6 +95,7 @@ function toAccount(r: RemoteAccount): Account {
 
 export function ConnectionsProvider({ children }: { children: ReactNode }) {
   const { addToast } = useToast()
+  const { push } = useNotifications()
   const [accounts, setAccounts] = useState<Record<string, Account>>(
     backendEnabled
       ? Object.fromEntries(CONNECTABLE.map((id) => [id, { connected: false, connecting: false }]))
@@ -129,14 +131,14 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
       addToast(`${PLATFORMS[connected as PlatformId].name} connected! 🔗`)
       refresh()
     } else if (error) {
-      // sticky (duration 0) so the reason stays on screen until dismissed
-      addToast(`Connection failed: ${error}`, 'info', 0)
+      addToast('Connection failed. See the bell for details.', 'info', 6000)
+      push({ type: 'error', title: 'Connection failed', message: 'OAuth did not complete', detail: error })
     }
     if (connected || error) {
       // Clean the query string so a refresh doesn't re-toast.
       window.history.replaceState({}, '', window.location.pathname)
     }
-  }, [refresh, addToast])
+  }, [refresh, addToast, push])
 
   const connect = useCallback(
     (id: PlatformId) => {
