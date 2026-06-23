@@ -150,28 +150,44 @@ export const youtube = {
   /**
    * Recent comments on the connected channel's videos.
    *
-   * We read per-video via the uploads playlist, which works with the
-   * youtube.readonly scope. (The channel-wide allThreadsRelatedToChannelId
-   * shortcut would require the broader youtube.force-ssl scope and a reconnect.)
+   * Primary path: the channel-wide thread feed (allThreadsRelatedToChannelId),
+   * which surfaces the newest comments across every video and needs the
+   * youtube.force-ssl scope. Falls back to a per-video scan (youtube.readonly)
+   * if that scope hasn't been granted yet.
    */
   async getComments(accessToken, max = 25) {
-    // 1. Find the channel's "uploads" playlist.
-    const ch = await getJson(`${DATA_API}/channels?part=contentDetails&mine=true`, accessToken)
-    const uploads = ch.items?.[0]?.contentDetails?.relatedPlaylists?.uploads
-    if (!uploads) {
+    const ch = await getJson(`${DATA_API}/channels?part=contentDetails,id&mine=true`, accessToken)
+    const channel = ch.items?.[0]
+    const channelId = channel?.id
+    const uploads = channel?.contentDetails?.relatedPlaylists?.uploads
+    if (!channelId) {
       const err = new Error('No YouTube channel found on this account. Create a channel first.')
       err.status = 400
       throw err
     }
 
-    // 2. Most recent uploads.
+    // 1. Channel-wide thread feed (needs force-ssl). Most reliable for new comments.
+    if (channelId) {
+      try {
+        const data = await getJson(
+          `${DATA_API}/commentThreads?part=snippet&order=time&maxResults=${Math.min(max, 100)}&allThreadsRelatedToChannelId=${channelId}`,
+          accessToken,
+        )
+        const out = (data.items || []).map(threadToComment)
+        if (out.length) return out.slice(0, max)
+      } catch {
+        /* scope not granted yet (needs reconnect) or none - fall back */
+      }
+    }
+
+    // 2. Fallback: scan recent uploads per-video (works with youtube.readonly).
+    if (!uploads) return []
     const pl = await getJson(
-      `${DATA_API}/playlistItems?part=contentDetails&playlistId=${uploads}&maxResults=8`,
+      `${DATA_API}/playlistItems?part=contentDetails&playlistId=${uploads}&maxResults=10`,
       accessToken,
     )
     const videoIds = (pl.items || []).map((i) => i.contentDetails?.videoId).filter(Boolean)
 
-    // 3. Comments per video (skip videos with comments disabled / errors).
     const out = []
     for (const videoId of videoIds) {
       try {
@@ -179,24 +195,11 @@ export const youtube = {
           `${DATA_API}/commentThreads?part=snippet&order=time&maxResults=10&videoId=${videoId}`,
           accessToken,
         )
-        for (const it of data.items || []) {
-          const c = it.snippet?.topLevelComment?.snippet || {}
-          out.push({
-            id: it.id,
-            author: c.authorDisplayName,
-            avatar: c.authorProfileImageUrl,
-            text: c.textDisplay,
-            time: c.publishedAt,
-            likeCount: Number(c.likeCount || 0),
-            replyCount: Number(it.snippet?.totalReplyCount || 0),
-            videoId,
-          })
-        }
+        for (const it of data.items || []) out.push(threadToComment(it))
       } catch {
         /* comments disabled or unavailable for this video - skip it */
       }
     }
-
     out.sort((a, b) => (Date.parse(b.time) || 0) - (Date.parse(a.time) || 0))
     return out.slice(0, max)
   },
@@ -509,6 +512,21 @@ async function getJson(url, accessToken) {
     throw new Error(`YouTube ${res.status}: ${String(reason).slice(0, 220)}`)
   }
   return res.json()
+}
+
+/** Normalize a commentThreads item into our comment shape. */
+function threadToComment(it) {
+  const c = it.snippet?.topLevelComment?.snippet || {}
+  return {
+    id: it.snippet?.topLevelComment?.id || it.id,
+    author: c.authorDisplayName,
+    avatar: c.authorProfileImageUrl,
+    text: c.textDisplay,
+    time: c.publishedAt,
+    likeCount: Number(c.likeCount || 0),
+    replyCount: Number(it.snippet?.totalReplyCount || 0),
+    videoId: c.videoId || it.snippet?.videoId,
+  }
 }
 
 /** Turn an Analytics {columnHeaders, rows} payload into array-of-objects. */
