@@ -99,8 +99,20 @@ export function InboxProvider({ children }: { children: ReactNode }) {
       }
     } catch (e) {
       const detail = e instanceof Error ? e.message : String(e)
-      addToast('Could not load YouTube comments. See the bell for details.', 'info', 6000)
-      push({ type: 'error', title: 'Could not load YouTube comments', message: 'Tap to see the full reason', detail })
+      // A scope 403 means the connection predates the comment permission.
+      const isScope = /scope|403/i.test(detail)
+      if (isScope) {
+        addToast('Reconnect YouTube in Settings to grant comment access.', 'info', 7000)
+        push({
+          type: 'error',
+          title: 'Reconnect YouTube for comments',
+          message: 'Your connection is missing the comments permission. Disconnect and reconnect YouTube in Settings.',
+          detail,
+        })
+      } else {
+        addToast('Could not load YouTube comments. See the bell for details.', 'info', 6000)
+        push({ type: 'error', title: 'Could not load YouTube comments', message: 'Tap to see the full reason', detail })
+      }
     } finally {
       setLoading(false)
     }
