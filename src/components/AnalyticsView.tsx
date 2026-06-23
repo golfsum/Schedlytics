@@ -224,13 +224,18 @@ function UnifiedCorrelation() {
           ) : liveYouTube ? (
             daily === null ? (
               <ChartLoading />
+            ) : daily === 'error' ? (
+              <ChartNote>Analytics unavailable. Reconnect YouTube in Settings to grant analytics access.</ChartNote>
             ) : hasDaily ? (
               <EngagementTrend
                 data={(daily as DailyMetric[]).map((d) => d.views)}
                 labels={sparseLabels((daily as DailyMetric[]).map((d) => d.day))}
               />
             ) : (
-              <EmptyChart />
+              <ChartNote>
+                No analytics yet. YouTube reports views with a 1-2 day delay, and private videos
+                show no public views.
+              </ChartNote>
             )
           ) : (
             <EmptyChart />
@@ -265,6 +270,14 @@ function ChartLoading() {
       <span className="flex items-center gap-2">
         <Loader2 className="h-4 w-4 animate-spin" /> Loading analytics…
       </span>
+    </div>
+  )
+}
+
+function ChartNote({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="grid h-28 place-items-center rounded-xl border border-dashed border-white/10 px-4 text-center text-xs text-slate-500">
+      {children}
     </div>
   )
 }

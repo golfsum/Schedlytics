@@ -16,6 +16,8 @@ export interface Message {
   unread: boolean
   /** Real YouTube comment id, set for live comments so we can reply to it. */
   commentId?: string
+  /** Likes on the comment (read-only; YouTube has no like-a-comment API). */
+  likeCount?: number
 }
 
 /** YouTube comment text can contain HTML + entities; clean it for display. */
@@ -88,6 +90,7 @@ export function InboxProvider({ children }: { children: ReactNode }) {
           time: timeAgo(c.time),
           unread: true,
           commentId: c.id,
+          likeCount: c.likeCount,
         }))
         setMessages(msgs)
         setSelectedId(msgs[0].id)

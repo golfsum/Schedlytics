@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Send, CheckCheck, Circle, RefreshCw, Loader2 } from 'lucide-react'
+import { Send, CheckCheck, Circle, RefreshCw, Loader2, ThumbsUp } from 'lucide-react'
 import { PLATFORMS } from '../data'
 import { useToast } from './Toast'
 import { useNotifications } from './Notifications'
@@ -25,9 +25,12 @@ export default function InboxView() {
 
   const selected = messages.find((m) => m.id === selectedId) ?? null
 
-  const send = async () => {
-    if (!reply.trim() || !selected || sending) return
-    const text = reply.trim()
+  // Send a reply. Pass `quick` to post a one-tap emoji reaction without touching
+  // the typed draft.
+  const send = async (quick?: string) => {
+    if (!selected || sending) return
+    const text = (quick ?? reply).trim()
+    if (!text) return
 
     // Real YouTube comment: post the reply through the Data API.
     if (selected.commentId && backendEnabled) {
@@ -35,7 +38,7 @@ export default function InboxView() {
       try {
         await replyToYouTubeComment(selected.commentId, text)
         addToast(`Reply posted to ${selected.name} on YouTube 📨`)
-        setReply('')
+        if (!quick) setReply('')
       } catch (e) {
         const detail = e instanceof Error ? e.message : String(e)
         addToast('Could not post reply. See the bell for details.', 'info', 6000)
@@ -48,8 +51,10 @@ export default function InboxView() {
 
     // Demo / non-YouTube message: optimistic confirmation.
     addToast(`Reply sent to ${selected.name} 📨`)
-    setReply('')
+    if (!quick) setReply('')
   }
+
+  const REACTIONS = ['👍', '❤️', '🔥', '😂', '🙏', '👏']
 
   return (
     <div className="space-y-6">
@@ -155,7 +160,14 @@ export default function InboxView() {
                 <div className="flex justify-start">
                   <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-navy-900/70 px-4 py-2.5 text-sm text-slate-200">
                     {selected.text}
-                    <div className="mt-1 text-[10px] text-slate-500">{selected.time} ago</div>
+                    <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-500">
+                      <span>{selected.time} ago</span>
+                      {typeof selected.likeCount === 'number' && (
+                        <span className="flex items-center gap-1">
+                          <ThumbsUp className="h-3 w-3" /> {selected.likeCount}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 {source === 'demo' && (
@@ -168,8 +180,24 @@ export default function InboxView() {
                 )}
               </div>
 
+              {/* quick emoji reactions (posted as a reply) */}
+              <div className="flex items-center gap-1.5 border-t border-white/5 px-4 pt-3">
+                <span className="mr-1 text-[11px] font-medium text-slate-500">React:</span>
+                {REACTIONS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => send(emoji)}
+                    disabled={sending}
+                    title={`Reply with ${emoji}`}
+                    className="grid h-8 w-8 place-items-center rounded-lg text-lg transition-colors hover:bg-white/5 disabled:opacity-50"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+
               {/* reply */}
-              <div className="flex items-center gap-2 border-t border-white/5 p-4">
+              <div className="flex items-center gap-2 px-4 pb-4 pt-2">
                 <input
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
@@ -179,7 +207,7 @@ export default function InboxView() {
                   className="flex-1 rounded-lg border border-white/5 bg-navy-900/60 px-3.5 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20 disabled:opacity-60"
                 />
                 <button
-                  onClick={send}
+                  onClick={() => send()}
                   disabled={sending || !reply.trim()}
                   className="flex items-center gap-2 rounded-lg gradient-cyan px-4 py-2.5 text-sm font-bold text-navy-900 transition-transform hover:scale-[1.02] disabled:opacity-60"
                 >
