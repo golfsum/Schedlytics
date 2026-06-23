@@ -1,6 +1,7 @@
 import { Sparkles } from 'lucide-react'
 import Logo from './Logo'
 import { NAV_ITEMS } from '../data'
+import { useInbox } from './Inbox'
 import type { NavId } from '../types'
 
 interface SidebarProps {
@@ -11,6 +12,7 @@ interface SidebarProps {
 
 /** Left-hand primary navigation rail. */
 export default function Sidebar({ active, onNavigate, onUpgrade }: SidebarProps) {
+  const { unreadCount } = useInbox()
   return (
     <aside className="hidden w-[232px] shrink-0 flex-col border-r border-white/5 bg-navy-950/80 px-4 py-6 md:flex">
       {/* Brand */}
@@ -22,6 +24,8 @@ export default function Sidebar({ active, onNavigate, onUpgrade }: SidebarProps)
       <nav className="mt-9 flex flex-1 flex-col gap-1.5">
         {NAV_ITEMS.map(({ id, label, Icon, badge }) => {
           const isActive = id === active
+          // Inbox badge reflects the live unread count, not a static number.
+          const count = id === 'inbox' ? unreadCount : badge
           return (
             <button
               key={id}
@@ -43,9 +47,9 @@ export default function Sidebar({ active, onNavigate, onUpgrade }: SidebarProps)
                 strokeWidth={2}
               />
               <span>{label}</span>
-              {badge ? (
+              {count ? (
                 <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-cyan-accent px-1.5 text-[11px] font-bold text-navy-900">
-                  {badge}
+                  {count}
                 </span>
               ) : null}
             </button>

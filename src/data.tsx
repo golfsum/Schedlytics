@@ -98,7 +98,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'media-studio', label: 'Media Studio', Icon: Clapperboard },
   { id: 'analytics', label: 'Analytics', Icon: BarChart3 },
   { id: 'link-tools', label: 'Link Tools', Icon: Link2 },
-  { id: 'inbox', label: 'Inbox', Icon: MessageSquare, badge: 3 },
+  { id: 'inbox', label: 'Inbox', Icon: MessageSquare },
   { id: 'settings', label: 'Settings', Icon: Settings },
 ]
 

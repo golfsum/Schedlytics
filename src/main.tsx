@@ -4,6 +4,7 @@ import App from './App.tsx'
 import { ToastProvider } from './components/Toast.tsx'
 import { NotificationsProvider } from './components/Notifications.tsx'
 import { ConnectionsProvider } from './components/Connections.tsx'
+import { InboxProvider } from './components/Inbox.tsx'
 import { AuthProvider, AuthGate } from './components/Auth.tsx'
 import { resolveShortLinkRedirect } from './lib/shortLinks.ts'
 import './index.css'
@@ -18,7 +19,9 @@ if (!resolveShortLinkRedirect()) {
           <AuthGate>
             <NotificationsProvider>
               <ConnectionsProvider>
-                <App />
+                <InboxProvider>
+                  <App />
+                </InboxProvider>
               </ConnectionsProvider>
             </NotificationsProvider>
           </AuthGate>
