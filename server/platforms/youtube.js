@@ -146,36 +146,57 @@ export const youtube = {
   },
 
   /**
-   * Recent comment threads across the connected channel (comments on the
-   * channel's videos + about the channel). Read access uses youtube.readonly.
+   * Recent comments on the connected channel's videos.
+   *
+   * We read per-video via the uploads playlist, which works with the
+   * youtube.readonly scope. (The channel-wide allThreadsRelatedToChannelId
+   * shortcut would require the broader youtube.force-ssl scope and a reconnect.)
    */
-  async getComments(accessToken, max = 20) {
-    const ch = await getJson(`${DATA_API}/channels?part=id&mine=true`, accessToken)
-    const channelId = ch.items?.[0]?.id
-    if (!channelId) {
+  async getComments(accessToken, max = 25) {
+    // 1. Find the channel's "uploads" playlist.
+    const ch = await getJson(`${DATA_API}/channels?part=contentDetails&mine=true`, accessToken)
+    const uploads = ch.items?.[0]?.contentDetails?.relatedPlaylists?.uploads
+    if (!uploads) {
       const err = new Error('No YouTube channel found on this account. Create a channel first.')
       err.status = 400
       throw err
     }
 
-    const url =
-      `${DATA_API}/commentThreads?part=snippet&order=time&maxResults=${max}` +
-      `&allThreadsRelatedToChannelId=${channelId}`
-    const data = await getJson(url, accessToken)
+    // 2. Most recent uploads.
+    const pl = await getJson(
+      `${DATA_API}/playlistItems?part=contentDetails&playlistId=${uploads}&maxResults=8`,
+      accessToken,
+    )
+    const videoIds = (pl.items || []).map((i) => i.contentDetails?.videoId).filter(Boolean)
 
-    return (data.items || []).map((it) => {
-      const c = it.snippet?.topLevelComment?.snippet || {}
-      return {
-        id: it.id,
-        author: c.authorDisplayName,
-        avatar: c.authorProfileImageUrl,
-        text: c.textDisplay,
-        time: c.publishedAt,
-        likeCount: Number(c.likeCount || 0),
-        replyCount: Number(it.snippet?.totalReplyCount || 0),
-        videoId: it.snippet?.videoId,
+    // 3. Comments per video (skip videos with comments disabled / errors).
+    const out = []
+    for (const videoId of videoIds) {
+      try {
+        const data = await getJson(
+          `${DATA_API}/commentThreads?part=snippet&order=time&maxResults=10&videoId=${videoId}`,
+          accessToken,
+        )
+        for (const it of data.items || []) {
+          const c = it.snippet?.topLevelComment?.snippet || {}
+          out.push({
+            id: it.id,
+            author: c.authorDisplayName,
+            avatar: c.authorProfileImageUrl,
+            text: c.textDisplay,
+            time: c.publishedAt,
+            likeCount: Number(c.likeCount || 0),
+            replyCount: Number(it.snippet?.totalReplyCount || 0),
+            videoId,
+          })
+        }
+      } catch {
+        /* comments disabled or unavailable for this video — skip it */
       }
-    })
+    }
+
+    out.sort((a, b) => (Date.parse(b.time) || 0) - (Date.parse(a.time) || 0))
+    return out.slice(0, max)
   },
 
   /* ====================================================================== */

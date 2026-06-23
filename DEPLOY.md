@@ -53,6 +53,15 @@ served by the function; the app and its hashed `/assets/*` bundles come from
 BASE_URL=https://your-schedlytics-domain        # your production domain
 # (do NOT set VITE_API_URL — the app calls same-origin /api in production)
 
+# Firebase Auth (login at /app). Public client config from the Firebase console.
+# Leave blank to keep the app open (no login).
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=schedlytics-95655.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=schedlytics-95655
+VITE_FIREBASE_STORAGE_BUCKET=schedlytics-95655.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+
 # platform credentials (same values you tested locally)
 YOUTUBE_CLIENT_ID= / YOUTUBE_CLIENT_SECRET=
 TIKTOK_CLIENT_KEY= / TIKTOK_CLIENT_SECRET=

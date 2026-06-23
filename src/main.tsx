@@ -4,6 +4,7 @@ import App from './App.tsx'
 import { ToastProvider } from './components/Toast.tsx'
 import { NotificationsProvider } from './components/Notifications.tsx'
 import { ConnectionsProvider } from './components/Connections.tsx'
+import { AuthProvider, AuthGate } from './components/Auth.tsx'
 import { resolveShortLinkRedirect } from './lib/shortLinks.ts'
 import './index.css'
 
@@ -13,11 +14,15 @@ if (!resolveShortLinkRedirect()) {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <ToastProvider>
-        <NotificationsProvider>
-          <ConnectionsProvider>
-            <App />
-          </ConnectionsProvider>
-        </NotificationsProvider>
+        <AuthProvider>
+          <AuthGate>
+            <NotificationsProvider>
+              <ConnectionsProvider>
+                <App />
+              </ConnectionsProvider>
+            </NotificationsProvider>
+          </AuthGate>
+        </AuthProvider>
       </ToastProvider>
     </StrictMode>,
   )

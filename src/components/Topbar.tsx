@@ -15,6 +15,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { useToast } from './Toast'
 import { useNotifications, type NotificationType } from './Notifications'
+import { useAuth } from './Auth'
 import type { NavId } from '../types'
 
 interface TopbarProps {
@@ -37,6 +38,11 @@ const TYPE_COLOR: Record<NotificationType, string> = {
 export default function Topbar({ onNavigate, onUpgrade }: TopbarProps) {
   const { addToast } = useToast()
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications()
+  const { user, signOutUser } = useAuth()
+
+  const avatar = user?.photoURL || 'https://i.pravatar.cc/80?img=12'
+  const name = user?.name || 'Account'
+  const email = user?.email || ''
   const [notifOpen, setNotifOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [expanded, setExpanded] = useState<number | null>(null)
@@ -177,18 +183,18 @@ export default function Topbar({ onNavigate, onUpgrade }: TopbarProps) {
             onClick={openMenu}
             className="flex items-center gap-2.5 rounded-xl border border-white/5 bg-navy-800/70 py-1.5 pl-1.5 pr-2.5 transition-colors hover:border-white/10"
           >
-            <img src="https://i.pravatar.cc/80?img=12" alt="Alex R." className="h-8 w-8 rounded-lg object-cover" />
-            <span className="hidden text-sm font-semibold text-slate-100 sm:block">Alex R.</span>
+            <img src={avatar} alt={name} className="h-8 w-8 rounded-lg object-cover" />
+            <span className="hidden max-w-[120px] truncate text-sm font-semibold text-slate-100 sm:block">{name}</span>
             <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {menuOpen && (
             <div className="absolute right-0 mt-2 w-64 animate-fade-in overflow-hidden rounded-2xl border border-white/10 bg-navy-800 shadow-panel">
               <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3">
-                <img src="https://i.pravatar.cc/80?img=12" alt="" className="h-10 w-10 rounded-lg object-cover" />
+                <img src={avatar} alt="" className="h-10 w-10 rounded-lg object-cover" />
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-white">Alex Rivera</div>
-                  <div className="truncate text-xs text-slate-500">alex@schedlytics.io</div>
+                  <div className="truncate text-sm font-semibold text-white">{name}</div>
+                  <div className="truncate text-xs text-slate-500">{email}</div>
                 </div>
               </div>
               <div className="py-1.5">
@@ -210,8 +216,7 @@ export default function Topbar({ onNavigate, onUpgrade }: TopbarProps) {
                   label="Sign out"
                   onClick={() => {
                     setMenuOpen(false)
-                    // Leave the app and return to the marketing site.
-                    window.location.assign('/')
+                    signOutUser() // signs out of Firebase (if on) then returns to the site
                   }}
                 />
               </div>
