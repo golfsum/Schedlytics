@@ -23,7 +23,7 @@ import { useToast } from './Toast'
 import { useNotifications } from './Notifications'
 import { useConnections } from './Connections'
 import { usePersistedState } from '../lib/usePersisted'
-import { backendEnabled, publishYouTubeVideo, publishPost, publishMedia } from '../lib/socialApi'
+import { backendEnabled, publishYouTubeVideo, publishYouTubeFile, publishPost, publishMedia } from '../lib/socialApi'
 import { aiTitles, aiCaptions, aiHashtags, type Suggestion } from '../lib/aiSuggest'
 import { PLATFORM_LIST, PLATFORMS } from '../data'
 import type { CalendarPost, PlatformId } from '../types'
@@ -215,8 +215,8 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     try {
       if (willPublishNow && platform === 'youtube') {
         if (hasVideoFile && mediaFile) {
-          // Stream the picked video file straight to YouTube (private).
-          const result = await publishMedia('youtube', mediaFile, {
+          // Browser uploads the bytes straight to Google (no server size limit).
+          const result = await publishYouTubeFile(mediaFile, {
             title: title.trim() || 'Untitled',
             description: composeDescription(),
             tags,

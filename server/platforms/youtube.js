@@ -291,6 +291,43 @@ export const youtube = {
   },
 
   /**
+   * Open a resumable upload session and return the upload URL. The browser then
+   * PUTs the video bytes straight to Google, bypassing our server's body limit
+   * (important on serverless hosts like Vercel with ~4.5MB request caps).
+   */
+  async createUploadSession(accessToken, opts = {}) {
+    const {
+      title,
+      description = '',
+      tags = [],
+      privacyStatus = 'private',
+      categoryId = '22',
+      contentType = 'video/*',
+      contentLength,
+    } = opts
+    if (!contentLength) throw new Error('createUploadSession requires contentLength')
+
+    const metadata = {
+      snippet: { title: title || 'Untitled', description, tags, categoryId },
+      status: { privacyStatus, selfDeclaredMadeForKids: false },
+    }
+    const init = await fetch(`${UPLOAD_API}/videos?uploadType=resumable&part=snippet,status`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json; charset=UTF-8',
+        'X-Upload-Content-Type': contentType,
+        'X-Upload-Content-Length': String(contentLength),
+      },
+      body: JSON.stringify(metadata),
+    })
+    if (!init.ok) throw new Error(`YouTube upload init failed: ${(await init.text()).slice(0, 220)}`)
+    const uploadUrl = init.headers.get('location')
+    if (!uploadUrl) throw new Error('YouTube did not return a resumable upload URL')
+    return uploadUrl
+  },
+
+  /**
    * Generic media publish used by the app's media uploader: takes raw bytes and
    * uploads them as a video. Returns a watch URL.
    */

@@ -69,6 +69,23 @@ router.post('/comments/:parentId/reply', guard(async (req, res, token) => {
 
 /* -------------------------- Data API v3 (posting) ------------------------- */
 
+// Returns a resumable upload URL so the browser can PUT the bytes straight to
+// Google (avoids serverless request-size limits). The client uploads directly.
+router.post('/upload-session', guard(async (req, res, token) => {
+  const { title, description, tags, privacyStatus, contentType, contentLength } = req.body || {}
+  if (!title) return res.status(400).json({ error: 'title is required' })
+  if (!contentLength) return res.status(400).json({ error: 'contentLength is required' })
+  const uploadUrl = await youtube.createUploadSession(token, {
+    title,
+    description,
+    tags: Array.isArray(tags) ? tags : [],
+    privacyStatus: privacyStatus || 'private',
+    contentType: contentType || 'video/*',
+    contentLength: Number(contentLength),
+  })
+  res.json({ uploadUrl })
+}))
+
 router.post('/upload', guard(async (req, res, token) => {
   const { videoUrl, title, description, tags, privacyStatus } = req.body || {}
   if (!videoUrl || !title) {

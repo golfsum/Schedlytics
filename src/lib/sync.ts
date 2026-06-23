@@ -58,15 +58,25 @@ async function idToken(): Promise<string | null> {
   }
 }
 
+// When the server isn't configured for sync (501), stop trying for this session.
+let syncUnavailable = false
+export function isSyncAvailable() {
+  return !syncUnavailable
+}
+
 /** Fetch the user's stored settings, or null if none / unavailable. */
 export async function pullSettings(): Promise<Snapshot | null> {
-  if (!backendEnabled) return null
+  if (!backendEnabled || syncUnavailable) return null
   const token = await idToken()
   if (!token) return null
   try {
     const res = await fetch(`${apiBase}/api/settings`, {
       headers: { Authorization: `Bearer ${token}` },
     })
+    if (res.status === 501) {
+      syncUnavailable = true
+      return null
+    }
     if (!res.ok) return null
     const data = (await res.json()) as { settings?: Snapshot | null }
     return data.settings ?? null
@@ -77,7 +87,7 @@ export async function pullSettings(): Promise<Snapshot | null> {
 
 /** Push the current snapshot to the backend. Returns whether it succeeded. */
 export async function pushSettings(blob: Snapshot): Promise<boolean> {
-  if (!backendEnabled) return false
+  if (!backendEnabled || syncUnavailable) return false
   const token = await idToken()
   if (!token) return false
   try {
@@ -87,6 +97,7 @@ export async function pushSettings(blob: Snapshot): Promise<boolean> {
       body: JSON.stringify({ settings: blob }),
       keepalive: true,
     })
+    if (res.status === 501) syncUnavailable = true
     return res.ok
   } catch {
     return false
