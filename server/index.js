@@ -41,15 +41,14 @@ app.use('/api/youtube', youtubeRoutes)
 /*    platform app reviews (e.g. {BASE_URL}/privacy, {BASE_URL}/data-deletion).  */
 /* -------------------------------------------------------------------------- */
 
+// Marketing + legal site lives at the root; the app lives at /app.
+// (On Vercel these are served statically from out/; this mirror is for running
+// the backend directly in local dev.)
 if (existsSync(SITE_DIR)) {
-  // CSS + favicon for the marketing/legal pages (the app's own CSS is hashed
-  // under /assets, so /styles.css does not collide with it).
   app.use(express.static(SITE_DIR))
-  // Marketing images live under /site-media so they do not clash with the app's
-  // /assets bundles.
   app.use('/site-media', express.static(join(SITE_DIR, 'assets')))
-  // The React app owns "/". The marketing landing lives at /welcome.
-  app.get('/welcome', (_req, res) => res.sendFile(join(SITE_DIR, 'index.html')))
+  app.get('/', (_req, res) => res.sendFile(join(SITE_DIR, 'index.html')))
+  app.get('/welcome', (_req, res) => res.redirect(301, '/')) // back-compat
   app.get('/privacy', (_req, res) => res.sendFile(join(SITE_DIR, 'privacy.html')))
   app.get('/terms', (_req, res) => res.sendFile(join(SITE_DIR, 'terms.html')))
   app.get('/data-deletion', (_req, res) => res.sendFile(join(SITE_DIR, 'data-deletion.html')))
@@ -298,9 +297,9 @@ app.get('/s/:slug', async (req, res) => {
 
 const DIST = join(__dirname, '..', 'dist')
 if (existsSync(DIST)) {
-  app.use(express.static(DIST))
-  // SPA fallback for any other GET that is not an API/auth/redirect route.
-  app.get('*', (req, res, next) => {
+  // The app is mounted under /app (built with base /app/).
+  app.use('/app', express.static(DIST))
+  app.get(['/app', '/app/*'], (req, res, next) => {
     if (req.method !== 'GET') return next()
     res.sendFile(join(DIST, 'index.html'))
   })

@@ -60,7 +60,7 @@ export default function App() {
               You are exploring with sample data. Connections are simulated and nothing is saved.
             </span>
             <a
-              href="/"
+              href="/app/"
               className="ml-auto rounded-md border border-cyan-accent/30 px-2.5 py-1 font-semibold hover:bg-cyan-accent/10"
             >
               Exit demo

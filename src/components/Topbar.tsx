@@ -210,7 +210,8 @@ export default function Topbar({ onNavigate, onUpgrade }: TopbarProps) {
                   label="Sign out"
                   onClick={() => {
                     setMenuOpen(false)
-                    addToast('You have been signed out', 'info')
+                    // Leave the app and return to the marketing site.
+                    window.location.assign('/')
                   }}
                 />
               </div>
