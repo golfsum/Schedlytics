@@ -36,8 +36,10 @@ export default function PostBlock({
       }`}
     >
       <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={2.2} />
-      <span className="truncate text-xs font-semibold">{platform.name}</span>
-      <GripVertical className="ml-auto h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-70" />
+      <span className="min-w-0 flex-1 truncate text-xs font-semibold">
+        {post.label || platform.name}
+      </span>
+      <GripVertical className="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-70" />
     </div>
   )
 }
