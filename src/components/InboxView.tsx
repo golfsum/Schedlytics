@@ -5,7 +5,7 @@ import type { PlatformId } from '../types'
 import { useToast } from './Toast'
 import { useNotifications } from './Notifications'
 import { useConnections } from './Connections'
-import { backendEnabled, fetchYouTubeComments } from '../lib/socialApi'
+import { backendEnabled, sampleData, fetchYouTubeComments } from '../lib/socialApi'
 
 /** YouTube comment text can contain HTML + entities; clean it for display. */
 function stripHtml(s: string) {
@@ -52,11 +52,11 @@ export default function InboxView() {
   const { addToast } = useToast()
   const { push } = useNotifications()
   const { accounts } = useConnections()
-  const [messages, setMessages] = useState<Message[]>(SEED)
-  const [selectedId, setSelectedId] = useState<number | null>(SEED[0].id)
+  const [messages, setMessages] = useState<Message[]>(sampleData ? SEED : [])
+  const [selectedId, setSelectedId] = useState<number | null>(sampleData ? SEED[0].id : null)
   const [reply, setReply] = useState('')
   const [loading, setLoading] = useState(false)
-  const [source, setSource] = useState<'demo' | 'youtube'>('demo')
+  const [source, setSource] = useState<'demo' | 'youtube'>(sampleData ? 'demo' : 'youtube')
 
   const ytConnected = Boolean(accounts.youtube?.connected)
 
@@ -78,7 +78,9 @@ export default function InboxView() {
         setSelectedId(msgs[0].id)
         setSource('youtube')
       } else {
-        addToast('No YouTube comments found yet', 'info')
+        // No comments — show an inline empty state, not a popup.
+        setMessages([])
+        setSelectedId(null)
       }
     } catch (e) {
       const detail = e instanceof Error ? e.message : String(e)
@@ -118,7 +120,7 @@ export default function InboxView() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold text-white">Inbox</h1>
-        {source === 'youtube' && (
+        {source === 'youtube' && messages.length > 0 && (
           <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-300">
             Live YouTube comments
           </span>
@@ -186,6 +188,15 @@ export default function InboxView() {
                 </button>
               )
             })}
+            {messages.length === 0 && (
+              <div className="px-4 py-10 text-center text-sm text-slate-500">
+                {loading
+                  ? 'Loading…'
+                  : ytConnected
+                    ? 'No comments yet. New comments on your videos will show up here.'
+                    : 'Connect a channel in Settings to see comments and messages here.'}
+              </div>
+            )}
           </div>
         </div>
 

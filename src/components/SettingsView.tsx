@@ -15,6 +15,8 @@ import Toggle from './Toggle'
 import { useToast } from './Toast'
 import { useImageUpload } from './ImageUpload'
 import { useConnections, CONNECTABLE } from './Connections'
+import { useAuth } from './Auth'
+import { sampleData } from '../lib/socialApi'
 import { PLATFORMS } from '../data'
 import type { PlatformId } from '../types'
 
@@ -157,21 +159,31 @@ function AccountsSection() {
 
 function ProfileSection() {
   const { addToast } = useToast()
-  const [name, setName] = useState('Alex Rivera')
-  const [email, setEmail] = useState('alex@schedlytics.io')
-  const [bio, setBio] = useState('Creator & marketer. Fashion, lifestyle, and a little chaos.')
-  const avatar = useImageUpload('https://i.pravatar.cc/120?img=12', () => addToast('Photo updated'))
+  const { user } = useAuth()
+  const [name, setName] = useState(user?.name || '')
+  const [email, setEmail] = useState(user?.email || '')
+  const [bio, setBio] = useState(
+    sampleData ? 'Creator & marketer. Fashion, lifestyle, and a little chaos.' : '',
+  )
+  const fallbackAvatar = user?.photoURL || (sampleData ? 'https://i.pravatar.cc/120?img=12' : '')
+  const avatar = useImageUpload(fallbackAvatar, () => addToast('Photo updated'))
 
   return (
     <div className="card p-5">
       <h2 className="mb-5 text-lg font-bold text-white">Profile</h2>
 
       <div className="mb-6 flex items-center gap-4">
-        <img
-          src={avatar.preview}
-          alt="Avatar"
-          className="h-16 w-16 rounded-2xl object-cover ring-2 ring-cyan-accent/30"
-        />
+        {avatar.preview ? (
+          <img
+            src={avatar.preview}
+            alt="Avatar"
+            className="h-16 w-16 rounded-2xl object-cover ring-2 ring-cyan-accent/30"
+          />
+        ) : (
+          <div className="grid h-16 w-16 place-items-center rounded-2xl gradient-cyan text-xl font-bold text-navy-900 ring-2 ring-cyan-accent/30">
+            {(name || email || '?').trim().charAt(0).toUpperCase()}
+          </div>
+        )}
         <button
           onClick={avatar.open}
           className="rounded-lg border border-white/10 bg-navy-900/60 px-3.5 py-2 text-sm font-medium text-slate-200 hover:text-white"
