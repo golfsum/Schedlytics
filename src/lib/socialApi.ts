@@ -226,16 +226,23 @@ export function fetchYouTubeComments(max = 20) {
   return getJson<YouTubeComment[]>(`/api/youtube/comments?max=${max}`)
 }
 
+// Chunk size for resumable uploads: 4MB (a multiple of 256KB, as Google
+// requires) and under serverless request-body limits (Vercel ~4.5MB).
+const YT_CHUNK = 4 * 1024 * 1024
+
 /**
- * Upload a video FILE to YouTube without proxying the bytes through our server:
- * the server opens a resumable session, then the browser PUTs the bytes straight
- * to Google. This avoids serverless request-size limits (e.g. Vercel's ~4.5MB).
+ * Upload a video FILE to YouTube. The server opens a resumable session, then we
+ * relay the file to Google in small chunks THROUGH our server. Chunking keeps
+ * each request under the serverless body cap, and routing via the server avoids
+ * the browser's cross-origin block on Google's upload URL.
  */
 export async function publishYouTubeFile(
   file: File,
   meta: { title: string; description?: string; tags?: string[]; privacyStatus?: string },
+  onProgress?: (fraction: number) => void,
 ): Promise<{ id?: string; url?: string }> {
   if (!backendEnabled) throw new Error('backend disabled')
+
   // 1. Ask the server for a resumable upload URL (small JSON request).
   const sess = await fetch(`${apiBase}/api/youtube/upload-session`, {
     method: 'POST',
@@ -253,15 +260,35 @@ export async function publishYouTubeFile(
   if (!sess.ok) throw new Error((await sess.json().catch(() => ({}))).error || `session ${sess.status}`)
   const { uploadUrl } = (await sess.json()) as { uploadUrl: string }
 
-  // 2. Upload the bytes straight to Google's resumable endpoint.
-  const put = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': file.type || 'video/*' },
-    body: file,
-  })
-  if (!put.ok) throw new Error(`YouTube upload failed (${put.status})`)
-  const data = (await put.json().catch(() => ({}))) as { id?: string }
-  return { id: data.id, url: data.id ? `https://www.youtube.com/watch?v=${data.id}` : undefined }
+  // 2. Relay the file to Google one chunk at a time via our server.
+  const total = file.size
+  const fileType = file.type || 'video/*'
+  let start = 0
+  let id: string | undefined
+  while (start < total) {
+    const end = Math.min(start + YT_CHUNK, total)
+    const res = await fetch(`${apiBase}/api/youtube/upload-chunk`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'X-Upload-Url': uploadUrl,
+        'X-Upload-Range': `bytes ${start}-${end - 1}/${total}`,
+        'X-File-Type': fileType,
+      },
+      body: file.slice(start, end),
+    })
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `upload ${res.status}`)
+    const data = (await res.json()) as { done: boolean; id?: string }
+    onProgress?.(end / total)
+    if (data.done) {
+      id = data.id
+      break
+    }
+    start = end
+  }
+
+  return { id, url: id ? `https://www.youtube.com/watch?v=${id}` : undefined }
 }
 
 /** Data API v3 - reply to a comment (needs the youtube.force-ssl scope). */

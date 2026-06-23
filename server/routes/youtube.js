@@ -17,7 +17,7 @@
  *     GET  /api/youtube/reporting/download   ?url
  */
 
-import { Router } from 'express'
+import express, { Router } from 'express'
 import { youtube } from '../platforms/youtube.js'
 import { validAccessToken } from '../tokens.js'
 
@@ -85,6 +85,34 @@ router.post('/upload-session', guard(async (req, res, token) => {
   })
   res.json({ uploadUrl })
 }))
+
+// Relay one chunk of a resumable upload to Google. The browser sends small
+// chunks (< the serverless body limit) and we forward them server-side, which
+// avoids both the request-size cap and the cross-origin block on Google's URL.
+router.post('/upload-chunk', express.raw({ type: () => true, limit: '8mb' }), async (req, res) => {
+  const uploadUrl = req.get('x-upload-url')
+  const range = req.get('x-upload-range') // e.g. "bytes 0-3145727/12345678"
+  const fileType = req.get('x-file-type') || 'video/*'
+  const chunk = req.body
+  if (!uploadUrl || !range) return res.status(400).json({ error: 'missing upload headers' })
+  if (!Buffer.isBuffer(chunk) || !chunk.length) return res.status(400).json({ error: 'no chunk received' })
+  try {
+    const r = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': fileType, 'Content-Range': range, 'Content-Length': String(chunk.length) },
+      body: chunk,
+    })
+    if (r.status === 308) return res.json({ done: false }) // resume incomplete - more chunks
+    if (r.ok) {
+      const data = await r.json().catch(() => ({}))
+      return res.json({ done: true, id: data.id, status: data.status })
+    }
+    const text = await r.text()
+    return res.status(502).json({ error: `YouTube upload failed (${r.status}): ${text.slice(0, 200)}` })
+  } catch (err) {
+    res.status(502).json({ error: err.message })
+  }
+})
 
 router.post('/upload', guard(async (req, res, token) => {
   const { videoUrl, title, description, tags, privacyStatus } = req.body || {}
