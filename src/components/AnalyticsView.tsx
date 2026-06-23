@@ -3,7 +3,7 @@ import { Maximize2, MoreHorizontal, Settings2, Loader2 } from 'lucide-react'
 import Toggle from './Toggle'
 import { useToast } from './Toast'
 import { useConnections, CONNECTABLE } from './Connections'
-import { backendEnabled, fetchStats, type RemoteStats } from '../lib/socialApi'
+import { backendEnabled, sampleData, fetchStats, type RemoteStats } from '../lib/socialApi'
 import { CHANNEL_STATS, PLATFORMS } from '../data'
 import { CorrelationMatrix, EngagementTrend, ConversionBars } from './charts'
 
@@ -190,7 +190,7 @@ function UnifiedCorrelation() {
           </IconBtn>
         </ColumnHeader>
         <p className="-mt-2 mb-3 text-xs text-slate-500">Post Frequency vs. Revenue</p>
-        <CorrelationMatrix />
+        {sampleData ? <CorrelationMatrix /> : <EmptyChart />}
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -199,8 +199,8 @@ function UnifiedCorrelation() {
             <h3 className="text-sm font-semibold text-white">Engagement Trend</h3>
             <MoreHorizontal className="h-4 w-4 text-slate-500" />
           </div>
-          <p className="mb-2 text-xs text-slate-500">Oct 20 – 26</p>
-          <EngagementTrend />
+          <p className="mb-2 text-xs text-slate-500">{sampleData ? 'Oct 20 – 26' : 'Last 7 days'}</p>
+          {sampleData ? <EngagementTrend /> : <EmptyChart />}
         </div>
 
         <div className="card p-5">
@@ -208,8 +208,8 @@ function UnifiedCorrelation() {
             <h3 className="text-sm font-semibold text-white">Conversion by Platform</h3>
             <MoreHorizontal className="h-4 w-4 text-slate-500" />
           </div>
-          <p className="mb-2 text-xs text-slate-500">Oct 20 – 26</p>
-          <ConversionBars />
+          <p className="mb-2 text-xs text-slate-500">{sampleData ? 'Oct 20 – 26' : 'Last 7 days'}</p>
+          {sampleData ? <ConversionBars /> : <EmptyChart />}
         </div>
       </div>
     </section>
@@ -245,5 +245,13 @@ function IconBtn({ children }: { children: React.ReactNode }) {
     <button className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-white/5 hover:text-white">
       {children}
     </button>
+  )
+}
+
+function EmptyChart() {
+  return (
+    <div className="grid h-28 place-items-center rounded-xl border border-dashed border-white/10 text-center text-xs text-slate-500">
+      No analytics yet. Connect channels and publish to see this.
+    </div>
   )
 }

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { sampleData } from '../lib/socialApi'
 
 export type NotificationType = 'success' | 'info' | 'error'
 
@@ -32,7 +33,8 @@ export function useNotifications() {
 
 let nid = 100
 
-const INITIAL: AppNotification[] = [
+// Sample notifications — only seeded in demo mode / when auth is off.
+const SEED: AppNotification[] = [
   { id: 1, type: 'success', title: 'Reel performing well', message: '“Styling reel” hit 12.4K views', time: '2m ago', unread: true },
   { id: 2, type: 'info', title: 'New comment', message: 'From @mia.styles on your latest post', time: '18m ago', unread: true },
   { id: 3, type: 'success', title: 'Post published', message: 'Published to Instagram', time: '1h ago', unread: true },
@@ -40,7 +42,7 @@ const INITIAL: AppNotification[] = [
 ]
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<AppNotification[]>(INITIAL)
+  const [notifications, setNotifications] = useState<AppNotification[]>(sampleData ? SEED : [])
 
   const push = useCallback(
     ({ type = 'info', title, message = '', detail }: { type?: NotificationType; title: string; message?: string; detail?: string }) => {

@@ -6,6 +6,7 @@
  * its built-in simulated connection flow so the demo still works standalone.
  */
 import type { PlatformId } from '../types'
+import { firebaseEnabled } from './firebase'
 
 const API = import.meta.env.VITE_API_URL?.replace(/\/$/, '')
 
@@ -28,6 +29,13 @@ export const backendEnabled = (Boolean(API) || import.meta.env.PROD) && !demoMod
 
 /** Base URL of the backend. Empty string means same-origin (calls "/api/..."). */
 export const apiBase = API ?? ''
+
+/**
+ * Whether to seed the UI with sample content (calendar posts, notifications,
+ * analytics). True in demo mode, or when auth is disabled (local dev). A real
+ * signed-in user starts empty and accumulates their own data.
+ */
+export const sampleData = demoMode || !firebaseEnabled
 
 export interface RemoteAccount {
   connected: boolean

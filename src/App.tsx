@@ -12,14 +12,14 @@ import UpgradeModal from './components/UpgradeModal'
 import LinkToolsView from './components/LinkTools'
 import InboxView from './components/InboxView'
 import { useToast } from './components/Toast'
-import { demoMode } from './lib/socialApi'
+import { demoMode, sampleData } from './lib/socialApi'
 import { INITIAL_POSTS } from './data'
 import type { CalendarPost, NavId } from './types'
 
 export default function App() {
   const { addToast } = useToast()
   const [nav, setNav] = useState<NavId>('calendar')
-  const [posts, setPosts] = useState<CalendarPost[]>(INITIAL_POSTS)
+  const [posts, setPosts] = useState<CalendarPost[]>(sampleData ? INITIAL_POSTS : [])
   const [panelOpen, setPanelOpen] = useState(false)
   const [editingPost, setEditingPost] = useState<CalendarPost | null>(null)
   const [upgradeOpen, setUpgradeOpen] = useState(false)

@@ -14,6 +14,8 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { AreaChart } from './charts'
 import { useConnections, CONNECTABLE } from './Connections'
+import { useAuth } from './Auth'
+import { sampleData } from '../lib/socialApi'
 import { PLATFORMS, WEEKDAYS, TIME_SLOTS } from '../data'
 import type { CalendarPost, NavId, PlatformId } from '../types'
 
@@ -26,6 +28,9 @@ interface DashboardViewProps {
 const FOLLOWER_GROWTH = [120, 126, 131, 129, 138, 145, 151, 149, 158, 167, 175, 182]
 
 export default function DashboardView({ posts, onQuickCreate, onNavigate }: DashboardViewProps) {
+  const { user } = useAuth()
+  const firstName = (user?.name || '').trim().split(' ')[0] || 'there'
+
   // Upcoming posts derived from the live calendar state.
   const upcoming = [...posts]
     .sort((a, b) => a.day - b.day || a.slot - b.slot)
@@ -36,9 +41,9 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
       {/* greeting */}
       <div className="flex flex-wrap items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Welcome back, Alex 👋</h1>
+          <h1 className="text-2xl font-bold text-white">Welcome back, {firstName} 👋</h1>
           <p className="mt-1 text-sm text-slate-400">
-            Here's how your content is performing this week.
+            {sampleData ? "Here's how your content is performing this week." : 'Connect your channels and schedule your first post to get started.'}
           </p>
         </div>
         <button
@@ -55,18 +60,30 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
         <StatCard
           Icon={Users}
           label="Total Followers"
-          value="182.4K"
-          delta="+4.2%"
-          up
+          value={sampleData ? '182.4K' : '—'}
+          delta={sampleData ? '+4.2%' : 'No data yet'}
+          up={sampleData || undefined}
         />
-        <StatCard Icon={Heart} label="Engagement Rate" value="6.8%" delta="+0.9%" up />
+        <StatCard
+          Icon={Heart}
+          label="Engagement Rate"
+          value={sampleData ? '6.8%' : '—'}
+          delta={sampleData ? '+0.9%' : 'No data yet'}
+          up={sampleData || undefined}
+        />
         <StatCard
           Icon={CalendarClock}
           label="Scheduled Posts"
           value={String(posts.length)}
           delta="this week"
         />
-        <StatCard Icon={DollarSign} label="Revenue (30d)" value="$12.6k" delta="+18%" up />
+        <StatCard
+          Icon={DollarSign}
+          label="Revenue (30d)"
+          value={sampleData ? '$12.6k' : '—'}
+          delta={sampleData ? '+18%' : 'No data yet'}
+          up={sampleData || undefined}
+        />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-3">
@@ -74,17 +91,27 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
         <div className="card p-5 xl:col-span-2">
           <div className="mb-1 flex items-center justify-between">
             <h2 className="text-lg font-bold text-white">Audience Growth</h2>
-            <span className="flex items-center gap-1 text-sm font-semibold text-emerald-400">
-              <ArrowUpRight className="h-4 w-4" /> +51.6K this year
-            </span>
+            {sampleData && (
+              <span className="flex items-center gap-1 text-sm font-semibold text-emerald-400">
+                <ArrowUpRight className="h-4 w-4" /> +51.6K this year
+              </span>
+            )}
           </div>
           <p className="mb-4 text-xs text-slate-500">Followers across all connected channels</p>
-          <AreaChart data={FOLLOWER_GROWTH} format={(v) => `${v}K`} />
-          <div className="mt-2 flex justify-between text-[10px] text-slate-500">
-            {['Jan', 'Mar', 'May', 'Jul', 'Sep', 'Nov'].map((m) => (
-              <span key={m}>{m}</span>
-            ))}
-          </div>
+          {sampleData ? (
+            <>
+              <AreaChart data={FOLLOWER_GROWTH} format={(v) => `${v}K`} />
+              <div className="mt-2 flex justify-between text-[10px] text-slate-500">
+                {['Jan', 'Mar', 'May', 'Jul', 'Sep', 'Nov'].map((m) => (
+                  <span key={m}>{m}</span>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="grid h-40 place-items-center rounded-xl border border-dashed border-white/10 text-center text-sm text-slate-500">
+              Connect channels to track your follower growth.
+            </div>
+          )}
         </div>
 
         {/* connected accounts */}
@@ -138,12 +165,16 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
         {/* recent activity */}
         <div className="card p-5">
           <h2 className="mb-4 text-lg font-bold text-white">Recent Activity</h2>
-          <div className="space-y-4">
-            <Activity color="#22D3EE" text="Reel “Styling reel” hit 12.4K views" time="2h ago" />
-            <Activity color="#E1306C" text="New milestone: 128K Instagram followers" time="5h ago" />
-            <Activity color="#22C55E" text="Revenue goal 80% reached for June" time="Yesterday" />
-            <Activity color="#8B5CF6" text="A/B test on “Fall Teaser” concluded" time="2d ago" />
-          </div>
+          {sampleData ? (
+            <div className="space-y-4">
+              <Activity color="#22D3EE" text="Reel “Styling reel” hit 12.4K views" time="2h ago" />
+              <Activity color="#E1306C" text="New milestone: 128K Instagram followers" time="5h ago" />
+              <Activity color="#22C55E" text="Revenue goal 80% reached for June" time="Yesterday" />
+              <Activity color="#8B5CF6" text="A/B test on “Fall Teaser” concluded" time="2d ago" />
+            </div>
+          ) : (
+            <p className="py-6 text-center text-sm text-slate-500">No activity yet.</p>
+          )}
         </div>
       </div>
     </div>
