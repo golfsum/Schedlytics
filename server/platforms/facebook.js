@@ -111,6 +111,28 @@ export const facebook = {
     const data = await res.json()
     return { id: data.id, url: `https://www.facebook.com/${data.id}` }
   },
+
+  /** Publish an uploaded photo or video file to the Page. */
+  async publishMedia(_accessToken, record, { buffer, contentType, message } = {}) {
+    if (!record?.pageId || !record?.pageAccessToken) throw new Error('No Facebook Page connected')
+    if (!buffer?.length) throw new Error('No media file received')
+
+    const isVideo = (contentType || '').startsWith('video/')
+    const endpoint = isVideo ? 'videos' : 'photos'
+    const form = new FormData()
+    form.set('access_token', record.pageAccessToken)
+    if (message?.trim()) form.set(isVideo ? 'description' : 'caption', message.trim())
+    form.set('source', new Blob([buffer], { type: contentType || 'application/octet-stream' }), 'upload')
+
+    const res = await fetch(`${GRAPH}/${record.pageId}/${endpoint}`, { method: 'POST', body: form })
+    if (!res.ok) {
+      const detail = await res.text()
+      throw new Error(`Facebook media post failed: ${detail.slice(0, 220)}`)
+    }
+    const data = await res.json()
+    const id = data.post_id || data.id
+    return { id, url: id ? `https://www.facebook.com/${id}` : undefined }
+  },
 }
 
 function latestValue(metric) {

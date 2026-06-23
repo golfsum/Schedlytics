@@ -290,6 +290,27 @@ export const youtube = {
     return put.json()
   },
 
+  /**
+   * Generic media publish used by the app's media uploader: takes raw bytes and
+   * uploads them as a video. Returns a watch URL.
+   */
+  async publishMedia(accessToken, _record, { buffer, contentType, title, description, tags, privacyStatus } = {}) {
+    if (!buffer?.length) throw new Error('No video file received')
+    const result = await this.uploadVideo(accessToken, {
+      videoBuffer: buffer,
+      contentType: contentType || 'video/mp4',
+      title: title || 'Untitled',
+      description: description || '',
+      tags: Array.isArray(tags) ? tags : [],
+      privacyStatus: privacyStatus || 'private',
+    })
+    return {
+      id: result.id,
+      url: result.id ? `https://www.youtube.com/watch?v=${result.id}` : undefined,
+      status: result.status,
+    }
+  },
+
   /** Set/replace a video's thumbnail (needs the manage scope). */
   async setThumbnail(accessToken, videoId, imageBuffer, contentType = 'image/jpeg') {
     const res = await fetch(

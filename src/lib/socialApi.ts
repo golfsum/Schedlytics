@@ -127,6 +127,34 @@ export async function publishPost(
   return res.json()
 }
 
+/** Base64-encode a JSON object safely (handles unicode) for a header. */
+function encodeMeta(meta: Record<string, unknown>): string {
+  return btoa(unescape(encodeURIComponent(JSON.stringify(meta))))
+}
+
+/**
+ * Upload a media file (the bytes) straight to a connected platform's API.
+ * Metadata rides along in a header so no multipart parser is needed server-side.
+ */
+export async function publishMedia(
+  platform: PlatformId,
+  file: File | Blob,
+  meta: Record<string, unknown>,
+): Promise<{ id: string; url?: string }> {
+  if (!backendEnabled) throw new Error('backend disabled')
+  const res = await fetch(`${apiBase}/api/${platform}/publish-media`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': (file as File).type || 'application/octet-stream',
+      'X-Upload-Meta': encodeMeta(meta),
+    },
+    body: file,
+  })
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `${res.status}`)
+  return res.json()
+}
+
 /** Disconnect a platform (revoke locally / remove stored tokens). */
 export async function disconnectAccount(platform: PlatformId): Promise<void> {
   if (!backendEnabled) return

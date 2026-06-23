@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Sparkles,
   Wand2,
@@ -22,9 +22,8 @@ import DateTimePicker from './DateTimePicker'
 import { useToast } from './Toast'
 import { useNotifications } from './Notifications'
 import { useConnections } from './Connections'
-import { useImageUpload } from './ImageUpload'
 import { usePersistedState } from '../lib/usePersisted'
-import { backendEnabled, publishYouTubeVideo, publishPost, PUBLISH_MODES } from '../lib/socialApi'
+import { backendEnabled, publishYouTubeVideo, publishPost, publishMedia } from '../lib/socialApi'
 import { aiTitles, aiCaptions, aiHashtags, type Suggestion } from '../lib/aiSuggest'
 import { PLATFORM_LIST, PLATFORMS } from '../data'
 import type { CalendarPost, PlatformId } from '../types'
@@ -65,7 +64,9 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   const { accounts } = useConnections()
   const [platform, setPlatform] = useState<PlatformId>('youtube')
   const [mediaMode, setMediaMode] = useState<'video' | 'image'>('video')
-  const image = useImageUpload(undefined, () => addToast('Image added'))
+  const [mediaFile, setMediaFile] = useState<File | null>(null)
+  const [mediaPreview, setMediaPreview] = useState<string | undefined>()
+  const fileRef = useRef<HTMLInputElement>(null)
   const [thumbnail, setThumbnail] = useState<string | undefined>()
   const [title, setTitle] = useState('')
   const [caption, setCaption] = useState('')
@@ -90,6 +91,17 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   const ytConnected = Boolean(accounts.youtube?.connected)
   const connected = Boolean(accounts[platform]?.connected)
   const canUploadYouTube = platform === 'youtube' && backendEnabled && ytConnected
+  const hasVideoFile = Boolean(mediaFile && mediaFile.type.startsWith('video/'))
+
+  const openFilePicker = () => fileRef.current?.click()
+  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setMediaFile(file)
+    setMediaPreview(URL.createObjectURL(file))
+    addToast(`${file.type.startsWith('video/') ? 'Video' : 'Image'} added`)
+    e.target.value = '' // allow re-picking the same file
+  }
 
   // AI suggestion state
   const [titleSugs, setTitleSugs] = useState<Suggestion[]>([])
@@ -172,14 +184,21 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     }
   }
 
-  const publishMode = PUBLISH_MODES[platform]
-  // We can publish right now (vs. just scheduling) when connected, not
-  // scheduling for later, and the platform supports a direct post.
+  // We can publish right now (vs. schedule) when connected, posting now, and the
+  // platform supports it: YouTube needs a video file or URL; Facebook can post a
+  // file or text.
   const willPublishNow =
     backendEnabled &&
     connected &&
     !scheduleAt &&
-    ((platform === 'youtube' && Boolean(videoUrl.trim())) || publishMode === 'text')
+    ((platform === 'youtube' && (hasVideoFile || Boolean(videoUrl.trim()))) ||
+      platform === 'facebook')
+
+  const notifyResult = (url?: string) => {
+    if (url) {
+      push({ type: 'success', title: `Published to ${plat.name}`, message: 'View the post', detail: url })
+    }
+  }
 
   const publish = async () => {
     if (!title.trim() && !caption.trim()) {
@@ -189,24 +208,37 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     setPublishing(true)
     try {
       if (willPublishNow && platform === 'youtube') {
-        // Real upload of a video by URL (private by default).
-        await publishYouTubeVideo({
-          videoUrl: videoUrl.trim(),
-          title: title.trim() || 'Untitled',
-          description: composeDescription(),
-          tags,
-          privacyStatus: 'private',
-        })
-        addToast('Uploaded to YouTube as a private video! 🚀')
-        setVideoUrl('')
-      } else if (willPublishNow && publishMode === 'text') {
-        // Real text/link post (e.g. Facebook Page).
-        const message = [title.trim(), composeDescription()].filter(Boolean).join('\n\n')
-        const result = await publishPost(platform, { text: message })
-        addToast(`Posted to ${plat.name}! 🚀`)
-        if (result.url) {
-          push({ type: 'success', title: `Published to ${plat.name}`, message: 'View the post', detail: result.url })
+        if (hasVideoFile && mediaFile) {
+          // Stream the picked video file straight to YouTube (private).
+          const result = await publishMedia('youtube', mediaFile, {
+            title: title.trim() || 'Untitled',
+            description: composeDescription(),
+            tags,
+            privacyStatus: 'private',
+          })
+          addToast('Uploaded your video to YouTube (private)! 🚀')
+          notifyResult(result.url)
+        } else {
+          // Fall back to uploading from a public URL.
+          const result = await publishYouTubeVideo({
+            videoUrl: videoUrl.trim(),
+            title: title.trim() || 'Untitled',
+            description: composeDescription(),
+            tags,
+            privacyStatus: 'private',
+          })
+          addToast('Uploaded to YouTube as a private video! 🚀')
+          notifyResult((result as { url?: string }).url)
+          setVideoUrl('')
         }
+      } else if (willPublishNow && platform === 'facebook') {
+        const message = [title.trim(), composeDescription()].filter(Boolean).join('\n\n')
+        // Post the picked photo/video if there is one, otherwise a text post.
+        const result = mediaFile
+          ? await publishMedia('facebook', mediaFile, { message })
+          : await publishPost('facebook', { text: message })
+        addToast(`Posted to ${plat.name}! 🚀`)
+        notifyResult(result.url)
       } else {
         // Schedule onto the calendar (no direct publishing for this platform,
         // or the user chose a future time).
@@ -287,26 +319,35 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
               </div>
             </div>
 
-            {mediaMode === 'image' ? (
-              <button
-                onClick={image.open}
-                className="grid aspect-video w-full place-items-center overflow-hidden rounded-xl border border-dashed border-white/15 bg-navy-900/50 text-slate-400 transition-colors hover:border-cyan-accent/40 hover:text-cyan-accent"
-              >
-                {image.preview ? (
-                  <img src={image.preview} alt="Post" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="flex flex-col items-center gap-2">
-                    <UploadCloud className="h-7 w-7" />
-                    <span className="text-xs font-medium">Upload an image</span>
+            <button
+              onClick={openFilePicker}
+              className="grid aspect-video w-full place-items-center overflow-hidden rounded-xl border border-dashed border-white/15 bg-navy-900/50 text-slate-400 transition-colors hover:border-cyan-accent/40 hover:text-cyan-accent"
+            >
+              {mediaPreview && mediaMode === 'image' ? (
+                <img src={mediaPreview} alt="Post" className="h-full w-full object-cover" />
+              ) : mediaPreview && mediaMode === 'video' ? (
+                <video src={mediaPreview} className="h-full w-full object-cover" muted />
+              ) : (
+                <span className="flex flex-col items-center gap-2">
+                  <UploadCloud className="h-7 w-7" />
+                  <span className="text-xs font-medium">
+                    Upload {mediaMode === 'video' ? 'a video' : 'an image'}
                   </span>
-                )}
-              </button>
-            ) : (
-              <p className="text-xs text-slate-500">
-                Upload your video below and pick a cover frame for {plat.name}.
+                </span>
+              )}
+            </button>
+            {mediaFile && (
+              <p className="mt-2 truncate text-[11px] text-slate-500">
+                {mediaFile.name} · {(mediaFile.size / 1_000_000).toFixed(1)} MB
               </p>
             )}
-            {image.input}
+            <input
+              ref={fileRef}
+              type="file"
+              accept={mediaMode === 'video' ? 'video/*' : 'image/*'}
+              className="hidden"
+              onChange={onPickFile}
+            />
           </div>
 
           {/* thumbnail (relevant for video; for image platforms still allow custom cover) */}
@@ -502,12 +543,12 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             <DateTimePicker value={scheduleAt} onChange={setScheduleAt} />
           </div>
 
-          {/* Direct YouTube upload (only when connected). Publishing now with a
-              public video URL uploads it straight to the channel as private. */}
-          {canUploadYouTube && (
+          {/* Optional alternative to uploading a file: a public video URL.
+              Useful for large files that exceed the server's upload limit. */}
+          {canUploadYouTube && !hasVideoFile && (
             <div>
               <span className="mb-2 block text-sm font-semibold text-white">
-                Video URL <span className="font-normal text-slate-500">(optional, uploads to YouTube)</span>
+                Video URL <span className="font-normal text-slate-500">(optional, instead of a file)</span>
               </span>
               <input
                 value={videoUrl}
@@ -516,8 +557,8 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
                 className="w-full rounded-lg border border-white/5 bg-navy-900/60 px-3.5 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
               />
               <p className="mt-1.5 text-[11px] text-slate-500">
-                With a URL and "Publish now", we upload it to your channel as a private video. Leave
-                blank to just schedule it on the calendar.
+                Upload a video above to publish it directly, or paste a public URL here for large
+                files.
               </p>
             </div>
           )}

@@ -230,6 +230,47 @@ app.post('/api/:platform/publish', async (req, res) => {
   }
 })
 
+// Upload a media file straight to the platform. The raw bytes are the request
+// body; metadata (title/description/tags/etc.) rides along as base64 JSON in
+// the X-Upload-Meta header so we don't need a multipart parser.
+app.post(
+  '/api/:platform/publish-media',
+  express.raw({ type: () => true, limit: '512mb' }),
+  async (req, res) => {
+    const platform = getPlatform(req.params.platform)
+    if (!platform) return res.status(404).json({ error: 'Unknown platform' })
+    if (typeof platform.publishMedia !== 'function') {
+      const cap = PUBLISH_CAPABILITIES[platform.id]
+      return res.status(400).json({
+        error: `Media publishing to ${platform.name} isn't available yet. ${cap?.note || ''}`.trim(),
+      })
+    }
+    const buffer = req.body
+    if (!Buffer.isBuffer(buffer) || !buffer.length) {
+      return res.status(400).json({ error: 'No file received' })
+    }
+    let meta = {}
+    try {
+      const raw = req.get('x-upload-meta')
+      if (raw) meta = JSON.parse(Buffer.from(raw, 'base64').toString('utf8'))
+    } catch {
+      /* ignore malformed meta */
+    }
+    try {
+      const { token, record } = await validAccessToken(platform)
+      const result = await platform.publishMedia(token, record, {
+        buffer,
+        contentType: req.get('content-type') || 'application/octet-stream',
+        ...meta,
+      })
+      res.json(result)
+    } catch (err) {
+      console.error(`[${platform.id}] publish-media error:`, err.message)
+      res.status(err.status || 502).json({ error: err.message })
+    }
+  },
+)
+
 /* -------------------------------------------------------------------------- */
 /*  Disconnect                                                                  */
 /* -------------------------------------------------------------------------- */
