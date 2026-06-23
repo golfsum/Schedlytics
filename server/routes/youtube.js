@@ -69,6 +69,12 @@ router.post('/comments/:parentId/reply', guard(async (req, res, token) => {
 
 /* -------------------------- Data API v3 (posting) ------------------------- */
 
+// A short-lived YouTube access token for the connected account, so the browser
+// can run the resumable upload directly against Google (best for large files).
+router.get('/upload-token', guard(async (_req, res, token) => {
+  res.json({ accessToken: token })
+}))
+
 // Returns a resumable upload URL so the browser can PUT the bytes straight to
 // Google (avoids serverless request-size limits). The client uploads directly.
 router.post('/upload-session', guard(async (req, res, token) => {

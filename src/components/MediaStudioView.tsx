@@ -74,6 +74,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   const [tagInput, setTagInput] = useState('')
   const [abTest, setAbTest] = useState(false)
   const [publishing, setPublishing] = useState(false)
+  const [uploadPct, setUploadPct] = useState(0)
   const [scheduleAt, setScheduleAt] = useState<Date | null>(null)
   const [chapters, setChapters] = useState<Chapter[]>([{ time: '0:00', label: 'Intro' }])
   const [videoUrl, setVideoUrl] = useState('')
@@ -216,12 +217,17 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
       if (willPublishNow && platform === 'youtube') {
         if (hasVideoFile && mediaFile) {
           // Browser uploads the bytes straight to Google (no server size limit).
-          const result = await publishYouTubeFile(mediaFile, {
-            title: title.trim() || 'Untitled',
-            description: composeDescription(),
-            tags,
-            privacyStatus: 'private',
-          })
+          setUploadPct(0)
+          const result = await publishYouTubeFile(
+            mediaFile,
+            {
+              title: title.trim() || 'Untitled',
+              description: composeDescription(),
+              tags,
+              privacyStatus: 'private',
+            },
+            (f) => setUploadPct(f),
+          )
           addToast('Uploaded your video to YouTube (private)! 🚀')
           notifyResult(result.url)
         } else {
@@ -279,6 +285,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
       push({ type: 'error', title: 'Publish failed', message: 'Tap to see the full reason', detail })
     } finally {
       setPublishing(false)
+      setUploadPct(0)
     }
   }
 
@@ -593,7 +600,14 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
           >
             {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             {(() => {
-              if (publishing) return willPublishNow ? 'Publishing…' : scheduleAt ? 'Scheduling…' : 'Adding…'
+              if (publishing) {
+                if (willPublishNow) {
+                  return uploadPct > 0 && uploadPct < 1
+                    ? `Uploading… ${Math.round(uploadPct * 100)}%`
+                    : 'Publishing…'
+                }
+                return scheduleAt ? 'Scheduling…' : 'Adding…'
+              }
               if (willPublishNow) return `Publish to ${plat.name}`
               return scheduleAt ? `Schedule to ${plat.name}` : `Add ${plat.name} post`
             })()}

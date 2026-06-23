@@ -229,21 +229,94 @@ export function fetchYouTubeComments(max = 20) {
 // Chunk size for resumable uploads: 4MB (a multiple of 256KB, as Google
 // requires) and under serverless request-body limits (Vercel ~4.5MB).
 const YT_CHUNK = 4 * 1024 * 1024
+const YT_RESUMABLE = 'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status'
+
+interface YTUploadMeta {
+  title: string
+  description?: string
+  tags?: string[]
+  privacyStatus?: string
+}
+
+function buildYTMetadata(meta: YTUploadMeta) {
+  return {
+    snippet: {
+      title: meta.title || 'Untitled',
+      description: meta.description || '',
+      tags: meta.tags || [],
+      categoryId: '22',
+    },
+    status: { privacyStatus: meta.privacyStatus || 'private', selfDeclaredMadeForKids: false },
+  }
+}
 
 /**
- * Upload a video FILE to YouTube. The server opens a resumable session, then we
- * relay the file to Google in small chunks THROUGH our server. Chunking keeps
- * each request under the serverless body cap, and routing via the server avoids
- * the browser's cross-origin block on Google's upload URL.
+ * Browser-direct resumable upload: the whole flow (create session + PUT bytes)
+ * runs against Google with a short-lived token, so large files stream straight
+ * from the browser with no server in the byte path and no size cap. Throws if
+ * the token or Google's CORS isn't available, so the caller can fall back.
  */
-export async function publishYouTubeFile(
+async function uploadDirectToYouTube(
   file: File,
-  meta: { title: string; description?: string; tags?: string[]; privacyStatus?: string },
+  meta: YTUploadMeta,
   onProgress?: (fraction: number) => void,
 ): Promise<{ id?: string; url?: string }> {
-  if (!backendEnabled) throw new Error('backend disabled')
+  const tokenRes = await fetch(`${apiBase}/api/youtube/upload-token`, { credentials: 'include' })
+  if (!tokenRes.ok) throw new Error('no upload token')
+  const { accessToken } = (await tokenRes.json()) as { accessToken?: string }
+  if (!accessToken) throw new Error('no upload token')
 
-  // 1. Ask the server for a resumable upload URL (small JSON request).
+  const fileType = file.type || 'video/*'
+  const init = await fetch(YT_RESUMABLE, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json; charset=UTF-8',
+      'X-Upload-Content-Type': fileType,
+      'X-Upload-Content-Length': String(file.size),
+    },
+    body: JSON.stringify(buildYTMetadata(meta)),
+  })
+  if (!init.ok) throw new Error(`init ${init.status}`)
+  const uploadUrl = init.headers.get('location')
+  if (!uploadUrl) throw new Error('no upload url') // Location not exposed -> fall back
+
+  // PUT via XHR so we get real upload progress (fetch can't report it).
+  const data = await new Promise<{ id?: string }>((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('PUT', uploadUrl)
+    xhr.setRequestHeader('Content-Type', fileType)
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress?.(e.loaded / e.total)
+    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText))
+        } catch {
+          resolve({})
+        }
+      } else {
+        reject(new Error(`put ${xhr.status}`))
+      }
+    }
+    xhr.onerror = () => reject(new Error('network/CORS error'))
+    xhr.send(file)
+  })
+  onProgress?.(1)
+  return { id: data.id, url: data.id ? `https://www.youtube.com/watch?v=${data.id}` : undefined }
+}
+
+/**
+ * Relay the file to Google in small chunks THROUGH our server. Works anywhere
+ * (keeps each request under the serverless body cap), but is slower. Used as the
+ * fallback when browser-direct upload isn't available.
+ */
+async function uploadViaRelay(
+  file: File,
+  meta: YTUploadMeta,
+  onProgress?: (fraction: number) => void,
+): Promise<{ id?: string; url?: string }> {
   const sess = await fetch(`${apiBase}/api/youtube/upload-session`, {
     method: 'POST',
     credentials: 'include',
@@ -260,7 +333,6 @@ export async function publishYouTubeFile(
   if (!sess.ok) throw new Error((await sess.json().catch(() => ({}))).error || `session ${sess.status}`)
   const { uploadUrl } = (await sess.json()) as { uploadUrl: string }
 
-  // 2. Relay the file to Google one chunk at a time via our server.
   const total = file.size
   const fileType = file.type || 'video/*'
   let start = 0
@@ -287,8 +359,26 @@ export async function publishYouTubeFile(
     }
     start = end
   }
-
   return { id, url: id ? `https://www.youtube.com/watch?v=${id}` : undefined }
+}
+
+/**
+ * Upload a video FILE to YouTube. Tries a browser-direct upload first (best for
+ * large 10-20+ minute videos), and falls back to a chunked server relay if the
+ * direct path is blocked (e.g. CORS or no token).
+ */
+export async function publishYouTubeFile(
+  file: File,
+  meta: YTUploadMeta,
+  onProgress?: (fraction: number) => void,
+): Promise<{ id?: string; url?: string }> {
+  if (!backendEnabled) throw new Error('backend disabled')
+  try {
+    return await uploadDirectToYouTube(file, meta, onProgress)
+  } catch {
+    // Direct upload unavailable - relay through the server instead.
+    return uploadViaRelay(file, meta, onProgress)
+  }
 }
 
 /** Data API v3 - reply to a comment (needs the youtube.force-ssl scope). */
