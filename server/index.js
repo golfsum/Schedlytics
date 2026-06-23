@@ -125,8 +125,9 @@ app.get('/auth/:platform/callback', async (req, res) => {
       await store.set(platform.id, {
         profile: { handle: stats.handle, name: stats.name, avatar: stats.avatar, followers: stats.followers },
       })
-    } catch {
-      /* profile fetch is best-effort */
+    } catch (e) {
+      // best-effort: connection still succeeds even if the first profile read fails
+      console.warn(`[${platform.id}] profile fetch failed:`, e.message)
     }
     res.redirect(`${FRONTEND_URL}/?connected=${platform.id}`)
   } catch (err) {

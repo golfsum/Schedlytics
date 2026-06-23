@@ -107,7 +107,9 @@ function AccountsSection() {
                 </div>
                 <div className="text-xs text-slate-500">
                   {acct.connected
-                    ? `${acct.handle} · ${acct.followers} followers`
+                    ? acct.handle
+                      ? `${acct.handle}${acct.followers ? ` · ${acct.followers} followers` : ''}`
+                      : 'Connected'
                     : 'Authorize Schedlytics to post on your behalf'}
                 </div>
               </div>

@@ -219,7 +219,7 @@ function ConnectedAccountsCard({ onNavigate }: { onNavigate: (id: NavId) => void
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-white">{plat.name}</div>
                 <div className="truncate text-xs text-slate-500">
-                  {acct.connected ? acct.handle : 'Not connected'}
+                  {acct.connected ? acct.handle || 'Connected' : 'Not connected'}
                 </div>
               </div>
               {acct.connected ? (
