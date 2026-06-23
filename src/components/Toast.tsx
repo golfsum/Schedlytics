@@ -54,7 +54,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
 
       {/* viewport */}
-      <div className="pointer-events-none fixed right-4 top-4 z-[100] flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2">
+      <div className="pointer-events-none fixed right-4 top-4 z-[100] flex max-h-[calc(100vh-2rem)] w-80 max-w-[calc(100vw-2rem)] flex-col gap-2 overflow-y-auto">
         {toasts.map((t) => (
           <div
             key={t.id}
@@ -67,7 +67,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 <Info className="h-5 w-5" />
               )}
             </span>
-            <p className="flex-1 text-sm font-medium text-slate-100">{t.message}</p>
+            <p className="max-h-40 flex-1 overflow-y-auto whitespace-pre-wrap break-words text-sm font-medium text-slate-100">
+              {t.message}
+            </p>
             <button
               onClick={() => remove(t.id)}
               className="shrink-0 text-slate-500 transition-colors hover:text-white"

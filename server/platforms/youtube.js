@@ -372,7 +372,17 @@ function normalizeTokens(data) {
 
 async function getJson(url, accessToken) {
   const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } })
-  if (!res.ok) throw new Error(`YouTube request failed (${res.status}): ${await res.text()}`)
+  if (!res.ok) {
+    // Extract just the human-readable reason instead of dumping the whole JSON.
+    const body = await res.text()
+    let reason = body
+    try {
+      reason = JSON.parse(body)?.error?.message || body
+    } catch {
+      /* keep raw body */
+    }
+    throw new Error(`YouTube ${res.status}: ${String(reason).slice(0, 220)}`)
+  }
   return res.json()
 }
 
