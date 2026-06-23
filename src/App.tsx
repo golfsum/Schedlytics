@@ -12,6 +12,7 @@ import UpgradeModal from './components/UpgradeModal'
 import LinkToolsView from './components/LinkTools'
 import InboxView from './components/InboxView'
 import { useToast } from './components/Toast'
+import { demoMode } from './lib/socialApi'
 import { INITIAL_POSTS } from './data'
 import type { CalendarPost, NavId } from './types'
 
@@ -51,6 +52,21 @@ export default function App() {
       {/* main column */}
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onNavigate={setNav} onUpgrade={() => setUpgradeOpen(true)} />
+
+        {demoMode && (
+          <div className="flex items-center gap-2 border-b border-cyan-accent/20 bg-cyan-accent/10 px-4 py-2 text-xs text-cyan-accent sm:px-6">
+            <span className="font-semibold">Demo mode</span>
+            <span className="text-cyan-accent/80">
+              You are exploring with sample data. Connections are simulated and nothing is saved.
+            </span>
+            <a
+              href="/"
+              className="ml-auto rounded-md border border-cyan-accent/30 px-2.5 py-1 font-semibold hover:bg-cyan-accent/10"
+            >
+              Exit demo
+            </a>
+          </div>
+        )}
 
         <div className="flex min-h-0 flex-1">
           {/* scrollable content */}

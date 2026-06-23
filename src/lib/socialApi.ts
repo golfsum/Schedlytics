@@ -10,11 +10,21 @@ import type { PlatformId } from '../types'
 const API = import.meta.env.VITE_API_URL?.replace(/\/$/, '')
 
 /**
- * Backend mode is on when VITE_API_URL is set, OR in a production build (where
- * the app is served by the same deployment as the API, so it calls same-origin
- * "/api"). In local dev with no VITE_API_URL, backend mode is off (demo mode).
+ * Demo mode: when the URL has `?demo` (or a `/demo` path), the app runs with
+ * simulated connections and sample data so anyone can try it with no sign-in
+ * and no backend calls.
  */
-export const backendEnabled = Boolean(API) || import.meta.env.PROD
+export const demoMode =
+  typeof window !== 'undefined' &&
+  (new URLSearchParams(window.location.search).has('demo') ||
+    window.location.pathname.startsWith('/demo'))
+
+/**
+ * Backend mode is on when VITE_API_URL is set OR in a production build (same
+ * origin "/api"), and never in demo mode. Otherwise the UI uses its built-in
+ * simulated flow.
+ */
+export const backendEnabled = (Boolean(API) || import.meta.env.PROD) && !demoMode
 
 /** Base URL of the backend. Empty string means same-origin (calls "/api/..."). */
 export const apiBase = API ?? ''
