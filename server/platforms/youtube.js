@@ -145,6 +145,39 @@ export const youtube = {
     return stats.items || []
   },
 
+  /**
+   * Recent comment threads across the connected channel (comments on the
+   * channel's videos + about the channel). Read access uses youtube.readonly.
+   */
+  async getComments(accessToken, max = 20) {
+    const ch = await getJson(`${DATA_API}/channels?part=id&mine=true`, accessToken)
+    const channelId = ch.items?.[0]?.id
+    if (!channelId) {
+      const err = new Error('No YouTube channel found on this account. Create a channel first.')
+      err.status = 400
+      throw err
+    }
+
+    const url =
+      `${DATA_API}/commentThreads?part=snippet&order=time&maxResults=${max}` +
+      `&allThreadsRelatedToChannelId=${channelId}`
+    const data = await getJson(url, accessToken)
+
+    return (data.items || []).map((it) => {
+      const c = it.snippet?.topLevelComment?.snippet || {}
+      return {
+        id: it.id,
+        author: c.authorDisplayName,
+        avatar: c.authorProfileImageUrl,
+        text: c.textDisplay,
+        time: c.publishedAt,
+        likeCount: Number(c.likeCount || 0),
+        replyCount: Number(it.snippet?.totalReplyCount || 0),
+        videoId: it.snippet?.videoId,
+      }
+    })
+  },
+
   /* ====================================================================== */
   /*  1b) DATA API v3  —  POSTING (resumable upload)                         */
   /* ====================================================================== */

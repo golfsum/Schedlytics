@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
 import CalendarView from './components/CalendarView'
 import AnalyticsView from './components/AnalyticsView'
+import MediaStudioView from './components/MediaStudioView'
 import DashboardView from './components/DashboardView'
 import SettingsView from './components/SettingsView'
 import NewPostPanel from './components/NewPostPanel'
@@ -63,6 +64,7 @@ export default function App() {
               />
             )}
 
+            {nav === 'media-studio' && <MediaStudioView />}
             {nav === 'analytics' && <AnalyticsView />}
             {nav === 'link-tools' && <LinkToolsView />}
             {nav === 'inbox' && <InboxView />}

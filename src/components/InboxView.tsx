@@ -1,8 +1,33 @@
-import { useState } from 'react'
-import { Send, CheckCheck, Circle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Send, CheckCheck, Circle, RefreshCw, Loader2 } from 'lucide-react'
 import { PLATFORMS } from '../data'
 import type { PlatformId } from '../types'
 import { useToast } from './Toast'
+import { useConnections } from './Connections'
+import { backendEnabled, fetchYouTubeComments } from '../lib/socialApi'
+
+/** YouTube comment text can contain HTML + entities; clean it for display. */
+function stripHtml(s: string) {
+  return s
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&')
+    .trim()
+}
+
+function timeAgo(iso: string) {
+  const t = Date.parse(iso)
+  if (!t) return ''
+  const s = Math.floor((Date.now() - t) / 1000)
+  if (s < 60) return 'just now'
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h`
+  return `${Math.floor(h / 24)}d`
+}
 
 interface Message {
   id: number
@@ -24,9 +49,47 @@ const SEED: Message[] = [
 
 export default function InboxView() {
   const { addToast } = useToast()
+  const { accounts } = useConnections()
   const [messages, setMessages] = useState<Message[]>(SEED)
-  const [selectedId, setSelectedId] = useState<number>(SEED[0].id)
+  const [selectedId, setSelectedId] = useState<number | null>(SEED[0].id)
   const [reply, setReply] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [source, setSource] = useState<'demo' | 'youtube'>('demo')
+
+  const ytConnected = Boolean(accounts.youtube?.connected)
+
+  const loadYouTube = async () => {
+    setLoading(true)
+    try {
+      const comments = await fetchYouTubeComments(25)
+      if (comments.length) {
+        const msgs: Message[] = comments.map((c, i) => ({
+          id: i + 1,
+          platform: 'youtube',
+          name: c.author || 'YouTube viewer',
+          avatar: c.avatar || 'https://i.pravatar.cc/80?img=15',
+          text: stripHtml(c.text || ''),
+          time: timeAgo(c.time),
+          unread: true,
+        }))
+        setMessages(msgs)
+        setSelectedId(msgs[0].id)
+        setSource('youtube')
+      } else {
+        addToast('No YouTube comments found yet', 'info')
+      }
+    } catch (e) {
+      addToast(e instanceof Error ? `Could not load comments: ${e.message}` : 'Could not load comments', 'info', 6000)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Auto-load live YouTube comments when connected (backend mode only).
+  useEffect(() => {
+    if (backendEnabled && ytConnected) loadYouTube()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ytConnected])
 
   const selected = messages.find((m) => m.id === selectedId) ?? null
   const unreadCount = messages.filter((m) => m.unread).length
@@ -51,18 +114,35 @@ export default function InboxView() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold text-white">Inbox</h1>
+        {source === 'youtube' && (
+          <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-300">
+            Live YouTube comments
+          </span>
+        )}
         {unreadCount > 0 && (
           <span className="rounded-full border border-cyan-accent/20 bg-cyan-accent/10 px-3 py-1 text-xs font-semibold text-cyan-accent">
             {unreadCount} unread
           </span>
         )}
-        <button
-          onClick={markAllRead}
-          className="ml-auto flex items-center gap-2 rounded-lg border border-white/5 bg-navy-800/70 px-3.5 py-2 text-sm font-medium text-slate-200 transition-colors hover:text-white"
-        >
-          <CheckCheck className="h-4 w-4" />
-          Mark all read
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          {backendEnabled && ytConnected && (
+            <button
+              onClick={loadYouTube}
+              disabled={loading}
+              className="flex items-center gap-2 rounded-lg border border-white/5 bg-navy-800/70 px-3.5 py-2 text-sm font-medium text-slate-200 transition-colors hover:text-white disabled:opacity-60"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {loading ? 'Loading…' : 'Refresh comments'}
+            </button>
+          )}
+          <button
+            onClick={markAllRead}
+            className="flex items-center gap-2 rounded-lg border border-white/5 bg-navy-800/70 px-3.5 py-2 text-sm font-medium text-slate-200 transition-colors hover:text-white"
+          >
+            <CheckCheck className="h-4 w-4" />
+            Mark all read
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[340px_1fr]">

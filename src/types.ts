@@ -23,6 +23,7 @@ export interface Platform {
 export type NavId =
   | 'dashboard'
   | 'calendar'
+  | 'media-studio'
   | 'analytics'
   | 'link-tools'
   | 'inbox'

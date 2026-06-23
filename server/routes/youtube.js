@@ -55,6 +55,12 @@ router.get('/top-videos', guard(async (req, res, token) => {
   res.json(await youtube.getTopVideos(token, { max: Number(req.query.max) || 10, ...range(req) }))
 }))
 
+/* -------------------------- Data API v3 (comments) ----------------------- */
+
+router.get('/comments', guard(async (req, res, token) => {
+  res.json(await youtube.getComments(token, Number(req.query.max) || 20))
+}))
+
 /* -------------------------- Data API v3 (posting) ------------------------- */
 
 router.post('/upload', guard(async (req, res, token) => {

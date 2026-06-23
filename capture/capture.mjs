@@ -106,6 +106,18 @@ await nav('Dashboard').click()
 await sleep(700)
 await page.screenshot({ path: join(OUT, 'dashboard.png') })
 
+// Media Studio, with an AI title topic typed + suggestions generated
+await nav('Media Studio').click()
+await sleep(600)
+try {
+  await page.fill('input[placeholder^="Type a topic"]', 'summer fashion')
+  await page.getByRole('button', { name: 'Generate with AI' }).first().click()
+  await sleep(1100) // let the AI suggestions render
+} catch {
+  /* best-effort: still capture the page */
+}
+await page.screenshot({ path: join(OUT, 'mediastudio.png') })
+
 /* ---- 2) drag-and-drop GIF on the calendar (panel closed = clean view) ---- */
 
 await nav('Calendar').click()

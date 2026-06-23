@@ -9,6 +9,7 @@ import {
   HandCoins,
   LayoutDashboard,
   Calendar,
+  Clapperboard,
   BarChart3,
   Link2,
   MessageSquare,
@@ -94,6 +95,7 @@ export const PLATFORM_LIST = Object.values(PLATFORMS)
 export const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard },
   { id: 'calendar', label: 'Calendar', Icon: Calendar },
+  { id: 'media-studio', label: 'Media Studio', Icon: Clapperboard },
   { id: 'analytics', label: 'Analytics', Icon: BarChart3 },
   { id: 'link-tools', label: 'Link Tools', Icon: Link2 },
   { id: 'inbox', label: 'Inbox', Icon: MessageSquare, badge: 3 },

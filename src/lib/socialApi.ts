@@ -113,6 +113,22 @@ export function fetchYouTubeTopVideos(max = 10) {
   return getJson<Record<string, string | number>[]>(`/api/youtube/top-videos?max=${max}`)
 }
 
+export interface YouTubeComment {
+  id: string
+  author: string
+  avatar?: string
+  text: string
+  time: string
+  likeCount: number
+  replyCount: number
+  videoId?: string
+}
+
+/** Data API v3 — recent comment threads across the connected channel. */
+export function fetchYouTubeComments(max = 20) {
+  return getJson<YouTubeComment[]>(`/api/youtube/comments?max=${max}`)
+}
+
 /** Data API v3 — publish a video by URL (server fetches + resumable-uploads it). */
 export async function publishYouTubeVideo(body: {
   videoUrl: string
