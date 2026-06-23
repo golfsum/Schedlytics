@@ -11,10 +11,12 @@ import {
   Clock,
   CalendarDays,
   Send,
+  Lock,
 } from 'lucide-react'
 import Toggle from './Toggle'
 import { useToast } from './Toast'
 import { useImageUpload } from './ImageUpload'
+import { useConnections } from './Connections'
 import { sampleData } from '../lib/socialApi'
 import { PLATFORM_LIST, PLATFORMS } from '../data'
 import type { CalendarPost, PlatformId } from '../types'
@@ -37,12 +39,18 @@ export default function NewPostPanel({ onClose, onSchedule }: NewPostPanelProps)
   const [time, setTime] = useState('10:00')
   const [scheduled, setScheduled] = useState(false)
   const { addToast } = useToast()
+  const { accounts } = useConnections()
   const media = useImageUpload(
     sampleData
       ? 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=640&q=70'
       : undefined,
     () => addToast('Media updated'),
   )
+
+  const anyConnected = PLATFORM_LIST.some((p) => p.id !== 'reels' && accounts[p.id]?.connected)
+  const platformHint = anyConnected
+    ? 'Locked platforms are not connected. Manage them in Settings.'
+    : 'No accounts connected yet. Connect one in Settings to start posting.'
 
   const togglePlatform = (id: PlatformId) =>
     setSelected((prev) =>
@@ -91,17 +99,21 @@ export default function NewPostPanel({ onClose, onSchedule }: NewPostPanelProps)
             <Label>Platform Selector</Label>
             <div className="mt-2 flex flex-wrap gap-2">
               {PLATFORM_LIST.filter((p) => p.id !== 'reels').map((p) => {
-                const isOn = selected.includes(p.id)
+                const connected = Boolean(accounts[p.id]?.connected)
+                const isOn = connected && selected.includes(p.id)
                 const { Icon } = p
                 return (
                   <button
                     key={p.id}
-                    onClick={() => togglePlatform(p.id)}
-                    title={p.name}
+                    onClick={() => connected && togglePlatform(p.id)}
+                    disabled={!connected}
+                    title={connected ? p.name : `${p.name} - not connected (connect in Settings)`}
                     className={`relative grid h-11 w-11 place-items-center rounded-xl border transition-all ${
                       isOn
                         ? `border-transparent bg-gradient-to-br ${p.gradient} text-white shadow-md`
-                        : 'border-white/10 bg-navy-900/60 text-slate-400 hover:text-white'
+                        : connected
+                          ? 'border-white/10 bg-navy-900/60 text-slate-400 hover:text-white'
+                          : 'cursor-not-allowed border-white/5 bg-navy-900/40 text-slate-600'
                     }`}
                   >
                     <Icon className="h-5 w-5" />
@@ -110,10 +122,16 @@ export default function NewPostPanel({ onClose, onSchedule }: NewPostPanelProps)
                         <Check className="h-2.5 w-2.5 text-navy-900" strokeWidth={3.5} />
                       </span>
                     )}
+                    {!connected && (
+                      <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-navy-800 text-slate-400 ring-2 ring-navy-850">
+                        <Lock className="h-2.5 w-2.5" strokeWidth={2.5} />
+                      </span>
+                    )}
                   </button>
                 )
               })}
             </div>
+            <p className="mt-2 text-[11px] text-slate-500">{platformHint}</p>
           </div>
 
           <div>
