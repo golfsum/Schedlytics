@@ -92,7 +92,7 @@ export const facebook = {
   },
 
   /** Publish a text (and optional link) post to the managed Page. */
-  async publish(_accessToken, record, { text, link } = {}) {
+  async publish(_accessToken, record, { text, link, scheduledPublishTime } = {}) {
     if (!record?.pageId || !record?.pageAccessToken) {
       throw new Error('No Facebook Page connected')
     }
@@ -101,6 +101,11 @@ export const facebook = {
     const body = new URLSearchParams()
     if (text?.trim()) body.set('message', text.trim())
     if (link?.trim()) body.set('link', link.trim())
+    // Native scheduling: unpublished now, auto-published at the unix time.
+    if (scheduledPublishTime) {
+      body.set('published', 'false')
+      body.set('scheduled_publish_time', String(scheduledPublishTime))
+    }
     body.set('access_token', record.pageAccessToken)
 
     const res = await fetch(`${GRAPH}/${record.pageId}/feed`, { method: 'POST', body })
@@ -113,7 +118,7 @@ export const facebook = {
   },
 
   /** Publish an uploaded photo or video file to the Page. */
-  async publishMedia(_accessToken, record, { buffer, contentType, message } = {}) {
+  async publishMedia(_accessToken, record, { buffer, contentType, message, scheduledPublishTime } = {}) {
     if (!record?.pageId || !record?.pageAccessToken) throw new Error('No Facebook Page connected')
     if (!buffer?.length) throw new Error('No media file received')
 
@@ -122,6 +127,10 @@ export const facebook = {
     const form = new FormData()
     form.set('access_token', record.pageAccessToken)
     if (message?.trim()) form.set(isVideo ? 'description' : 'caption', message.trim())
+    if (scheduledPublishTime) {
+      form.set('published', 'false')
+      form.set('scheduled_publish_time', String(scheduledPublishTime))
+    }
     form.set('source', new Blob([buffer], { type: contentType || 'application/octet-stream' }), 'upload')
 
     const res = await fetch(`${GRAPH}/${record.pageId}/${endpoint}`, { method: 'POST', body: form })

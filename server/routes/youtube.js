@@ -78,7 +78,7 @@ router.get('/upload-token', guard(async (_req, res, token) => {
 // Returns a resumable upload URL so the browser can PUT the bytes straight to
 // Google (avoids serverless request-size limits). The client uploads directly.
 router.post('/upload-session', guard(async (req, res, token) => {
-  const { title, description, tags, privacyStatus, contentType, contentLength } = req.body || {}
+  const { title, description, tags, privacyStatus, contentType, contentLength, publishAt } = req.body || {}
   if (!title) return res.status(400).json({ error: 'title is required' })
   if (!contentLength) return res.status(400).json({ error: 'contentLength is required' })
   const uploadUrl = await youtube.createUploadSession(token, {
@@ -88,6 +88,7 @@ router.post('/upload-session', guard(async (req, res, token) => {
     privacyStatus: privacyStatus || 'private',
     contentType: contentType || 'video/*',
     contentLength: Number(contentLength),
+    publishAt: publishAt || undefined,
   })
   res.json({ uploadUrl })
 }))
@@ -121,7 +122,7 @@ router.post('/upload-chunk', express.raw({ type: () => true, limit: '8mb' }), as
 })
 
 router.post('/upload', guard(async (req, res, token) => {
-  const { videoUrl, title, description, tags, privacyStatus } = req.body || {}
+  const { videoUrl, title, description, tags, privacyStatus, publishAt } = req.body || {}
   if (!videoUrl || !title) {
     return res.status(400).json({ error: 'videoUrl and title are required' })
   }
@@ -139,6 +140,7 @@ router.post('/upload', guard(async (req, res, token) => {
     description,
     tags: Array.isArray(tags) ? tags : [],
     privacyStatus: privacyStatus || 'private',
+    publishAt: publishAt || undefined,
   })
   res.json({ id: result.id, status: result.status, snippet: result.snippet })
 }))

@@ -236,6 +236,8 @@ interface YTUploadMeta {
   description?: string
   tags?: string[]
   privacyStatus?: string
+  /** RFC3339 time to auto-publish (public). Forces a private upload until then. */
+  publishAt?: string
 }
 
 function buildYTMetadata(meta: YTUploadMeta) {
@@ -246,7 +248,11 @@ function buildYTMetadata(meta: YTUploadMeta) {
       tags: meta.tags || [],
       categoryId: '22',
     },
-    status: { privacyStatus: meta.privacyStatus || 'private', selfDeclaredMadeForKids: false },
+    status: {
+      privacyStatus: meta.publishAt ? 'private' : meta.privacyStatus || 'private',
+      selfDeclaredMadeForKids: false,
+      ...(meta.publishAt ? { publishAt: meta.publishAt } : {}),
+    },
   }
 }
 
@@ -330,6 +336,7 @@ async function uploadViaRelay(
       description: meta.description || '',
       tags: meta.tags || [],
       privacyStatus: meta.privacyStatus || 'private',
+      publishAt: meta.publishAt,
       contentType: file.type || 'video/mp4',
       contentLength: file.size,
     }),
@@ -407,6 +414,7 @@ export async function publishYouTubeVideo(body: {
   description?: string
   tags?: string[]
   privacyStatus?: 'private' | 'unlisted' | 'public'
+  publishAt?: string
 }) {
   if (!backendEnabled) throw new Error('backend disabled')
   const res = await fetch(`${apiBase}/api/youtube/upload`, {

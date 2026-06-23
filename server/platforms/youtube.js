@@ -254,12 +254,19 @@ export const youtube = {
       tags = [],
       privacyStatus = 'private',
       categoryId = '22', // "People & Blogs"
+      publishAt, // RFC3339 - YouTube auto-publishes (public) at this time
     } = opts
     if (!videoBuffer?.length) throw new Error('uploadVideo requires videoBuffer')
 
     const metadata = {
       snippet: { title, description, tags, categoryId },
-      status: { privacyStatus, selfDeclaredMadeForKids: false },
+      // publishAt requires the video to be uploaded as private; YouTube makes it
+      // public automatically at that time.
+      status: {
+        privacyStatus: publishAt ? 'private' : privacyStatus,
+        selfDeclaredMadeForKids: false,
+        ...(publishAt ? { publishAt } : {}),
+      },
     }
 
     // (1) Open a resumable session - returns an upload URL in the Location header.
@@ -304,12 +311,17 @@ export const youtube = {
       categoryId = '22',
       contentType = 'video/*',
       contentLength,
+      publishAt,
     } = opts
     if (!contentLength) throw new Error('createUploadSession requires contentLength')
 
     const metadata = {
       snippet: { title: title || 'Untitled', description, tags, categoryId },
-      status: { privacyStatus, selfDeclaredMadeForKids: false },
+      status: {
+        privacyStatus: publishAt ? 'private' : privacyStatus,
+        selfDeclaredMadeForKids: false,
+        ...(publishAt ? { publishAt } : {}),
+      },
     }
     const init = await fetch(`${UPLOAD_API}/videos?uploadType=resumable&part=snippet,status`, {
       method: 'POST',

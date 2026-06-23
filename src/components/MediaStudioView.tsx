@@ -207,16 +207,21 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   const showMediaUrlField =
     (canUploadYouTube && !hasVideoFile) || (platform === 'instagram' && backendEnabled && connected)
 
-  // We can publish right now (vs. schedule) when connected, posting now, and the
-  // platform supports it.
-  const willPublishNow =
-    backendEnabled &&
-    connected &&
-    !scheduleAt &&
-    ((platform === 'youtube' && (hasVideoFile || Boolean(videoUrl.trim()))) ||
-      platform === 'facebook' ||
-      (platform === 'tiktok' && hasVideoFile) ||
-      (platform === 'instagram' && Boolean(videoUrl.trim())))
+  // What's ready to post on the selected platform.
+  const ytReady = platform === 'youtube' && (hasVideoFile || Boolean(videoUrl.trim()))
+  const fbReady = platform === 'facebook'
+  const tkReady = platform === 'tiktok' && hasVideoFile
+  const igReady = platform === 'instagram' && Boolean(videoUrl.trim())
+
+  // Native scheduling (future time) is only supported by YouTube (publishAt) and
+  // Facebook (scheduled_publish_time). Everything else can only publish now.
+  const nativeScheduleCapable = platform === 'youtube' || platform === 'facebook'
+  const canPublishNow = backendEnabled && connected && (ytReady || fbReady || tkReady || igReady)
+  const canSchedule = backendEnabled && connected && (ytReady || fbReady)
+  const willActReal = scheduleAt ? canSchedule : canPublishNow
+
+  const fmtWhen = (d: Date) =>
+    d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 
   // Describe the privacy YouTube actually applied (it may force private on
   // unverified apps regardless of the chosen visibility).
@@ -241,67 +246,63 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
       return
     }
     setPublishing(true)
+    const publishAt = scheduleAt ? scheduleAt.toISOString() : undefined
+    const fbScheduleSec = scheduleAt ? Math.floor(scheduleAt.getTime() / 1000) : undefined
     try {
-      if (willPublishNow && platform === 'youtube') {
+      if (willActReal && platform === 'youtube') {
         if (hasVideoFile && mediaFile) {
-          // Browser uploads the bytes straight to Google (no server size limit).
           setUploadPct(0)
           const result = await publishYouTubeFile(
             mediaFile,
-            {
-              title: title.trim() || 'Untitled',
-              description: composeDescription(),
-              tags,
-              privacyStatus: privacy,
-            },
+            { title: title.trim() || 'Untitled', description: composeDescription(), tags, privacyStatus: privacy, publishAt },
             (f) => setUploadPct(f),
           )
-          showPublished(result.url, youtubePrivacyNote(result.privacyStatus))
+          showPublished(
+            result.url,
+            scheduleAt
+              ? `Uploaded privately - YouTube will make it public on ${fmtWhen(scheduleAt)}.`
+              : youtubePrivacyNote(result.privacyStatus),
+          )
         } else {
-          // Fall back to uploading from a public URL.
           const result = await publishYouTubeVideo({
             videoUrl: videoUrl.trim(),
             title: title.trim() || 'Untitled',
             description: composeDescription(),
             tags,
             privacyStatus: privacy,
+            publishAt,
           })
           const r = result as { id?: string; status?: { privacyStatus?: string } }
           const watchUrl = r.id ? `https://www.youtube.com/watch?v=${r.id}` : undefined
-          showPublished(watchUrl, youtubePrivacyNote(r.status?.privacyStatus))
+          showPublished(
+            watchUrl,
+            scheduleAt
+              ? `Uploaded privately - YouTube will make it public on ${fmtWhen(scheduleAt)}.`
+              : youtubePrivacyNote(r.status?.privacyStatus),
+          )
           setVideoUrl('')
         }
-      } else if (willPublishNow && platform === 'facebook') {
+      } else if (willActReal && platform === 'facebook') {
         const message = [title.trim(), composeDescription()].filter(Boolean).join('\n\n')
-        // Post the picked photo/video if there is one, otherwise a text post.
         const result = mediaFile
-          ? await publishMedia('facebook', mediaFile, { message })
-          : await publishPost('facebook', { text: message })
-        showPublished(result.url, 'Posted to your Facebook Page.')
-      } else if (willPublishNow && platform === 'tiktok' && mediaFile) {
-        // Upload the picked video to TikTok (private until the app is audited).
-        const result = await publishMedia('tiktok', mediaFile, {
-          title: title.trim() || caption.trim(),
-        })
+          ? await publishMedia('facebook', mediaFile, { message, scheduledPublishTime: fbScheduleSec })
+          : await publishPost('facebook', { text: message, scheduledPublishTime: fbScheduleSec })
+        showPublished(
+          result.url,
+          scheduleAt ? `Scheduled on Facebook for ${fmtWhen(scheduleAt)}.` : 'Posted to your Facebook Page.',
+        )
+      } else if (willActReal && platform === 'tiktok' && mediaFile) {
+        const result = await publishMedia('tiktok', mediaFile, { title: title.trim() || caption.trim() })
         showPublished(result.url, 'Uploaded to TikTok as private (until your app is audited).')
-      } else if (willPublishNow && platform === 'instagram') {
-        // Instagram needs a public media URL (entered in the Media URL field).
+      } else if (willActReal && platform === 'instagram') {
         const igCaption = [title.trim(), composeDescription()].filter(Boolean).join('\n\n')
         const result = await publishPost('instagram', { mediaUrl: videoUrl.trim(), caption: igCaption })
         showPublished(result.url, 'Posted to your Instagram.')
       } else {
-        // Schedule onto the calendar (no direct publishing for this platform,
-        // or the user chose a future time).
+        // No real publish path here (platform can't schedule natively, or not
+        // connected): keep it as a calendar plan.
         onSchedule(buildPost())
-        const when = scheduleAt
-          ? scheduleAt.toLocaleString(undefined, {
-              month: 'short',
-              day: 'numeric',
-              hour: 'numeric',
-              minute: '2-digit',
-            })
-          : 'now'
-        addToast(`Added to your calendar (${plat.name}, ${when}) 🗓️`)
+        addToast(`Added to your calendar (${plat.name}, ${scheduleAt ? fmtWhen(scheduleAt) : 'now'}) 🗓️`)
         onScheduled()
       }
     } catch (e) {
@@ -614,6 +615,17 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
           <div>
             <span className="mb-2 block text-sm font-semibold text-white">Scheduled time</span>
             <DateTimePicker value={scheduleAt} onChange={setScheduleAt} />
+            {scheduleAt && (
+              <p className="mt-1.5 text-[11px] text-slate-500">
+                {!connected
+                  ? `Connect ${plat.name} to publish automatically. For now this is saved to your calendar.`
+                  : nativeScheduleCapable
+                    ? platform === 'facebook'
+                      ? 'Facebook publishes this automatically (schedule at least 10 minutes out).'
+                      : 'Uploaded now as private; YouTube makes it public at this time.'
+                    : `${plat.name} can't publish on a schedule yet, so this is saved to your calendar as a plan.`}
+              </p>
+            )}
           </div>
 
           {/* Media URL: YouTube can use it instead of a file; Instagram requires
@@ -648,15 +660,16 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             {(() => {
               if (publishing) {
-                if (willPublishNow) {
+                if (willActReal) {
+                  if (scheduleAt) return 'Scheduling…'
                   return uploadPct > 0 && uploadPct < 1
                     ? `Uploading… ${Math.round(uploadPct * 100)}%`
                     : 'Publishing…'
                 }
-                return scheduleAt ? 'Scheduling…' : 'Adding…'
+                return 'Adding…'
               }
-              if (willPublishNow) return `Publish to ${plat.name}`
-              return scheduleAt ? `Schedule to ${plat.name}` : `Add ${plat.name} post`
+              if (willActReal) return scheduleAt ? `Schedule on ${plat.name}` : `Publish to ${plat.name}`
+              return scheduleAt ? 'Add to calendar' : `Add ${plat.name} post`
             })()}
           </button>
         </section>
