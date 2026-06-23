@@ -12,7 +12,9 @@ import { useToast } from './Toast'
 import { useNotifications } from './Notifications'
 import {
   backendEnabled,
+  apiOrigin,
   startConnect,
+  startConnectRedirect,
   fetchAccounts,
   disconnectAccount,
   type RemoteAccount,
@@ -119,7 +121,8 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // On mount (live mode): load accounts and handle the OAuth return params.
+  // On mount (live mode): load accounts and handle any OAuth return params
+  // (only hit when popups are blocked and we used the full-page fallback).
   useEffect(() => {
     if (!backendEnabled) return
     refresh()
@@ -140,12 +143,51 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
     }
   }, [refresh, addToast, push])
 
+  // Listen for the OAuth popup posting its result back to the app.
+  useEffect(() => {
+    if (!backendEnabled) return
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== apiOrigin) return
+      const data = e.data
+      if (!data || data.type !== 'schedlytics-oauth') return
+      const id = data.platform as PlatformId
+      if (data.status === 'connected') {
+        addToast(`${PLATFORMS[id]?.name || 'Account'} connected! 🔗`)
+        refresh()
+      } else {
+        addToast('Connection failed. See the bell for details.', 'info', 6000)
+        push({
+          type: 'error',
+          title: 'Connection failed',
+          message: 'OAuth did not complete',
+          detail: data.error || 'unknown error',
+        })
+        setAccounts((a) => ({ ...a, [id]: { ...a[id], connecting: false } }))
+      }
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [refresh, addToast, push])
+
   const connect = useCallback(
     (id: PlatformId) => {
       if (backendEnabled) {
-        // Real OAuth: redirect to the provider's consent screen.
+        // Real OAuth: open the consent screen in a popup so the app stays put.
         setAccounts((a) => ({ ...a, [id]: { ...a[id], connecting: true } }))
-        startConnect(id)
+        const popup = startConnect(id)
+        if (!popup) {
+          // Popups blocked - fall back to a full-page redirect.
+          startConnectRedirect(id)
+          return
+        }
+        // If the user closes the popup without finishing, clear the spinner.
+        const timer = window.setInterval(() => {
+          if (popup.closed) {
+            window.clearInterval(timer)
+            refresh()
+            setAccounts((a) => (a[id]?.connected ? a : { ...a, [id]: { ...a[id], connecting: false } }))
+          }
+        }, 700)
         return
       }
       // Demo: simulate an OAuth handshake.
@@ -158,7 +200,7 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
         addToast(`${PLATFORMS[id].name} connected! 🔗`)
       }, 1300)
     },
-    [addToast],
+    [addToast, refresh, push],
   )
 
   const disconnect = useCallback(

@@ -12,6 +12,7 @@ import { stateStore } from './kv.js'
 import { validAccessToken } from './tokens.js'
 import youtubeRoutes from './routes/youtube.js'
 import aiRoutes from './routes/ai.js'
+import settingsRoutes from './routes/settings.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const SITE_DIR = join(__dirname, '..', 'site')
@@ -37,6 +38,8 @@ app.use(
 app.use('/api/youtube', youtubeRoutes)
 // AI suggestions (Claude-backed when ANTHROPIC_API_KEY is set).
 app.use('/api/ai', aiRoutes)
+// Per-user settings sync (requires FIREBASE_PROJECT_ID).
+app.use('/api/settings', settingsRoutes)
 
 /* -------------------------------------------------------------------------- */
 /*  Marketing + legal site (landing, privacy, terms, data deletion)            */
@@ -92,9 +95,27 @@ app.get('/auth/:platform/start', async (req, res) => {
   }
 
   const state = crypto.randomBytes(16).toString('hex')
-  await stateStore.set(state, { platform: platform.id }, STATE_TTL)
+  await stateStore.set(state, { platform: platform.id, popup: req.query.popup === '1' }, STATE_TTL)
   res.redirect(platform.getAuthUrl(state))
 })
+
+/**
+ * HTML returned to an OAuth popup: posts the result back to the opener and
+ * closes itself, so the Schedlytics tab never navigates away.
+ */
+function popupResultPage(platform, status, error) {
+  const payload = JSON.stringify({ type: 'schedlytics-oauth', platform, status, error: error || null })
+  const msg = status === 'connected' ? 'Connected! You can close this window.' : 'Connection failed.'
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${msg}</title></head>
+<body style="background:#0F172A;color:#e2e8f0;font-family:system-ui,sans-serif;display:grid;place-items:center;height:100vh;margin:0">
+<p>${msg}</p>
+<script>
+  try { if (window.opener) window.opener.postMessage(${payload}, '*') } catch (e) {}
+  window.close();
+  setTimeout(function () { document.body.insertAdjacentHTML('beforeend', '<p style="opacity:.6">You can close this window.</p>') }, 400);
+</script>
+</body></html>`
+}
 
 /* -------------------------------------------------------------------------- */
 /*  OAuth - callback                                                           */
@@ -107,15 +128,22 @@ app.get('/auth/:platform/callback', async (req, res) => {
   if (!platform) return res.status(404).send('Unknown platform')
 
   const { code, state, error, error_description } = req.query
-  if (error) {
-    return res.redirect(`${FRONTEND_URL}/?error=${encodeURIComponent(error_description || error)}`)
+
+  // Verify CSRF state (also tells us whether this came from a popup).
+  const entry = state && (await stateStore.get(String(state)))
+  const popup = Boolean(entry?.popup)
+
+  // Finish by either closing the popup (postMessage) or redirecting the page.
+  const finish = (status, errMsg) => {
+    if (popup) {
+      return res.type('html').send(popupResultPage(platform.id, status, errMsg))
+    }
+    const qs = status === 'connected' ? `connected=${platform.id}` : `error=${encodeURIComponent(errMsg || 'oauth')}`
+    return res.redirect(`${FRONTEND_URL}/?${qs}`)
   }
 
-  // Verify CSRF state.
-  const entry = state && (await stateStore.get(String(state)))
-  if (!entry || entry.platform !== platform.id) {
-    return res.redirect(`${FRONTEND_URL}/?error=invalid_state`)
-  }
+  if (error) return finish('error', String(error_description || error))
+  if (!entry || entry.platform !== platform.id) return finish('error', 'invalid_state')
   await stateStore.del(String(state))
 
   try {
@@ -131,10 +159,10 @@ app.get('/auth/:platform/callback', async (req, res) => {
       // best-effort: connection still succeeds even if the first profile read fails
       console.warn(`[${platform.id}] profile fetch failed:`, e.message)
     }
-    res.redirect(`${FRONTEND_URL}/?connected=${platform.id}`)
+    finish('connected')
   } catch (err) {
     console.error(`[${platform.id}] callback error:`, err.message)
-    res.redirect(`${FRONTEND_URL}/?error=${encodeURIComponent(err.message)}`)
+    finish('error', err.message)
   }
 })
 

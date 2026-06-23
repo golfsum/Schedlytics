@@ -30,6 +30,10 @@ export const backendEnabled = (Boolean(API) || import.meta.env.PROD) && !demoMod
 /** Base URL of the backend. Empty string means same-origin (calls "/api/..."). */
 export const apiBase = API ?? ''
 
+/** Origin the backend serves from (used to validate OAuth popup messages). */
+export const apiOrigin =
+  typeof window !== 'undefined' ? (API ? new URL(API).origin : window.location.origin) : ''
+
 /**
  * Whether to seed the UI with sample content (calendar posts, notifications,
  * analytics). True in demo mode, or when auth is disabled (local dev). A real
@@ -55,8 +59,28 @@ export interface RemoteStats {
   metrics: { label: string; value: number }[]
 }
 
-/** Kick off the OAuth flow by navigating to the backend's start route. */
-export function startConnect(platform: PlatformId): void {
+/**
+ * Kick off the OAuth flow in a popup window so the Schedlytics app stays put.
+ * Returns the popup handle, or null if it could not be opened (caller should
+ * then fall back to a full-page redirect).
+ */
+export function startConnect(platform: PlatformId): Window | null {
+  if (!backendEnabled) return null
+  const url = `${apiBase}/auth/${platform}/start?popup=1`
+  const w = 600
+  const h = 720
+  const left = window.screenX + Math.max(0, (window.outerWidth - w) / 2)
+  const top = window.screenY + Math.max(0, (window.outerHeight - h) / 2)
+  const popup = window.open(
+    url,
+    'schedlytics_oauth',
+    `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no`,
+  )
+  return popup && !popup.closed ? popup : null
+}
+
+/** Full-page fallback when popups are blocked. */
+export function startConnectRedirect(platform: PlatformId): void {
   if (!backendEnabled) return
   window.location.href = `${apiBase}/auth/${platform}/start`
 }

@@ -24,6 +24,7 @@ interface TopbarProps {
   onNavigate: (id: NavId) => void
   onUpgrade: () => void
   posts: CalendarPost[]
+  onMenu: () => void
 }
 
 interface SearchResult {
@@ -45,7 +46,7 @@ const TYPE_COLOR: Record<NotificationType, string> = {
 }
 
 /** Global top bar with working search, notifications, and account menu. */
-export default function Topbar({ onNavigate, onUpgrade, posts }: TopbarProps) {
+export default function Topbar({ onNavigate, onUpgrade, posts, onMenu }: TopbarProps) {
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications()
   const { signOutUser } = useAuth()
   const profile = useProfile()
@@ -127,7 +128,11 @@ export default function Topbar({ onNavigate, onUpgrade, posts }: TopbarProps) {
 
   return (
     <header className="relative z-40 flex h-16 shrink-0 items-center gap-3 border-b border-white/5 bg-navy-900/60 px-4 backdrop-blur-sm sm:px-6">
-      <button className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white md:hidden">
+      <button
+        onClick={onMenu}
+        aria-label="Open menu"
+        className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white md:hidden"
+      >
         <Menu className="h-5 w-5" />
       </button>
 

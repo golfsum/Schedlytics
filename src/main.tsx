@@ -8,6 +8,7 @@ import { InboxProvider } from './components/Inbox.tsx'
 import { AuthProvider, AuthGate } from './components/Auth.tsx'
 import { ProfileProvider } from './components/Profile.tsx'
 import { PlanProvider } from './components/Plan.tsx'
+import { SyncGate } from './components/SyncGate.tsx'
 import { resolveShortLinkRedirect } from './lib/shortLinks.ts'
 import './index.css'
 
@@ -19,6 +20,7 @@ if (!resolveShortLinkRedirect()) {
       <ToastProvider>
         <AuthProvider>
           <AuthGate>
+            <SyncGate>
             <ProfileProvider>
               <PlanProvider>
               <NotificationsProvider>
@@ -30,6 +32,7 @@ if (!resolveShortLinkRedirect()) {
               </NotificationsProvider>
               </PlanProvider>
             </ProfileProvider>
+            </SyncGate>
           </AuthGate>
         </AuthProvider>
       </ToastProvider>

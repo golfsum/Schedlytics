@@ -18,6 +18,7 @@ import { useConnections, CONNECTABLE } from './Connections'
 import { useProfile, initialsOf } from './Profile'
 import { usePlan, PLAN_INFO } from './Plan'
 import UpgradeModal from './UpgradeModal'
+import { useSeededState } from '../lib/usePersisted'
 import { PLATFORMS } from '../data'
 import type { PlatformId } from '../types'
 
@@ -250,15 +251,17 @@ function ProfileSection() {
 
 /* ------------------------------ notifications ----------------------------- */
 
+const DEFAULT_NOTIF_PREFS = {
+  digest: true,
+  comments: true,
+  published: true,
+  weekly: false,
+  mentions: true,
+}
+
 function NotificationsSection() {
   const { addToast } = useToast()
-  const [prefs, setPrefs] = useState({
-    digest: true,
-    comments: true,
-    published: true,
-    weekly: false,
-    mentions: true,
-  })
+  const [prefs, setPrefs] = useSeededState('sl_notif_prefs', DEFAULT_NOTIF_PREFS, DEFAULT_NOTIF_PREFS)
 
   const set = (key: keyof typeof prefs, value: boolean) => {
     setPrefs((p) => ({ ...p, [key]: value }))

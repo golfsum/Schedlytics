@@ -24,6 +24,7 @@ export default function App() {
   const [panelOpen, setPanelOpen] = useState(false)
   const [editingPost, setEditingPost] = useState<CalendarPost | null>(null)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
+  const [mobileNav, setMobileNav] = useState(false)
 
   /** Append a freshly scheduled post to the calendar grid. */
   const addPost = (post: Omit<CalendarPost, 'id'>) =>
@@ -48,11 +49,22 @@ export default function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-navy-900 text-slate-200">
-      <Sidebar active={nav} onNavigate={setNav} onUpgrade={() => setUpgradeOpen(true)} />
+      <Sidebar
+        active={nav}
+        onNavigate={setNav}
+        onUpgrade={() => setUpgradeOpen(true)}
+        mobileOpen={mobileNav}
+        onCloseMobile={() => setMobileNav(false)}
+      />
 
       {/* main column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onNavigate={setNav} onUpgrade={() => setUpgradeOpen(true)} posts={posts} />
+        <Topbar
+          onNavigate={setNav}
+          onUpgrade={() => setUpgradeOpen(true)}
+          posts={posts}
+          onMenu={() => setMobileNav(true)}
+        />
 
         {demoMode && (
           <div className="flex items-center gap-2 border-b border-cyan-accent/20 bg-cyan-accent/10 px-4 py-2 text-xs text-cyan-accent sm:px-6">

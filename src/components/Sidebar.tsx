@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react'
+import { Sparkles, X } from 'lucide-react'
 import Logo from './Logo'
 import { NAV_ITEMS } from '../data'
 import { useInbox } from './Inbox'
@@ -9,14 +9,18 @@ interface SidebarProps {
   active: NavId
   onNavigate: (id: NavId) => void
   onUpgrade: () => void
+  /** Mobile drawer open state + closer (desktop rail ignores these). */
+  mobileOpen?: boolean
+  onCloseMobile?: () => void
 }
 
-/** Left-hand primary navigation rail. */
-export default function Sidebar({ active, onNavigate, onUpgrade }: SidebarProps) {
+/** Left-hand primary navigation rail (desktop) + slide-in drawer (mobile). */
+export default function Sidebar({ active, onNavigate, onUpgrade, mobileOpen, onCloseMobile }: SidebarProps) {
   const { unreadCount } = useInbox()
   const { plan } = usePlan()
-  return (
-    <aside className="hidden w-[232px] shrink-0 flex-col border-r border-white/5 bg-navy-950/80 px-4 py-6 md:flex">
+
+  const content = (onItem: (id: NavId) => void) => (
+    <>
       {/* Brand */}
       <div className="px-2">
         <Logo />
@@ -31,7 +35,7 @@ export default function Sidebar({ active, onNavigate, onUpgrade }: SidebarProps)
           return (
             <button
               key={id}
-              onClick={() => onNavigate(id)}
+              onClick={() => onItem(id)}
               className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 isActive
                   ? 'bg-cyan-accent/10 text-white ring-1 ring-cyan-accent/30'
@@ -44,10 +48,7 @@ export default function Sidebar({ active, onNavigate, onUpgrade }: SidebarProps)
                   isActive ? 'w-1 gradient-cyan' : 'w-0'
                 }`}
               />
-              <Icon
-                className={`h-[18px] w-[18px] ${isActive ? 'text-cyan-accent' : ''}`}
-                strokeWidth={2}
-              />
+              <Icon className={`h-[18px] w-[18px] ${isActive ? 'text-cyan-accent' : ''}`} strokeWidth={2} />
               <span>{label}</span>
               {count ? (
                 <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-cyan-accent px-1.5 text-[11px] font-bold text-navy-900">
@@ -77,6 +78,35 @@ export default function Sidebar({ active, onNavigate, onUpgrade }: SidebarProps)
           </button>
         </div>
       )}
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* Desktop rail */}
+      <aside className="hidden w-[232px] shrink-0 flex-col border-r border-white/5 bg-navy-950/80 px-4 py-6 md:flex">
+        {content(onNavigate)}
+      </aside>
+
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-navy-950/70 backdrop-blur-sm animate-fade-in" onClick={onCloseMobile} />
+          <aside className="absolute left-0 top-0 flex h-full w-[260px] max-w-[80%] animate-slide-in-left flex-col border-r border-white/5 bg-navy-950 px-4 py-6 shadow-panel">
+            <button
+              onClick={onCloseMobile}
+              className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white"
+              aria-label="Close menu"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            {content((id) => {
+              onNavigate(id)
+              onCloseMobile?.()
+            })}
+          </aside>
+        </div>
+      )}
+    </>
   )
 }
