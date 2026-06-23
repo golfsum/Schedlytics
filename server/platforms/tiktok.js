@@ -11,12 +11,14 @@
  *    - Request scopes below; the app starts in Sandbox until audited
  *    - Put client key/secret in .env as TIKTOK_CLIENT_KEY / _SECRET
  *
- *  Scopes (read-only - login + stats):
+ *  Scopes (login + stats + posting):
  *    - user.info.basic   (open_id, display_name, avatar)
  *    - user.info.stats   (follower_count, likes_count, video_count)
  *    - video.list        (recent videos + their stats)
- *  (Add video.publish later for posting - requires the Content Posting API
- *   and a separate audit.)
+ *    - video.publish     (Content Posting API - requires app audit)
+ *
+ *  Posting note: until the app is audited, the Content Posting API only allows
+ *  SELF_ONLY (private) posts, so uploads land as private on your TikTok.
  * ============================================================================
  */
 
@@ -26,7 +28,8 @@ const AUTH_ENDPOINT = 'https://www.tiktok.com/v2/auth/authorize/'
 const TOKEN_ENDPOINT = 'https://open.tiktokapis.com/v2/oauth/token/'
 const API = 'https://open.tiktokapis.com/v2'
 
-const SCOPES = ['user.info.basic', 'user.info.stats', 'video.list']
+const SCOPES = ['user.info.basic', 'user.info.stats', 'video.list', 'video.publish']
+const MAX_SINGLE_CHUNK = 64 * 1024 * 1024 // TikTok single-chunk upload limit
 
 export const tiktok = {
   id: 'tiktok',
@@ -124,6 +127,60 @@ export const tiktok = {
     })
     if (!res.ok) throw new Error(`TikTok video/list failed: ${await res.text()}`)
     return (await res.json()).data?.videos || []
+  },
+
+  /**
+   * Upload a video to TikTok via the Content Posting API (direct post).
+   * Single-chunk FILE_UPLOAD; lands as a private (SELF_ONLY) post until the app
+   * is audited. Returns the publish_id for status polling.
+   */
+  async publishMedia(accessToken, _record, { buffer, contentType, title } = {}) {
+    if (!buffer?.length) throw new Error('No video file received')
+    const size = buffer.length
+    if (size > MAX_SINGLE_CHUNK) {
+      throw new Error('TikTok upload here supports videos up to 64MB')
+    }
+
+    // 1. Initialize the direct post (private until audited).
+    const initRes = await fetch(`${API}/post/publish/video/init/`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: JSON.stringify({
+        post_info: {
+          title: title || '',
+          privacy_level: 'SELF_ONLY',
+          disable_comment: false,
+          disable_duet: false,
+          disable_stitch: false,
+        },
+        source_info: {
+          source: 'FILE_UPLOAD',
+          video_size: size,
+          chunk_size: size,
+          total_chunk_count: 1,
+        },
+      }),
+    })
+    if (!initRes.ok) throw new Error(`TikTok init failed: ${(await initRes.text()).slice(0, 220)}`)
+    const init = (await initRes.json()).data || {}
+    if (!init.upload_url) throw new Error('TikTok did not return an upload URL')
+
+    // 2. Upload the bytes in a single chunk.
+    const put = await fetch(init.upload_url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': contentType || 'video/mp4',
+        'Content-Length': String(size),
+        'Content-Range': `bytes 0-${size - 1}/${size}`,
+      },
+      body: buffer,
+    })
+    if (!put.ok) throw new Error(`TikTok upload failed: ${(await put.text()).slice(0, 220)}`)
+
+    return { id: init.publish_id, status: 'processing' }
   },
 }
 

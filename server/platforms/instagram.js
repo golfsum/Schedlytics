@@ -9,12 +9,16 @@
  *    2. Find the user's Page → the Page's linked instagram_business_account
  *    3. Read that IG account's followers + insights
  *
- *  Scopes (read-only - login + stats):
+ *  Scopes (login + stats + publishing):
  *    - instagram_basic
  *    - instagram_manage_insights
+ *    - instagram_content_publish   (publish photos/videos)
  *    - pages_show_list
  *    - pages_read_engagement
- *  (Add instagram_content_publish later for posting.)
+ *
+ *  Publishing note: the IG Content Publishing API works from a PUBLIC media URL
+ *  (it fetches the file itself); you cannot upload raw bytes. So posts need a
+ *  hosted image/video URL.
  *
  *  OAuth plumbing is shared - see _meta.js.
  * ============================================================================
@@ -25,6 +29,7 @@ import { GRAPH, buildAuthUrl, exchangeForLongLivedToken, getManagedPages } from 
 const SCOPES = [
   'instagram_basic',
   'instagram_manage_insights',
+  'instagram_content_publish',
   'pages_show_list',
   'pages_read_engagement',
 ]
@@ -108,6 +113,55 @@ export const instagram = {
       ],
       raw: profile,
     }
+  },
+
+  /**
+   * Publish a photo or Reel from a PUBLIC media URL.
+   * Flow: create a media container -> (video: wait for processing) -> publish.
+   */
+  async publish(_accessToken, record, { mediaUrl, imageUrl, videoUrl, caption } = {}) {
+    const igId = record?.igUserId
+    const token = record?.pageAccessToken
+    if (!igId || !token) throw new Error('No Instagram Business account connected')
+
+    const url = mediaUrl || videoUrl || imageUrl
+    if (!url) throw new Error('Instagram needs a public image or video URL')
+    const isVideo = Boolean(videoUrl) || /\.(mp4|mov|m4v)(\?|$)/i.test(url)
+
+    // 1. Create the media container.
+    const create = new URLSearchParams({ access_token: token })
+    if (caption?.trim()) create.set('caption', caption.trim())
+    if (isVideo) {
+      create.set('media_type', 'REELS')
+      create.set('video_url', url)
+    } else {
+      create.set('image_url', url)
+    }
+    const createRes = await fetch(`${GRAPH}/${igId}/media`, { method: 'POST', body: create })
+    if (!createRes.ok) throw new Error(`Instagram container failed: ${(await createRes.text()).slice(0, 220)}`)
+    const creationId = (await createRes.json()).id
+
+    // 2. Video containers need processing time before they can be published.
+    if (isVideo) {
+      let ready = false
+      for (let i = 0; i < 15 && !ready; i++) {
+        await new Promise((r) => setTimeout(r, 4000))
+        const st = await fetch(`${GRAPH}/${creationId}?fields=status_code&access_token=${token}`)
+        const code = st.ok ? (await st.json()).status_code : null
+        if (code === 'FINISHED') ready = true
+        else if (code === 'ERROR') throw new Error('Instagram could not process the video')
+      }
+      if (!ready) throw new Error('Instagram video still processing - try again shortly')
+    }
+
+    // 3. Publish the container.
+    const pubRes = await fetch(`${GRAPH}/${igId}/media_publish`, {
+      method: 'POST',
+      body: new URLSearchParams({ creation_id: creationId, access_token: token }),
+    })
+    if (!pubRes.ok) throw new Error(`Instagram publish failed: ${(await pubRes.text()).slice(0, 220)}`)
+    const data = await pubRes.json()
+    return { id: data.id, url: `https://www.instagram.com/` }
   },
 }
 

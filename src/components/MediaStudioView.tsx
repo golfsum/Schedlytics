@@ -184,15 +184,21 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     }
   }
 
+  // Instagram posts from a public media URL (its API can't take raw bytes), so
+  // it reuses the URL field. TikTok uploads the picked video file.
+  const showMediaUrlField =
+    (canUploadYouTube && !hasVideoFile) || (platform === 'instagram' && backendEnabled && connected)
+
   // We can publish right now (vs. schedule) when connected, posting now, and the
-  // platform supports it: YouTube needs a video file or URL; Facebook can post a
-  // file or text.
+  // platform supports it.
   const willPublishNow =
     backendEnabled &&
     connected &&
     !scheduleAt &&
     ((platform === 'youtube' && (hasVideoFile || Boolean(videoUrl.trim()))) ||
-      platform === 'facebook')
+      platform === 'facebook' ||
+      (platform === 'tiktok' && hasVideoFile) ||
+      (platform === 'instagram' && Boolean(videoUrl.trim())))
 
   const notifyResult = (url?: string) => {
     if (url) {
@@ -238,6 +244,19 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
           ? await publishMedia('facebook', mediaFile, { message })
           : await publishPost('facebook', { text: message })
         addToast(`Posted to ${plat.name}! 🚀`)
+        notifyResult(result.url)
+      } else if (willPublishNow && platform === 'tiktok' && mediaFile) {
+        // Upload the picked video to TikTok (private until the app is audited).
+        const result = await publishMedia('tiktok', mediaFile, {
+          title: title.trim() || caption.trim(),
+        })
+        addToast('Uploaded to TikTok (private until your app is audited) 🚀')
+        notifyResult(result.url)
+      } else if (willPublishNow && platform === 'instagram') {
+        // Instagram needs a public media URL (entered in the Media URL field).
+        const igCaption = [title.trim(), composeDescription()].filter(Boolean).join('\n\n')
+        const result = await publishPost('instagram', { mediaUrl: videoUrl.trim(), caption: igCaption })
+        addToast('Posted to Instagram! 🚀')
         notifyResult(result.url)
       } else {
         // Schedule onto the calendar (no direct publishing for this platform,
@@ -543,22 +562,26 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             <DateTimePicker value={scheduleAt} onChange={setScheduleAt} />
           </div>
 
-          {/* Optional alternative to uploading a file: a public video URL.
-              Useful for large files that exceed the server's upload limit. */}
-          {canUploadYouTube && !hasVideoFile && (
+          {/* Media URL: YouTube can use it instead of a file; Instagram requires
+              it (the IG API publishes from a public URL, not raw bytes). */}
+          {showMediaUrlField && (
             <div>
               <span className="mb-2 block text-sm font-semibold text-white">
-                Video URL <span className="font-normal text-slate-500">(optional, instead of a file)</span>
+                {platform === 'instagram' ? 'Media URL' : 'Video URL'}{' '}
+                <span className="font-normal text-slate-500">
+                  {platform === 'instagram' ? '(public image or video)' : '(optional, instead of a file)'}
+                </span>
               </span>
               <input
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="https://… direct link to your video file"
+                placeholder="https://… public link to your media"
                 className="w-full rounded-lg border border-white/5 bg-navy-900/60 px-3.5 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
               />
               <p className="mt-1.5 text-[11px] text-slate-500">
-                Upload a video above to publish it directly, or paste a public URL here for large
-                files.
+                {platform === 'instagram'
+                  ? 'Instagram publishes from a public URL, so host your photo/video and paste the link.'
+                  : 'Upload a video above to publish it directly, or paste a public URL for large files.'}
               </p>
             </div>
           )}

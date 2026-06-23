@@ -28,10 +28,10 @@ export function getPlatform(id) {
  *   - 'none': no public posting endpoint
  */
 export const PUBLISH_CAPABILITIES = {
-  youtube: { mode: 'video', note: 'Upload a video by URL (youtube.upload scope).' },
-  facebook: { mode: 'text', note: 'Post text or a link to your Page (pages_manage_posts).' },
-  instagram: { mode: 'review', note: 'Needs the Instagram Content Publishing API (app review).' },
-  tiktok: { mode: 'review', note: 'Needs the TikTok Content Posting API (audit required).' },
+  youtube: { mode: 'video', note: 'Upload a video file or URL (youtube.upload scope).' },
+  facebook: { mode: 'text', note: 'Post text, a link, or media to your Page (pages_manage_posts).' },
+  instagram: { mode: 'url', note: 'Post a photo or Reel from a public URL (instagram_content_publish; app review).' },
+  tiktok: { mode: 'video', note: 'Upload a video; lands private until your app is audited (video.publish).' },
   pinterest: { mode: 'review', note: 'Needs pins:write plus a target board.' },
   twitch: { mode: 'none', note: 'Twitch has no post-to-feed endpoint.' },
   patreon: { mode: 'none', note: 'Patreon posting is not available via API.' },

@@ -111,10 +111,11 @@ export const PUBLISH_MODES: Partial<Record<PlatformId, 'video' | 'text'>> = {
   facebook: 'text',
 }
 
-/** Publish a text/link post to a connected platform (generic dispatch). */
+/** Publish a post to a connected platform (generic dispatch). Payload shape is
+ *  platform-specific: Facebook uses { text, link }, Instagram { mediaUrl, caption }. */
 export async function publishPost(
   platform: PlatformId,
-  payload: { text?: string; link?: string },
+  payload: Record<string, unknown>,
 ): Promise<{ id: string; url?: string }> {
   if (!backendEnabled) throw new Error('backend disabled')
   const res = await fetch(`${apiBase}/api/${platform}/publish`, {
