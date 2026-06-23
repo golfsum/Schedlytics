@@ -14,6 +14,8 @@ export interface Message {
   text: string
   time: string
   unread: boolean
+  /** Real YouTube comment id, set for live comments so we can reply to it. */
+  commentId?: string
 }
 
 /** YouTube comment text can contain HTML + entities; clean it for display. */
@@ -85,6 +87,7 @@ export function InboxProvider({ children }: { children: ReactNode }) {
           text: stripHtml(c.text || ''),
           time: timeAgo(c.time),
           unread: true,
+          commentId: c.id,
         }))
         setMessages(msgs)
         setSelectedId(msgs[0].id)

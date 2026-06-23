@@ -45,6 +45,8 @@ const SCOPES = [
   'https://www.googleapis.com/auth/youtube.readonly',
   'https://www.googleapis.com/auth/youtube.upload',
   'https://www.googleapis.com/auth/youtube',
+  // force-ssl is required to write comment replies (comments.insert).
+  'https://www.googleapis.com/auth/youtube.force-ssl',
   'https://www.googleapis.com/auth/yt-analytics.readonly',
   'https://www.googleapis.com/auth/userinfo.profile',
 ]
@@ -197,6 +199,38 @@ export const youtube = {
 
     out.sort((a, b) => (Date.parse(b.time) || 0) - (Date.parse(a.time) || 0))
     return out.slice(0, max)
+  },
+
+  /**
+   * Reply to a top-level comment thread (needs the youtube.force-ssl scope).
+   * @param parentId  the top-level comment id to reply under
+   * @param text      the reply body
+   */
+  async replyToComment(accessToken, parentId, text) {
+    if (!parentId) throw new Error('replyToComment requires a parent comment id')
+    if (!text?.trim()) throw new Error('replyToComment requires text')
+    const res = await fetch(`${DATA_API}/comments?part=snippet`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ snippet: { parentId, textOriginal: text } }),
+    })
+    if (!res.ok) {
+      const body = await res.text()
+      let reason = body
+      try {
+        reason = JSON.parse(body)?.error?.message || body
+      } catch {
+        /* keep raw */
+      }
+      const err = new Error(`YouTube ${res.status}: ${String(reason).slice(0, 220)}`)
+      err.status = res.status
+      throw err
+    }
+    const data = await res.json()
+    return { id: data.id, text: data.snippet?.textDisplay }
   },
 
   /* ====================================================================== */

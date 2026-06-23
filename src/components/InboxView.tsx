@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { Send, CheckCheck, Circle, RefreshCw, Loader2 } from 'lucide-react'
 import { PLATFORMS } from '../data'
 import { useToast } from './Toast'
-import { backendEnabled } from '../lib/socialApi'
+import { useNotifications } from './Notifications'
+import { backendEnabled, replyToYouTubeComment } from '../lib/socialApi'
 import { useInbox } from './Inbox'
 
 export default function InboxView() {
   const { addToast } = useToast()
+  const { push } = useNotifications()
   const {
     messages,
     selectedId,
@@ -19,11 +21,32 @@ export default function InboxView() {
     loadYouTube,
   } = useInbox()
   const [reply, setReply] = useState('')
+  const [sending, setSending] = useState(false)
 
   const selected = messages.find((m) => m.id === selectedId) ?? null
 
-  const send = () => {
-    if (!reply.trim() || !selected) return
+  const send = async () => {
+    if (!reply.trim() || !selected || sending) return
+    const text = reply.trim()
+
+    // Real YouTube comment: post the reply through the Data API.
+    if (selected.commentId && backendEnabled) {
+      setSending(true)
+      try {
+        await replyToYouTubeComment(selected.commentId, text)
+        addToast(`Reply posted to ${selected.name} on YouTube 📨`)
+        setReply('')
+      } catch (e) {
+        const detail = e instanceof Error ? e.message : String(e)
+        addToast('Could not post reply. See the bell for details.', 'info', 6000)
+        push({ type: 'error', title: 'Reply failed', message: 'Tap to see the full reason', detail })
+      } finally {
+        setSending(false)
+      }
+      return
+    }
+
+    // Demo / non-YouTube message: optimistic confirmation.
     addToast(`Reply sent to ${selected.name} 📨`)
     setReply('')
   }
@@ -135,12 +158,14 @@ export default function InboxView() {
                     <div className="mt-1 text-[10px] text-slate-500">{selected.time} ago</div>
                   </div>
                 </div>
-                <div className="flex justify-end">
-                  <div className="max-w-[80%] rounded-2xl rounded-tr-sm gradient-cyan px-4 py-2.5 text-sm font-medium text-navy-900">
-                    Thanks for reaching out! 💛
-                    <div className="mt-1 text-[10px] text-navy-900/60">just now</div>
+                {source === 'demo' && (
+                  <div className="flex justify-end">
+                    <div className="max-w-[80%] rounded-2xl rounded-tr-sm gradient-cyan px-4 py-2.5 text-sm font-medium text-navy-900">
+                      Thanks for reaching out! 💛
+                      <div className="mt-1 text-[10px] text-navy-900/60">just now</div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* reply */}
@@ -149,15 +174,17 @@ export default function InboxView() {
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && send()}
+                  disabled={sending}
                   placeholder={`Reply to ${selected.name}…`}
-                  className="flex-1 rounded-lg border border-white/5 bg-navy-900/60 px-3.5 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+                  className="flex-1 rounded-lg border border-white/5 bg-navy-900/60 px-3.5 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20 disabled:opacity-60"
                 />
                 <button
                   onClick={send}
-                  className="flex items-center gap-2 rounded-lg gradient-cyan px-4 py-2.5 text-sm font-bold text-navy-900 transition-transform hover:scale-[1.02]"
+                  disabled={sending || !reply.trim()}
+                  className="flex items-center gap-2 rounded-lg gradient-cyan px-4 py-2.5 text-sm font-bold text-navy-900 transition-transform hover:scale-[1.02] disabled:opacity-60"
                 >
-                  <Send className="h-4 w-4" />
-                  Send
+                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {sending ? 'Posting…' : 'Send'}
                 </button>
               </div>
             </>

@@ -7,11 +7,11 @@
  *  deprecated). After login we pick the first Page the user manages and read
  *  its follower count and insights.
  *
- *  Scopes (read-only - login + stats):
+ *  Scopes (login + stats + publishing):
  *    - pages_show_list          (list the user's Pages)
  *    - pages_read_engagement    (read Page content/engagement)
  *    - read_insights            (Page insights metrics)
- *  (Add pages_manage_posts later for publishing.)
+ *    - pages_manage_posts       (publish posts to the Page)
  *
  *  OAuth plumbing is shared - see _meta.js.
  * ============================================================================
@@ -19,7 +19,7 @@
 
 import { GRAPH, buildAuthUrl, exchangeForLongLivedToken, getManagedPages } from './_meta.js'
 
-const SCOPES = ['pages_show_list', 'pages_read_engagement', 'read_insights']
+const SCOPES = ['pages_show_list', 'pages_read_engagement', 'read_insights', 'pages_manage_posts']
 
 export const facebook = {
   id: 'facebook',
@@ -89,6 +89,27 @@ export const facebook = {
       ],
       raw: page,
     }
+  },
+
+  /** Publish a text (and optional link) post to the managed Page. */
+  async publish(_accessToken, record, { text, link } = {}) {
+    if (!record?.pageId || !record?.pageAccessToken) {
+      throw new Error('No Facebook Page connected')
+    }
+    if (!text?.trim() && !link?.trim()) throw new Error('Add some text or a link to post')
+
+    const body = new URLSearchParams()
+    if (text?.trim()) body.set('message', text.trim())
+    if (link?.trim()) body.set('link', link.trim())
+    body.set('access_token', record.pageAccessToken)
+
+    const res = await fetch(`${GRAPH}/${record.pageId}/feed`, { method: 'POST', body })
+    if (!res.ok) {
+      const detail = await res.text()
+      throw new Error(`Facebook post failed: ${detail.slice(0, 220)}`)
+    }
+    const data = await res.json()
+    return { id: data.id, url: `https://www.facebook.com/${data.id}` }
   },
 }
 

@@ -5,7 +5,7 @@ import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { PORT, BASE_URL, FRONTEND_URL, creds, ashrt } from './config.js'
-import { getPlatform, platforms } from './platforms/index.js'
+import { getPlatform, platforms, PUBLISH_CAPABILITIES } from './platforms/index.js'
 import { store } from './store.js'
 import { links } from './links-store.js'
 import { stateStore } from './kv.js'
@@ -200,6 +200,32 @@ app.get('/api/:platform/stats', async (req, res) => {
     res.json(stats)
   } catch (err) {
     console.error(`[${platform.id}] stats error:`, err.message)
+    res.status(err.status || 502).json({ error: err.message })
+  }
+})
+
+/* -------------------------------------------------------------------------- */
+/*  Publishing - generic post dispatch + capability map                        */
+/* -------------------------------------------------------------------------- */
+
+// What each platform can publish right now (so the UI can label accordingly).
+app.get('/api/publish/capabilities', (_req, res) => res.json(PUBLISH_CAPABILITIES))
+
+app.post('/api/:platform/publish', async (req, res) => {
+  const platform = getPlatform(req.params.platform)
+  if (!platform) return res.status(404).json({ error: 'Unknown platform' })
+  if (typeof platform.publish !== 'function') {
+    const cap = PUBLISH_CAPABILITIES[platform.id]
+    return res.status(400).json({
+      error: `Direct publishing to ${platform.name} isn't available yet. ${cap?.note || ''}`.trim(),
+    })
+  }
+  try {
+    const { token, record } = await validAccessToken(platform)
+    const result = await platform.publish(token, record, req.body || {})
+    res.json(result)
+  } catch (err) {
+    console.error(`[${platform.id}] publish error:`, err.message)
     res.status(err.status || 502).json({ error: err.message })
   }
 })

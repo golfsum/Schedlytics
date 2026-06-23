@@ -24,7 +24,7 @@ import { useNotifications } from './Notifications'
 import { useConnections } from './Connections'
 import { useImageUpload } from './ImageUpload'
 import { usePersistedState } from '../lib/usePersisted'
-import { backendEnabled, publishYouTubeVideo } from '../lib/socialApi'
+import { backendEnabled, publishYouTubeVideo, publishPost, PUBLISH_MODES } from '../lib/socialApi'
 import { aiTitles, aiCaptions, aiHashtags, type Suggestion } from '../lib/aiSuggest'
 import { PLATFORM_LIST, PLATFORMS } from '../data'
 import type { CalendarPost, PlatformId } from '../types'
@@ -88,6 +88,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
 
   const supportsTimestamps = Boolean(TIMESTAMP_PLATFORMS[platform])
   const ytConnected = Boolean(accounts.youtube?.connected)
+  const connected = Boolean(accounts[platform]?.connected)
   const canUploadYouTube = platform === 'youtube' && backendEnabled && ytConnected
 
   // AI suggestion state
@@ -171,6 +172,15 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     }
   }
 
+  const publishMode = PUBLISH_MODES[platform]
+  // We can publish right now (vs. just scheduling) when connected, not
+  // scheduling for later, and the platform supports a direct post.
+  const willPublishNow =
+    backendEnabled &&
+    connected &&
+    !scheduleAt &&
+    ((platform === 'youtube' && Boolean(videoUrl.trim())) || publishMode === 'text')
+
   const publish = async () => {
     if (!title.trim() && !caption.trim()) {
       addToast('Add a title or caption first', 'info')
@@ -178,9 +188,8 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     }
     setPublishing(true)
     try {
-      // Real upload when YouTube is connected, a public video URL is given, and
-      // we are publishing now (not scheduling for later).
-      if (canUploadYouTube && videoUrl.trim() && !scheduleAt) {
+      if (willPublishNow && platform === 'youtube') {
+        // Real upload of a video by URL (private by default).
         await publishYouTubeVideo({
           videoUrl: videoUrl.trim(),
           title: title.trim() || 'Untitled',
@@ -190,7 +199,17 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
         })
         addToast('Uploaded to YouTube as a private video! 🚀')
         setVideoUrl('')
+      } else if (willPublishNow && publishMode === 'text') {
+        // Real text/link post (e.g. Facebook Page).
+        const message = [title.trim(), composeDescription()].filter(Boolean).join('\n\n')
+        const result = await publishPost(platform, { text: message })
+        addToast(`Posted to ${plat.name}! 🚀`)
+        if (result.url) {
+          push({ type: 'success', title: `Published to ${plat.name}`, message: 'View the post', detail: result.url })
+        }
       } else {
+        // Schedule onto the calendar (no direct publishing for this platform,
+        // or the user chose a future time).
         onSchedule(buildPost())
         const when = scheduleAt
           ? scheduleAt.toLocaleString(undefined, {
@@ -510,9 +529,8 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
           >
             {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             {(() => {
-              const uploading = canUploadYouTube && videoUrl.trim() && !scheduleAt
-              if (publishing) return uploading ? 'Uploading…' : scheduleAt ? 'Scheduling…' : 'Adding…'
-              if (uploading) return 'Upload to YouTube'
+              if (publishing) return willPublishNow ? 'Publishing…' : scheduleAt ? 'Scheduling…' : 'Adding…'
+              if (willPublishNow) return `Publish to ${plat.name}`
               return scheduleAt ? `Schedule to ${plat.name}` : `Add ${plat.name} post`
             })()}
           </button>

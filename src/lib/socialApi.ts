@@ -101,6 +101,32 @@ export async function fetchStats(platform: PlatformId): Promise<RemoteStats> {
   return res.json()
 }
 
+/**
+ * Platforms we can publish to directly right now (others schedule onto the
+ * calendar instead). Mirrors the server's PUBLISH_CAPABILITIES for the modes
+ * that are actually implemented.
+ */
+export const PUBLISH_MODES: Partial<Record<PlatformId, 'video' | 'text'>> = {
+  youtube: 'video',
+  facebook: 'text',
+}
+
+/** Publish a text/link post to a connected platform (generic dispatch). */
+export async function publishPost(
+  platform: PlatformId,
+  payload: { text?: string; link?: string },
+): Promise<{ id: string; url?: string }> {
+  if (!backendEnabled) throw new Error('backend disabled')
+  const res = await fetch(`${apiBase}/api/${platform}/publish`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `${res.status}`)
+  return res.json()
+}
+
 /** Disconnect a platform (revoke locally / remove stored tokens). */
 export async function disconnectAccount(platform: PlatformId): Promise<void> {
   if (!backendEnabled) return
@@ -169,6 +195,19 @@ export interface YouTubeComment {
 /** Data API v3 - recent comment threads across the connected channel. */
 export function fetchYouTubeComments(max = 20) {
   return getJson<YouTubeComment[]>(`/api/youtube/comments?max=${max}`)
+}
+
+/** Data API v3 - reply to a comment (needs the youtube.force-ssl scope). */
+export async function replyToYouTubeComment(parentId: string, text: string) {
+  if (!backendEnabled) throw new Error('backend disabled')
+  const res = await fetch(`${apiBase}/api/youtube/comments/${encodeURIComponent(parentId)}/reply`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  })
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `${res.status}`)
+  return res.json() as Promise<{ id: string; text?: string }>
 }
 
 /** Data API v3 - publish a video by URL (server fetches + resumable-uploads it). */

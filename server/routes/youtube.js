@@ -61,6 +61,12 @@ router.get('/comments', guard(async (req, res, token) => {
   res.json(await youtube.getComments(token, Number(req.query.max) || 20))
 }))
 
+router.post('/comments/:parentId/reply', guard(async (req, res, token) => {
+  const text = (req.body?.text || '').toString()
+  if (!text.trim()) return res.status(400).json({ error: 'text is required' })
+  res.json(await youtube.replyToComment(token, req.params.parentId, text))
+}))
+
 /* -------------------------- Data API v3 (posting) ------------------------- */
 
 router.post('/upload', guard(async (req, res, token) => {
