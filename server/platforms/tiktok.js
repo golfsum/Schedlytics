@@ -182,6 +182,34 @@ export const tiktok = {
 
     return { id: init.publish_id, status: 'processing' }
   },
+
+  /**
+   * Publish from a PUBLIC video URL (used by the scheduler so no bytes need to
+   * be stored). The URL's domain must be verified in your TikTok app settings.
+   */
+  async publishFromUrl(accessToken, { videoUrl, title } = {}) {
+    if (!videoUrl) throw new Error('videoUrl is required')
+    const res = await fetch(`${API}/post/publish/video/init/`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: JSON.stringify({
+        post_info: {
+          title: title || '',
+          privacy_level: 'SELF_ONLY',
+          disable_comment: false,
+          disable_duet: false,
+          disable_stitch: false,
+        },
+        source_info: { source: 'PULL_FROM_URL', video_url: videoUrl },
+      }),
+    })
+    if (!res.ok) throw new Error(`TikTok init failed: ${(await res.text()).slice(0, 220)}`)
+    const data = (await res.json()).data || {}
+    return { id: data.publish_id, status: 'processing' }
+  },
 }
 
 function normalizeTokens(data) {

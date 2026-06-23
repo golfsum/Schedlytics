@@ -8,6 +8,7 @@ import { PORT, BASE_URL, FRONTEND_URL, creds, ashrt } from './config.js'
 import { getPlatform, platforms, PUBLISH_CAPABILITIES } from './platforms/index.js'
 import { store } from './store.js'
 import { links } from './links-store.js'
+import { scheduled } from './scheduled-store.js'
 import { stateStore } from './kv.js'
 import { validAccessToken } from './tokens.js'
 import youtubeRoutes from './routes/youtube.js'
@@ -270,6 +271,67 @@ app.post(
     }
   },
 )
+
+/* -------------------------------------------------------------------------- */
+/*  Scheduled posts (Instagram/TikTok) + cron worker                           */
+/*    These platforms have no native scheduling, so we queue a post (public     */
+/*    media URL + caption + time) and a Vercel Cron job publishes it when due.  */
+/* -------------------------------------------------------------------------- */
+
+app.get('/api/scheduled', async (_req, res) => res.json(await scheduled.all()))
+
+app.post('/api/scheduled', async (req, res) => {
+  const { platform, caption, mediaUrl, publishAt } = req.body || {}
+  if (!platform || !mediaUrl || !publishAt) {
+    return res.status(400).json({ error: 'platform, mediaUrl and publishAt are required' })
+  }
+  if (!getPlatform(platform)) return res.status(400).json({ error: 'Unknown platform' })
+  const rec = await scheduled.add({ platform, caption, mediaUrl, publishAt })
+  res.json(rec)
+})
+
+app.delete('/api/scheduled/:id', async (req, res) => {
+  await scheduled.remove(req.params.id)
+  res.json({ ok: true })
+})
+
+// Cron worker: publish every due post. Vercel Cron calls this on a schedule and
+// includes `Authorization: Bearer <CRON_SECRET>` when CRON_SECRET is set.
+app.get('/api/cron/publish', async (req, res) => {
+  const secret = process.env.CRON_SECRET
+  if (secret && req.get('authorization') !== `Bearer ${secret}`) {
+    return res.status(401).json({ error: 'unauthorized' })
+  }
+
+  const due = await scheduled.due(Date.now())
+  const results = []
+  for (const post of due) {
+    try {
+      const platform = getPlatform(post.platform)
+      if (!platform) throw new Error('unknown platform')
+      const { token, record } = await validAccessToken(platform)
+
+      let result
+      if (post.platform === 'instagram') {
+        result = await platform.publish(token, record, { mediaUrl: post.mediaUrl, caption: post.caption })
+      } else if (post.platform === 'tiktok') {
+        result = await platform.publishFromUrl(token, { videoUrl: post.mediaUrl, title: post.caption })
+      } else if (typeof platform.publish === 'function') {
+        result = await platform.publish(token, record, { text: post.caption, mediaUrl: post.mediaUrl, caption: post.caption })
+      } else {
+        throw new Error(`publishing to ${post.platform} is not supported`)
+      }
+
+      await scheduled.update(post.id, { status: 'published', publishedAt: Date.now(), result })
+      results.push({ id: post.id, ok: true })
+    } catch (err) {
+      console.error(`[cron] publish ${post.id} failed:`, err.message)
+      await scheduled.update(post.id, { status: 'failed', error: err.message, failedAt: Date.now() })
+      results.push({ id: post.id, ok: false, error: err.message })
+    }
+  }
+  res.json({ ranAt: Date.now(), processed: results.length, results })
+})
 
 /* -------------------------------------------------------------------------- */
 /*  Disconnect                                                                  */

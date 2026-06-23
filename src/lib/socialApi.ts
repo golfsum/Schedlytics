@@ -156,6 +156,48 @@ export async function publishMedia(
   return res.json()
 }
 
+export interface ScheduledPost {
+  id: string
+  platform: PlatformId
+  caption: string
+  mediaUrl: string
+  publishAt: number
+  status: 'pending' | 'published' | 'failed'
+  error?: string
+}
+
+/** Queue a post for the cron worker (Instagram/TikTok, which lack native scheduling). */
+export async function schedulePost(input: {
+  platform: PlatformId
+  caption: string
+  mediaUrl: string
+  publishAt: number
+}): Promise<ScheduledPost> {
+  if (!backendEnabled) throw new Error('backend disabled')
+  const res = await fetch(`${apiBase}/api/scheduled`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `${res.status}`)
+  return res.json()
+}
+
+/** List queued scheduled posts. */
+export async function listScheduled(): Promise<ScheduledPost[]> {
+  if (!backendEnabled) return []
+  const res = await fetch(`${apiBase}/api/scheduled`, { credentials: 'include' })
+  if (!res.ok) return []
+  return res.json()
+}
+
+/** Cancel a queued scheduled post. */
+export async function cancelScheduled(id: string): Promise<void> {
+  if (!backendEnabled) return
+  await fetch(`${apiBase}/api/scheduled/${id}`, { method: 'DELETE', credentials: 'include' })
+}
+
 /** Disconnect a platform (revoke locally / remove stored tokens). */
 export async function disconnectAccount(platform: PlatformId): Promise<void> {
   if (!backendEnabled) return

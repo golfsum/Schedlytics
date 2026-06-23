@@ -24,7 +24,7 @@ import { useToast } from './Toast'
 import { useNotifications } from './Notifications'
 import { useConnections } from './Connections'
 import { usePersistedState } from '../lib/usePersisted'
-import { backendEnabled, publishYouTubeVideo, publishYouTubeFile, publishPost, publishMedia } from '../lib/socialApi'
+import { backendEnabled, publishYouTubeVideo, publishYouTubeFile, publishPost, publishMedia, schedulePost } from '../lib/socialApi'
 import { aiTitles, aiCaptions, aiHashtags, type Suggestion } from '../lib/aiSuggest'
 import { PLATFORM_LIST, PLATFORMS } from '../data'
 import type { CalendarPost, PlatformId } from '../types'
@@ -205,7 +205,9 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   // Instagram posts from a public media URL (its API can't take raw bytes), so
   // it reuses the URL field. TikTok uploads the picked video file.
   const showMediaUrlField =
-    (canUploadYouTube && !hasVideoFile) || (platform === 'instagram' && backendEnabled && connected)
+    (canUploadYouTube && !hasVideoFile) ||
+    (platform === 'instagram' && backendEnabled && connected) ||
+    (platform === 'tiktok' && Boolean(scheduleAt) && backendEnabled && connected)
 
   // What's ready to post on the selected platform.
   const ytReady = platform === 'youtube' && (hasVideoFile || Boolean(videoUrl.trim()))
@@ -215,9 +217,12 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
 
   // Native scheduling (future time) is only supported by YouTube (publishAt) and
   // Facebook (scheduled_publish_time). Everything else can only publish now.
+  // IG/TikTok have no native scheduling, so they're queued for the cron worker
+  // and need a public media URL (entered in the Media URL field).
+  const queueScheduleReady = (platform === 'instagram' || platform === 'tiktok') && Boolean(videoUrl.trim())
   const nativeScheduleCapable = platform === 'youtube' || platform === 'facebook'
   const canPublishNow = backendEnabled && connected && (ytReady || fbReady || tkReady || igReady)
-  const canSchedule = backendEnabled && connected && (ytReady || fbReady)
+  const canSchedule = backendEnabled && connected && (ytReady || fbReady || queueScheduleReady)
   const willActReal = scheduleAt ? canSchedule : canPublishNow
 
   const fmtWhen = (d: Date) =>
@@ -249,7 +254,20 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     const publishAt = scheduleAt ? scheduleAt.toISOString() : undefined
     const fbScheduleSec = scheduleAt ? Math.floor(scheduleAt.getTime() / 1000) : undefined
     try {
-      if (willActReal && platform === 'youtube') {
+      if (willActReal && scheduleAt && (platform === 'instagram' || platform === 'tiktok')) {
+        // No native scheduling - queue it for the cron worker (publishes from URL).
+        const caption = [title.trim(), composeDescription()].filter(Boolean).join('\n\n')
+        await schedulePost({
+          platform,
+          caption,
+          mediaUrl: videoUrl.trim(),
+          publishAt: scheduleAt.getTime(),
+        })
+        showPublished(
+          videoUrl.trim(),
+          `Scheduled on ${plat.name} for ${fmtWhen(scheduleAt)} - we'll publish it automatically.`,
+        )
+      } else if (willActReal && platform === 'youtube') {
         if (hasVideoFile && mediaFile) {
           setUploadPct(0)
           const result = await publishYouTubeFile(
@@ -623,7 +641,9 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
                     ? platform === 'facebook'
                       ? 'Facebook publishes this automatically (schedule at least 10 minutes out).'
                       : 'Uploaded now as private; YouTube makes it public at this time.'
-                    : `${plat.name} can't publish on a schedule yet, so this is saved to your calendar as a plan.`}
+                    : queueScheduleReady
+                      ? `We'll publish this to ${plat.name} automatically at the scheduled time.`
+                      : `Add a public media URL above to schedule this on ${plat.name}.`}
               </p>
             )}
           </div>
@@ -633,9 +653,9 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
           {showMediaUrlField && (
             <div>
               <span className="mb-2 block text-sm font-semibold text-white">
-                {platform === 'instagram' ? 'Media URL' : 'Video URL'}{' '}
+                {platform === 'youtube' ? 'Video URL' : 'Media URL'}{' '}
                 <span className="font-normal text-slate-500">
-                  {platform === 'instagram' ? '(public image or video)' : '(optional, instead of a file)'}
+                  {platform === 'youtube' ? '(optional, instead of a file)' : '(public image or video)'}
                 </span>
               </span>
               <input
@@ -645,9 +665,11 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
                 className="w-full rounded-lg border border-white/5 bg-navy-900/60 px-3.5 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
               />
               <p className="mt-1.5 text-[11px] text-slate-500">
-                {platform === 'instagram'
-                  ? 'Instagram publishes from a public URL, so host your photo/video and paste the link.'
-                  : 'Upload a video above to publish it directly, or paste a public URL for large files.'}
+                {platform === 'youtube'
+                  ? 'Upload a video above to publish it directly, or paste a public URL for large files.'
+                  : platform === 'tiktok'
+                    ? 'TikTok scheduling pulls from a public URL - host your video and paste the link.'
+                    : 'Instagram publishes from a public URL, so host your photo/video and paste the link.'}
               </p>
             </div>
           )}

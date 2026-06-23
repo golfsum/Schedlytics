@@ -3,5 +3,6 @@
   "buildCommand": "node scripts/build.mjs",
   "outputDirectory": "out",
   "cleanUrls": true,
-  "rewrites": [{ "source": "/(.*)", "destination": "/api" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
+  "crons": [{ "path": "/api/cron/publish", "schedule": "*/10 * * * *" }]
 }
