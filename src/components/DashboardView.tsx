@@ -139,8 +139,12 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
 
   // Real aggregates from the user's tracked links (works without a backend).
   const realClicks = links.reduce((s, l) => s + (l.clicks || 0), 0)
-  const realVisitors = links.reduce((s, l) => s + (l.uniqueVisitors || 0), 0)
+  const trackedVisitors = links.reduce((s, l) => s + (l.uniqueVisitors || 0), 0)
   const hasRealClicks = realClicks > 0
+  // The local/backend click counter does not dedupe visitors, so when no real
+  // unique-visitor data exists we show a conservative estimate (<= clicks).
+  const visitorsEstimated = trackedVisitors === 0 && hasRealClicks
+  const realVisitors = trackedVisitors > 0 ? trackedVisitors : visitorsEstimated ? Math.max(1, Math.round(realClicks * 0.7)) : 0
   const bestLinkPlatform = topByClicks(links, 'platform') as PlatformId | null
   const topLinkCampaign = topByClicks(links, 'campaign')
 
@@ -150,7 +154,7 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
       ? { value: compact(realClicks), delta: `across ${links.length} link${links.length === 1 ? '' : 's'}` }
       : { value: '—', delta: 'No clicks yet' },
     visitors: realVisitors > 0
-      ? { value: compact(realVisitors), delta: 'unique, from your links' }
+      ? { value: compact(realVisitors), delta: visitorsEstimated ? 'estimated unique' : 'unique, from your links' }
       : { value: '—', delta: 'No data yet' },
     platform: bestLinkPlatform
       ? { value: PLATFORMS[bestLinkPlatform].name, delta: 'most link clicks' }
@@ -181,9 +185,10 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
   )
   const loading = daily === null && videos === null
 
-  // Audience-growth card: real subscriber series when available, else a live
-  // "views per recent upload" trend so the card is never an empty box.
-  const showSubGrowth = growth.length >= 2
+  // Audience-growth card: only plot the subscriber series when it actually
+  // varies (a flat all-zero series would draw a misleading flat line at 0).
+  // Otherwise fall back to a live "views per recent upload" trend.
+  const showSubGrowth = growth.length >= 2 && Math.max(...growth) !== Math.min(...growth)
   const showLiveTrend = !showSubGrowth && vidsChrono.length >= 2
 
   // Recent Activity: the latest uploads with their live counts (newest first).
@@ -218,15 +223,11 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
             Create Trackable Link
           </button>
           <button
-            disabled
-            title="Campaigns are coming soon"
-            className="flex cursor-not-allowed items-center gap-2 rounded-xl border border-white/5 px-4 py-2.5 text-sm font-semibold text-slate-500"
+            onClick={() => onNavigate('campaigns')}
+            className="flex items-center gap-2 rounded-xl border border-cyan-accent/30 px-4 py-2.5 text-sm font-semibold text-cyan-accent transition-colors hover:bg-cyan-accent/10"
           >
             <Megaphone className="h-4 w-4" />
             Create Campaign
-            <span className="rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">
-              Soon
-            </span>
           </button>
         </div>
       </div>
