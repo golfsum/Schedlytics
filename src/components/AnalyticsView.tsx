@@ -173,6 +173,7 @@ function ChannelPerformance() {
   const { addToast } = useToast()
   const { accounts, connect } = useConnections()
   const [live, setLive] = useState<Record<string, RemoteStats | 'error'>>({})
+  const [ytVideoViews, setYtVideoViews] = useState<number | null>(null)
   const [synced, setSynced] = useState<Record<string, boolean>>(
     Object.fromEntries(CHANNEL_STATS.map((c) => [c.platform, c.synced])),
   )
@@ -189,6 +190,17 @@ function ChannelPerformance() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accounts])
+
+  // Fallback for YouTube: a channel can report 0 total views (hidden/new) even
+  // when its videos have views. Sum live per-video views to fill that in.
+  useEffect(() => {
+    if (backendEnabled && accounts.youtube?.connected && ytVideoViews === null) {
+      fetchYouTubeRecentVideos(25)
+        .then((vs) => setYtVideoViews(vs.reduce((sum, v) => sum + (v.views || 0), 0)))
+        .catch(() => setYtVideoViews(0))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accounts.youtube?.connected])
 
   return (
     <section className="card flex flex-col p-5">
@@ -245,9 +257,15 @@ function ChannelPerformance() {
                         </div>
                       ) : (
                         <div className="grid grid-cols-3 gap-2">
-                          {s.metrics.slice(0, 3).map((m, i) => (
-                            <Stat key={m.label} value={compact(m.value)} label={m.label} accent={i === 0} />
-                          ))}
+                          {s.metrics.slice(0, 3).map((m, i) => {
+                            // YouTube channels can report 0 total views; show the
+                            // live per-video sum instead so it isn't blank.
+                            const value =
+                              id === 'youtube' && m.label === 'views' && m.value === 0 && ytVideoViews
+                                ? ytVideoViews
+                                : m.value
+                            return <Stat key={m.label} value={compact(value)} label={m.label} accent={i === 0} />
+                          })}
                         </div>
                       )}
                     </div>
@@ -417,25 +435,28 @@ function UnifiedCorrelation() {
         <p className="-mt-2 mb-3 text-xs text-slate-500">
           {sampleData ? 'Post Frequency vs. Revenue' : 'How views, likes & comments move together across your videos'}
         </p>
-        {sampleData ? (
-          <CorrelationMatrix />
-        ) : !liveYouTube ? (
-          <EmptyChart />
-        ) : videos === null ? (
-          <ChartLoading />
-        ) : videos === 'error' ? (
-          <ChartNote>Could not load videos. Reconnect YouTube in Settings.</ChartNote>
-        ) : corr ? (
-          <CorrelationMatrix
-            rows={corr.labels}
-            cols={corr.labels}
-            matrix={corr.matrix}
-            rowAxis="Per video"
-            colAxis="Per video"
-          />
-        ) : (
-          <ChartNote>Need at least 3 videos to correlate. Publish a few and they'll show here.</ChartNote>
-        )}
+        {/* Fixed min height so the empty/loading states match the filled matrix. */}
+        <div className="flex min-h-[210px] flex-col justify-center">
+          {sampleData ? (
+            <CorrelationMatrix />
+          ) : !liveYouTube ? (
+            <EmptyChart />
+          ) : videos === null ? (
+            <ChartLoading />
+          ) : videos === 'error' ? (
+            <ChartNote>Could not load videos. Reconnect YouTube in Settings.</ChartNote>
+          ) : corr ? (
+            <CorrelationMatrix
+              rows={corr.labels}
+              cols={corr.labels}
+              matrix={corr.matrix}
+              rowAxis="Per video"
+              colAxis="Per video"
+            />
+          ) : (
+            <ChartNote>Need at least 3 videos to correlate. Publish a few and they'll show here.</ChartNote>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
