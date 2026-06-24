@@ -375,6 +375,62 @@ export const CAMPAIGNS: Campaign[] = [
   },
 ]
 
+/* -------------------------------------------------------------------------- */
+/*  Growth Coach - score, weekly brief, narrative (demo mode)                   */
+/* -------------------------------------------------------------------------- */
+
+export interface GrowthFactor {
+  label: string
+  value: number
+}
+export interface GrowthScore {
+  score: number
+  delta: number
+  factors: GrowthFactor[]
+}
+
+/** Headline Growth Score shown on the dashboard (demo mode). */
+export const GROWTH_SCORE: GrowthScore = {
+  score: 82,
+  delta: 7,
+  factors: [
+    { label: 'Traffic', value: 88 },
+    { label: 'Engagement', value: 79 },
+    { label: 'Consistency', value: 72 },
+    { label: 'Campaigns', value: 90 },
+  ],
+}
+
+export interface WeeklyBrief {
+  trafficDelta: string
+  bestPlatform: PlatformId
+  bestContent: string
+  recommendation: string
+  topPost: string
+  topPostClicks: number
+  /** Triggers the celebration banner when the week was strong. */
+  bestWeek: boolean
+  /** AI coach narrative bullets for the Insights page. */
+  highlights: string[]
+}
+
+/** The Monday "Weekly Growth Brief" (demo mode). */
+export const WEEKLY_BRIEF: WeeklyBrief = {
+  trafficDelta: '+14%',
+  bestPlatform: 'instagram',
+  bestContent: 'Carousel',
+  recommendation: 'Create 2 more carousel posts this week, and post them Tuesday between 9 and 11 AM.',
+  topPost: 'Summer Sale carousel',
+  topPostClicks: 412,
+  bestWeek: true,
+  highlights: [
+    'Instagram generated 63% of your tracked traffic last week.',
+    'Carousel posts averaged 2.4x more clicks than reels.',
+    'Your best posting time was Tuesday between 9 and 11 AM.',
+    'Reuse your Summer Sale campaign, it produced the highest click rate.',
+  ],
+}
+
 /** Insight-first summary on the Insights page (demo mode). */
 export const INSIGHTS: GrowthInsights = {
   bestPlatform: 'Instagram generated 62% of your tracked traffic this week.',

@@ -12,8 +12,9 @@ import {
   type YouTubeVideo,
 } from '../lib/socialApi'
 import { TrendingUp, LayoutGrid, Clock, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react'
-import { CHANNEL_STATS, PLATFORMS, INSIGHTS } from '../data'
+import { CHANNEL_STATS, PLATFORMS, INSIGHTS, WEEKLY_BRIEF } from '../data'
 import { aiRecommendations } from '../lib/aiSuggest'
+import { CoachHighlights } from './GrowthCoach'
 import { CorrelationMatrix, EngagementTrend, ConversionBars } from './charts'
 
 export default function InsightsView() {
@@ -25,6 +26,9 @@ export default function InsightsView() {
           Understand what is working and what to post next.
         </p>
       </div>
+
+      {/* AI growth coach weekly brief */}
+      <CoachHighlights highlights={WEEKLY_BRIEF.highlights} building={!sampleData} />
 
       {/* insight-first summary */}
       <InsightSummary />

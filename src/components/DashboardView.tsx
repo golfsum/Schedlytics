@@ -39,6 +39,8 @@ import {
   DASHBOARD_INSIGHT,
 } from '../data'
 import { listShortLinks, type ShortLink } from '../lib/shortLinks'
+import { GROWTH_SCORE, WEEKLY_BRIEF, type GrowthScore } from '../data'
+import { WinBanner, GrowthScoreCard, WeeklyBriefCard } from './GrowthCoach'
 import type { CalendarPost, NavId, PlatformId } from '../types'
 
 /** Pick the key with the highest summed clicks across links (or null). */
@@ -52,6 +54,40 @@ function topByClicks<K extends keyof ShortLink>(links: ShortLink[], key: K): str
   let bestVal = -1
   for (const [k, v] of totals) if (v > bestVal) (bestVal = v), (best = k)
   return best
+}
+
+/**
+ * A rough Growth Score for real accounts, computed from the signals we have
+ * (clicks, video engagement, posting cadence, campaign usage). Returns null
+ * when there is no activity yet, so the card shows a "building" state. There is
+ * no week-over-week history yet, so delta is 0 (the card hides it).
+ */
+function realGrowthScore(
+  clicks: number,
+  videos: YouTubeVideo[],
+  postCount: number,
+  links: ShortLink[],
+): GrowthScore | null {
+  if (clicks === 0 && videos.length === 0 && postCount === 0) return null
+  const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
+  const views = videos.reduce((s, v) => s + (v.views || 0), 0)
+  const eng = videos.reduce((s, v) => s + (v.likes || 0) + (v.comments || 0), 0)
+  const engRate = views > 0 ? (eng / views) * 100 : 0
+  const traffic = clamp(clicks > 0 ? 35 + Math.log10(clicks + 1) * 22 : 8)
+  const engagement = clamp(engRate * 12)
+  const consistency = clamp(postCount * 12)
+  const campaigns = clamp(links.filter((l) => l.campaign).length * 30)
+  const score = clamp(traffic * 0.35 + engagement * 0.25 + consistency * 0.2 + campaigns * 0.2)
+  return {
+    score,
+    delta: 0,
+    factors: [
+      { label: 'Traffic', value: traffic },
+      { label: 'Engagement', value: engagement },
+      { label: 'Consistency', value: consistency },
+      { label: 'Campaigns', value: campaigns },
+    ],
+  }
 }
 
 /** Icon per growth-metric key (data lives in GROWTH_METRICS). */
@@ -196,6 +232,9 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
     .sort((a, b) => Date.parse(b.publishedAt || '') - Date.parse(a.publishedAt || ''))
     .slice(0, 4)
 
+  // Growth Coach: sample in demo; a rough computed score for real accounts.
+  const realScore = realGrowthScore(realClicks, vids, posts.length, links)
+
   return (
     <div className="space-y-6">
       {/* header */}
@@ -230,6 +269,18 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
             Create Campaign
           </button>
         </div>
+      </div>
+
+      {/* growth coach: win celebration + score + weekly brief */}
+      {sampleData && WEEKLY_BRIEF.bestWeek && (
+        <WinBanner
+          headline="Best week yet 🎉"
+          detail={`Traffic ${WEEKLY_BRIEF.trafficDelta} this week. Your top post "${WEEKLY_BRIEF.topPost}" drove ${WEEKLY_BRIEF.topPostClicks} clicks.`}
+        />
+      )}
+      <div className="grid gap-5 lg:grid-cols-2">
+        <GrowthScoreCard data={sampleData ? GROWTH_SCORE : realScore} building={!sampleData && !realScore} />
+        <WeeklyBriefCard brief={sampleData ? WEEKLY_BRIEF : null} building={!sampleData} onNavigate={onNavigate} />
       </div>
 
       {/* growth metric cards */}
