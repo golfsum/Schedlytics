@@ -11,7 +11,9 @@ import { links } from './links-store.js'
 import { scheduled } from './scheduled-store.js'
 import { weeklySubs } from './weekly-store.js'
 import { earlyAccess, EA_CAP } from './early-access-store.js'
+import { support } from './support-store.js'
 import { sendEmail, emailEnabled } from './email.js'
+import { verifyIdToken } from './lib/firebaseAuth.js'
 import { stateStore } from './kv.js'
 import { validAccessToken } from './tokens.js'
 import youtubeRoutes from './routes/youtube.js'
@@ -145,11 +147,41 @@ app.post('/api/early-access', async (req, res) => {
   }
 })
 
-// Admin: list early-access sign-ups. Locked unless ADMIN_SECRET is set and matches.
+/* -------------------------------------------------------------------------- */
+/*  Admin (early access + support). Auth: ADMIN_SECRET, or a Firebase ID token  */
+/*  whose verified email is in ADMIN_EMAILS.                                    */
+/* -------------------------------------------------------------------------- */
+
+const ADMIN_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || '')
+  .split(',')
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean)
+
+/** Returns the admin identity ('secret' or an email) for the request, or null. */
+async function adminOf(req) {
+  const bearer = (req.get('authorization') || '').replace(/^Bearer /, '') || String(req.query.secret || '')
+  if (!bearer) return null
+  if (process.env.ADMIN_SECRET && bearer === process.env.ADMIN_SECRET) return 'secret'
+  if (ADMIN_PROJECT_ID && ADMIN_EMAILS.length) {
+    try {
+      const { email } = await verifyIdToken(bearer, ADMIN_PROJECT_ID)
+      if (email && ADMIN_EMAILS.includes(email.toLowerCase())) return email.toLowerCase()
+    } catch {
+      /* not an admin token */
+    }
+  }
+  return null
+}
+
+// Lets the app decide whether to show the Admin nav for the signed-in user.
+app.get('/api/admin/me', async (req, res) => {
+  res.json({ admin: Boolean(await adminOf(req)) })
+})
+
+// List early-access sign-ups (JSON or ?format=csv).
 app.get('/api/admin/early-access', async (req, res) => {
-  const secret = process.env.ADMIN_SECRET
-  const provided = (req.get('authorization') || '').replace(/^Bearer /, '') || req.query.secret
-  if (!secret || provided !== secret) return res.status(401).json({ error: 'unauthorized' })
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
   const all = (await earlyAccess.all()).sort((a, b) => (a.at || 0) - (b.at || 0))
   if (req.query.format === 'csv') {
     const rows = ['email,status,signed_up', ...all.map((e) => `${e.email},${e.status},${new Date(e.at || 0).toISOString()}`)]
@@ -162,6 +194,48 @@ app.get('/api/admin/early-access', async (req, res) => {
     cap: EA_CAP,
     signups: all,
   })
+})
+
+// Submit a support ticket (public for signed-in users; notifies the owner).
+app.post('/api/support', async (req, res) => {
+  const { email, subject, message, userId } = req.body || {}
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email))) {
+    return res.status(400).json({ error: 'A valid email is required' })
+  }
+  if (!message || !String(message).trim()) return res.status(400).json({ error: 'A message is required' })
+  try {
+    const ticket = await support.add({ email, subject, message, userId })
+    const adminTo = process.env.ADMIN_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER
+    if (adminTo) {
+      try {
+        await sendEmail({
+          to: adminTo,
+          subject: `New support ticket: ${ticket.subject || '(no subject)'}`,
+          html: `<p>From: <b>${ticket.email}</b></p><p>${(ticket.message || '').replace(/</g, '&lt;')}</p>`,
+        })
+      } catch (e) {
+        console.warn('[support] notify failed:', e.message)
+      }
+    }
+    res.json({ ok: true, id: ticket.id })
+  } catch (err) {
+    console.error('[support] failed:', err.message)
+    res.status(500).json({ error: 'Could not submit your message. Please try again.' })
+  }
+})
+
+app.get('/api/admin/support', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  res.json({ tickets: await support.all() })
+})
+
+app.patch('/api/admin/support/:id', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  const status = req.body?.status
+  if (!['open', 'resolved'].includes(status)) return res.status(400).json({ error: 'invalid status' })
+  const next = await support.update(req.params.id, { status })
+  if (!next) return res.status(404).json({ error: 'not found' })
+  res.json(next)
 })
 
 /* -------------------------------------------------------------------------- */

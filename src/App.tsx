@@ -13,14 +13,18 @@ import PostDetailDrawer from './components/PostDetailDrawer'
 import UpgradeModal from './components/UpgradeModal'
 import LinkToolsView from './components/LinkTools'
 import InboxView from './components/InboxView'
+import AdminView from './components/AdminView'
 import { useToast } from './components/Toast'
+import { useAuth } from './components/Auth'
 import { useSeededState } from './lib/usePersisted'
 import { demoMode } from './lib/socialApi'
+import { fetchAdminMe } from './lib/admin'
 import { INITIAL_POSTS } from './data'
 import type { CalendarPost, NavId } from './types'
 
 export default function App() {
   const { addToast } = useToast()
+  const { user } = useAuth()
   const [nav, setNav] = useState<NavId>(
     () => (window.history.state?.slNav as NavId) || 'calendar',
   )
@@ -51,6 +55,23 @@ export default function App() {
   const [detailPost, setDetailPost] = useState<CalendarPost | null>(null)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
   const [mobileNav, setMobileNav] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  // Reveal the Admin item only for allow-listed admins. Re-checks whenever the
+  // signed-in user changes so the token request runs after Firebase auth lands.
+  useEffect(() => {
+    let cancelled = false
+    if (!user) {
+      setIsAdmin(false)
+      return
+    }
+    fetchAdminMe().then((ok) => {
+      if (!cancelled) setIsAdmin(ok)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   /** Append a freshly scheduled post to the calendar grid. */
   const addPost = (post: Omit<CalendarPost, 'id'>) =>
@@ -79,6 +100,7 @@ export default function App() {
         active={nav}
         onNavigate={navigate}
         onUpgrade={() => setUpgradeOpen(true)}
+        isAdmin={isAdmin}
         mobileOpen={mobileNav}
         onCloseMobile={() => setMobileNav(false)}
       />
@@ -127,6 +149,7 @@ export default function App() {
             {nav === 'links' && <LinkToolsView />}
             {nav === 'inbox' && <InboxView />}
             {nav === 'settings' && <SettingsView />}
+            {nav === 'admin' && isAdmin && <AdminView />}
 
             {nav === 'dashboard' && (
               <DashboardView

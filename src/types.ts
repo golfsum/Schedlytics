@@ -29,6 +29,7 @@ export type NavId =
   | 'links'
   | 'inbox'
   | 'settings'
+  | 'admin'
 
 export interface NavItem {
   id: NavId

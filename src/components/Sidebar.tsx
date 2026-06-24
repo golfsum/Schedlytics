@@ -1,24 +1,30 @@
-import { Sparkles, X } from 'lucide-react'
+import { Sparkles, X, Shield } from 'lucide-react'
 import Logo from './Logo'
 import { NAV_ITEMS } from '../data'
 import { useInbox } from './Inbox'
 import { usePlan } from './Plan'
 import { earlyAccess } from '../lib/socialApi'
-import type { NavId } from '../types'
+import type { NavId, NavItem } from '../types'
 
 interface SidebarProps {
   active: NavId
   onNavigate: (id: NavId) => void
   onUpgrade: () => void
+  /** Show the Admin item (only for allow-listed admins). */
+  isAdmin?: boolean
   /** Mobile drawer open state + closer (desktop rail ignores these). */
   mobileOpen?: boolean
   onCloseMobile?: () => void
 }
 
 /** Left-hand primary navigation rail (desktop) + slide-in drawer (mobile). */
-export default function Sidebar({ active, onNavigate, onUpgrade, mobileOpen, onCloseMobile }: SidebarProps) {
+export default function Sidebar({ active, onNavigate, onUpgrade, isAdmin, mobileOpen, onCloseMobile }: SidebarProps) {
   const { unreadCount } = useInbox()
   const { plan } = usePlan()
+
+  const items: NavItem[] = isAdmin
+    ? [...NAV_ITEMS, { id: 'admin', label: 'Admin', Icon: Shield }]
+    : NAV_ITEMS
 
   const content = (onItem: (id: NavId) => void) => (
     <>
@@ -34,7 +40,7 @@ export default function Sidebar({ active, onNavigate, onUpgrade, mobileOpen, onC
 
       {/* Nav */}
       <nav className="mt-9 flex flex-1 flex-col gap-1.5">
-        {NAV_ITEMS.map(({ id, label, Icon, badge }) => {
+        {items.map(({ id, label, Icon, badge }) => {
           const isActive = id === active
           // Inbox badge reflects the live unread count, not a static number.
           const count = id === 'inbox' ? unreadCount : badge

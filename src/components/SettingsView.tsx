@@ -12,6 +12,8 @@ import {
   Globe,
   Lock,
   Sparkles,
+  LifeBuoy,
+  Send,
 } from 'lucide-react'
 import Toggle from './Toggle'
 import { useToast } from './Toast'
@@ -21,7 +23,8 @@ import { useProfile, initialsOf } from './Profile'
 import { useAuth } from './Auth'
 import { usePlan, PLAN_INFO } from './Plan'
 import UpgradeModal from './UpgradeModal'
-import { subscribeWeeklyBrief } from '../lib/socialApi'
+import { subscribeWeeklyBrief, backendEnabled } from '../lib/socialApi'
+import { submitSupport } from '../lib/admin'
 import { useSeededState } from '../lib/usePersisted'
 import { PLATFORMS, isComingSoon } from '../data'
 import type { PlatformId } from '../types'
@@ -32,6 +35,7 @@ const SECTIONS = [
   { id: 'profile', label: 'Profile', Icon: User },
   { id: 'notifications', label: 'Notifications', Icon: Bell },
   { id: 'billing', label: 'Billing', Icon: CreditCard },
+  { id: 'support', label: 'Support', Icon: LifeBuoy },
 ] as const
 
 type SectionId = (typeof SECTIONS)[number]['id']
@@ -68,8 +72,105 @@ export default function SettingsView() {
           {section === 'profile' && <ProfileSection />}
           {section === 'notifications' && <NotificationsSection />}
           {section === 'billing' && <BillingSection />}
+          {section === 'support' && <SupportSection />}
         </div>
       </div>
+    </div>
+  )
+}
+
+/* -------------------------------- support --------------------------------- */
+
+function SupportSection() {
+  const { user } = useAuth()
+  const { addToast } = useToast()
+  const [subject, setSubject] = useState('')
+  const [message, setMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!message.trim() || sending) return
+    setSending(true)
+    const ok = await submitSupport(user?.email || '', subject.trim(), message.trim())
+    setSending(false)
+    if (ok) {
+      setSent(true)
+      setSubject('')
+      setMessage('')
+      addToast('Message sent. We will get back to you soon ✅')
+    } else {
+      addToast('Could not send right now. Email us instead.', 'info')
+    }
+  }
+
+  return (
+    <div className="card p-5">
+      <div className="mb-1 flex items-center gap-2">
+        <LifeBuoy className="h-5 w-5 text-cyan-accent" />
+        <h2 className="text-lg font-bold text-white">Support</h2>
+      </div>
+      <p className="mb-5 text-sm text-slate-400">
+        Run into a problem or have a request? Send us a message and we will reply by email.
+      </p>
+
+      {!backendEnabled ? (
+        <p className="rounded-xl border border-white/5 bg-navy-800/60 p-4 text-sm text-slate-400">
+          Email us at{' '}
+          <a href="mailto:nd82soft@gmail.com" className="font-semibold text-cyan-accent hover:underline">
+            nd82soft@gmail.com
+          </a>{' '}
+          and we will get back to you.
+        </p>
+      ) : (
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Reply to
+            </label>
+            <input
+              value={user?.email || ''}
+              readOnly
+              className="w-full rounded-lg border border-white/10 bg-navy-800/60 px-3 py-2 text-sm text-slate-300"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Subject
+            </label>
+            <input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="What is this about?"
+              maxLength={200}
+              className="w-full rounded-lg border border-white/10 bg-navy-900 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Message
+            </label>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              required
+              rows={5}
+              placeholder="Tell us what is going on…"
+              maxLength={5000}
+              className="w-full resize-y rounded-lg border border-white/10 bg-navy-900 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={sending || !message.trim()}
+            className="flex items-center gap-2 rounded-lg gradient-cyan px-4 py-2 text-sm font-bold text-navy-900 transition-transform hover:scale-[1.02] disabled:opacity-50"
+          >
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {sent ? 'Send another' : 'Send message'}
+          </button>
+        </form>
+      )}
     </div>
   )
 }
