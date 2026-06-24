@@ -3,6 +3,7 @@ import {
   Heart,
   CalendarClock,
   DollarSign,
+  Eye,
   ArrowUpRight,
   ArrowDownRight,
   Plus,
@@ -124,13 +125,16 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
           value={String(posts.length)}
           delta="this week"
         />
-        <StatCard
-          Icon={DollarSign}
-          label="Revenue (30d)"
-          value={sampleData ? '$12.6k' : '-'}
-          delta={sampleData ? '+18%' : 'No data yet'}
-          up={sampleData || undefined}
-        />
+        {sampleData ? (
+          <StatCard Icon={DollarSign} label="Revenue (30d)" value="$12.6k" delta="+18%" up />
+        ) : (
+          <StatCard
+            Icon={Eye}
+            label="Views (30d)"
+            value={daily === null ? '…' : totalViews > 0 ? compact(totalViews) : '-'}
+            delta="YouTube, last 30 days"
+          />
+        )}
       </div>
 
       <div className="grid gap-5 xl:grid-cols-3">

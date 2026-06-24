@@ -91,7 +91,7 @@ export function InboxProvider({ children }: { children: ReactNode }) {
           id: i + 1,
           platform: 'youtube',
           name: c.author || 'YouTube viewer',
-          avatar: c.avatar || 'https://i.pravatar.cc/80?img=15',
+          avatar: c.avatar || '',
           text: stripHtml(c.text || ''),
           time: timeAgo(c.time),
           unread: c.id ? !readIds.includes(c.id) : true,

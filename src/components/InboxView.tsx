@@ -6,6 +6,17 @@ import { useNotifications } from './Notifications'
 import { backendEnabled, replyToYouTubeComment } from '../lib/socialApi'
 import { useInbox } from './Inbox'
 
+/** Avatar that shows the photo when present, else gradient initials. */
+function Avatar({ src, name }: { src?: string; name: string }) {
+  if (src) return <img src={src} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+  const initial = (name || '?').trim().charAt(0).toUpperCase()
+  return (
+    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full gradient-cyan text-sm font-bold text-navy-900">
+      {initial}
+    </span>
+  )
+}
+
 export default function InboxView() {
   const { addToast } = useToast()
   const { push } = useNotifications()
@@ -108,7 +119,7 @@ export default function InboxView() {
                   }`}
                 >
                   <div className="relative shrink-0">
-                    <img src={m.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+                    <Avatar src={m.avatar} name={m.name} />
                     <span
                       className={`absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-gradient-to-br ${p.gradient} ring-2 ring-navy-800`}
                     >
@@ -146,7 +157,7 @@ export default function InboxView() {
             <>
               {/* header */}
               <div className="flex items-center gap-3 border-b border-white/5 px-5 py-4">
-                <img src={selected.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+                <Avatar src={selected.avatar} name={selected.name} />
                 <div className="min-w-0">
                   <div className="font-semibold text-white">{selected.name}</div>
                   <div className="text-xs text-slate-500">via {PLATFORMS[selected.platform].name}</div>
