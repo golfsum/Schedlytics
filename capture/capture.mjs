@@ -38,6 +38,9 @@ function serveDist() {
   const server = http.createServer(async (req, res) => {
     try {
       let p = decodeURIComponent((req.url || '/').split('?')[0])
+      // The app is built with base "/app/"; serve those paths from dist root.
+      if (p === '/app' || p === '/app/') p = '/'
+      else if (p.startsWith('/app/')) p = p.slice(4)
       if (p === '/') p = '/index.html'
       let file = join(DIST, p)
       let data
@@ -86,8 +89,11 @@ const page = await browser.newPage({
   deviceScaleFactor: 1,
 })
 
-const base = `http://localhost:${PORT}/`
+const base = `http://localhost:${PORT}/app/?demo=1`
 await page.goto(base, { waitUntil: 'networkidle' })
+// Hide the demo-mode banner (only element with both border-b and bg-cyan-accent/10)
+// so the marketing shots look like the real app. A stylesheet survives re-renders.
+await page.addStyleTag({ content: '.border-b.bg-cyan-accent\\/10{display:none!important}' })
 await sleep(1200) // let remote images (avatars, unsplash) settle
 
 const nav = (name) => page.locator('aside nav button', { hasText: name })
