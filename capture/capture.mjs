@@ -104,15 +104,22 @@ await nav('Calendar').click()
 await sleep(500)
 await page.screenshot({ path: join(OUT, 'calendar.png') })
 
+// Taller viewport for the data-rich pages so the marketing screenshots show the
+// Growth Coach, growth level, and metric cards, not just the header.
+await page.setViewportSize({ width: 1280, height: 1000 })
+
 // "Analytics" was renamed to "Insights"; keep the analytics.png filename
 // since the marketing page references /site-media/analytics.png.
 await nav('Insights').click()
-await sleep(700)
+await sleep(800)
 await page.screenshot({ path: join(OUT, 'analytics.png') })
 
 await nav('Dashboard').click()
 await sleep(900)
 await page.screenshot({ path: join(OUT, 'dashboard.png') })
+
+// Back to the standard height for the remaining shots.
+await page.setViewportSize({ width: 1280, height: 820 })
 
 // Media Studio, with an AI title topic typed + suggestions generated
 await nav('Media Studio').click()

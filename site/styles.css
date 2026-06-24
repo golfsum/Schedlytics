@@ -446,6 +446,103 @@ a:hover {
   font-weight: 600;
 }
 
+/* how it works: step descriptions under the flow */
+.flow-steps {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-top: 28px;
+}
+.flow-steps > div {
+  text-align: center;
+}
+.flow-steps h4 {
+  color: #fff;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+.flow-steps p {
+  color: var(--muted);
+  font-size: 13px;
+}
+.flow-steps .soon {
+  font-style: normal;
+  margin-left: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--faint);
+}
+
+/* why different: comparison */
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-width: 880px;
+  margin: 0 auto;
+}
+.compare-col {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(30, 41, 59, 0.5);
+  padding: 26px;
+}
+.compare-col.featured {
+  border-color: rgba(34, 211, 238, 0.4);
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0.08), rgba(30, 41, 59, 0.5));
+}
+.compare-col h3 {
+  color: #fff;
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+.compare-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.compare-list li {
+  position: relative;
+  padding-left: 28px;
+  color: var(--muted);
+  font-size: 15px;
+}
+.compare-list li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 10px;
+  width: 12px;
+  height: 2px;
+  background: var(--faint);
+  border-radius: 2px;
+}
+.compare-list.check li {
+  color: var(--text);
+}
+.compare-list.check li::before {
+  content: '';
+  left: 6px;
+  top: 5px;
+  width: 6px;
+  height: 11px;
+  background: transparent;
+  border: solid var(--cyan);
+  border-width: 0 2px 2px 0;
+  border-radius: 0;
+  transform: rotate(45deg);
+}
+
+/* two-up screenshot gallery (media + calendar) */
+.gallery-2 {
+  grid-template-columns: 1fr 1fr;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
 /* call to action band */
 .cta-band {
   border-radius: 24px;
@@ -871,6 +968,15 @@ a:hover {
   }
   .steps {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .flow-steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .compare {
+    grid-template-columns: 1fr;
+  }
+  .gallery-2 {
+    grid-template-columns: 1fr;
   }
   .pricing {
     grid-template-columns: 1fr;
