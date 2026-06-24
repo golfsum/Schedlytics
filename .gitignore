@@ -22,6 +22,9 @@ npm-debug.log*
 # vercel
 .vercel
 
+# local dev data stores (server file-backed KV fallback)
+server/.*.json
+
 # typescript build artifacts (these previously broke vite config resolution)
 *.tsbuildinfo
 vite.config.js
