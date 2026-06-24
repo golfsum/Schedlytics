@@ -12,29 +12,42 @@ import {
 /*  Correlation matrix heatmap                                                  */
 /* -------------------------------------------------------------------------- */
 
-/** Map a 0–1 value to an orange→amber heat color. */
+/** Map correlation strength (|v|, 0–1) to an orange→amber heat color. */
 function heat(v: number): string {
-  // low = pale teal, high = saturated orange
-  if (v >= 0.7) return '#F97316'
-  if (v >= 0.55) return '#FB923C'
-  if (v >= 0.4) return '#FDBA74'
-  if (v >= 0.25) return '#FED7AA'
+  const a = Math.abs(v)
+  if (a >= 0.7) return '#F97316'
+  if (a >= 0.55) return '#FB923C'
+  if (a >= 0.4) return '#FDBA74'
+  if (a >= 0.25) return '#FED7AA'
   return '#FEF3E2'
 }
 
-export function CorrelationMatrix() {
+export function CorrelationMatrix({
+  rows = CORRELATION_ROWS,
+  cols = CORRELATION_COLS,
+  matrix = CORRELATION_MATRIX,
+  rowAxis = 'Post Frequency',
+  colAxis = 'Post Frequency',
+}: {
+  rows?: string[]
+  cols?: string[]
+  matrix?: number[][]
+  rowAxis?: string
+  colAxis?: string
+} = {}) {
+  const n = rows.length
   return (
     <div className="flex gap-3">
       {/* y-axis label */}
       <div className="flex flex-col items-center justify-center">
         <span className="rotate-180 text-[10px] font-medium tracking-wide text-slate-500 [writing-mode:vertical-rl]">
-          Post Frequency
+          {rowAxis}
         </span>
       </div>
 
       {/* row labels */}
-      <div className="grid grid-rows-5 gap-1 py-0.5">
-        {CORRELATION_ROWS.map((r) => (
+      <div className="grid gap-1 py-0.5" style={{ gridTemplateRows: `repeat(${n}, minmax(0, 1fr))` }}>
+        {rows.map((r) => (
           <span key={r} className="flex items-center text-[10px] text-slate-500">
             {r}
           </span>
@@ -42,12 +55,12 @@ export function CorrelationMatrix() {
       </div>
 
       <div className="flex-1">
-        <div className="grid grid-cols-5 gap-1">
-          {CORRELATION_MATRIX.map((row, r) =>
+        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))` }}>
+          {matrix.map((row, r) =>
             row.map((val, c) => (
               <div
                 key={`${r}-${c}`}
-                title={`${val.toFixed(2)}`}
+                title={`${rows[r]} vs ${cols[c]}: ${val.toFixed(2)}`}
                 className="grid aspect-[1.7/1] place-items-center rounded-md text-[11px] font-bold text-navy-900 transition-transform hover:scale-105"
                 style={{ backgroundColor: heat(val) }}
               >
@@ -57,16 +70,14 @@ export function CorrelationMatrix() {
           )}
         </div>
         {/* x-axis ticks */}
-        <div className="mt-1.5 grid grid-cols-5 gap-1">
-          {CORRELATION_COLS.map((c) => (
-            <span key={c} className="text-center text-[10px] text-slate-500">
+        <div className="mt-1.5 grid gap-1" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))` }}>
+          {cols.map((c) => (
+            <span key={c} className="truncate text-center text-[10px] text-slate-500" title={c}>
               {c}
             </span>
           ))}
         </div>
-        <p className="mt-1 text-center text-[10px] font-medium tracking-wide text-slate-500">
-          Post Frequency
-        </p>
+        <p className="mt-1 text-center text-[10px] font-medium tracking-wide text-slate-500">{colAxis}</p>
       </div>
 
       {/* legend */}
@@ -237,24 +248,30 @@ export function AreaChart({
 /*  Conversion by platform - bar chart                                          */
 /* -------------------------------------------------------------------------- */
 
-export function ConversionBars() {
-  const max = Math.max(...CONVERSION_BARS.map((b) => b.value))
+export function ConversionBars({
+  bars = CONVERSION_BARS,
+  format = (v: number) => `${v}%`,
+}: {
+  bars?: { label: string; value: number; color: string }[]
+  format?: (v: number) => string
+} = {}) {
+  const max = Math.max(...bars.map((b) => b.value), 1)
   return (
     <div className="flex h-28 items-end justify-around gap-3 px-2">
-      {CONVERSION_BARS.map((b) => (
+      {bars.map((b) => (
         <div key={b.label} className="group flex flex-1 flex-col items-center gap-2">
           <div className="relative flex h-20 w-full items-end justify-center">
             {/* hover value label */}
-            <span className="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-full rounded-md border border-white/10 bg-navy-950 px-2 py-0.5 text-[11px] font-semibold text-white opacity-0 shadow transition-opacity group-hover:opacity-100">
-              {b.value}%
+            <span className="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border border-white/10 bg-navy-950 px-2 py-0.5 text-[11px] font-semibold text-white opacity-0 shadow transition-opacity group-hover:opacity-100">
+              {format(b.value)}
             </span>
             <div
               className="w-8 cursor-pointer rounded-t-md transition-all group-hover:brightness-125"
               style={{
-                height: `${(b.value / max) * 100}%`,
+                height: `${Math.max((b.value / max) * 100, 4)}%`,
                 background: `linear-gradient(to top, ${b.color}, ${b.color}99)`,
               }}
-              title={`${b.label}: ${b.value}%`}
+              title={`${b.label}: ${format(b.value)}`}
             />
           </div>
           <span className="text-[11px] font-medium text-slate-400 transition-colors group-hover:text-white">

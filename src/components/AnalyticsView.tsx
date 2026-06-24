@@ -180,12 +180,67 @@ function Stat({ value, label, accent }: { value: string; label: string; accent?:
 /*  Unified Correlation                                                         */
 /* -------------------------------------------------------------------------- */
 
+// Metrics correlated in the matrix (from the YouTube daily series).
+const CORR_METRICS: [keyof DailyMetric, string][] = [
+  ['views', 'Views'],
+  ['estimatedMinutesWatched', 'Watch'],
+  ['likes', 'Likes'],
+  ['comments', 'Comments'],
+  ['subscribersGained', 'Subs'],
+]
+
+// Short codes for the per-platform audience bars.
+const SHORT: Record<string, string> = {
+  instagram: 'IG',
+  facebook: 'FB',
+  tiktok: 'TT',
+  youtube: 'YT',
+  pinterest: 'PIN',
+  twitch: 'TW',
+  patreon: 'PAT',
+}
+
+function pearson(x: number[], y: number[]): number {
+  const n = Math.min(x.length, y.length)
+  if (n < 2) return 0
+  const mx = x.reduce((s, v) => s + v, 0) / n
+  const my = y.reduce((s, v) => s + v, 0) / n
+  let num = 0
+  let dx2 = 0
+  let dy2 = 0
+  for (let i = 0; i < n; i++) {
+    const a = x[i] - mx
+    const b = y[i] - my
+    num += a * b
+    dx2 += a * a
+    dy2 += b * b
+  }
+  if (dx2 === 0 || dy2 === 0) return 0
+  return num / Math.sqrt(dx2 * dy2)
+}
+
+/** Build a metric-correlation matrix from the daily series. */
+function correlationFrom(daily: DailyMetric[]) {
+  const series = CORR_METRICS.map(([key]) => daily.map((d) => Number(d[key] || 0)))
+  return {
+    labels: CORR_METRICS.map(([, label]) => label),
+    matrix: series.map((a) => series.map((b) => Math.round(pearson(a, b) * 100) / 100)),
+  }
+}
+
+interface AudienceBar {
+  label: string
+  value: number
+  color: string
+}
+
 function UnifiedCorrelation() {
   const { accounts } = useConnections()
   const ytConnected = Boolean(accounts.youtube?.connected)
   const [daily, setDaily] = useState<DailyMetric[] | 'error' | null>(null)
+  const [audience, setAudience] = useState<AudienceBar[] | 'loading'>('loading')
 
-  // Pull real YouTube daily views for the engagement chart when connected.
+  // Pull real YouTube daily metrics (powers the trend + correlation matrix).
   useEffect(() => {
     if (backendEnabled && ytConnected && daily === null) {
       fetchYouTubeDaily()
@@ -195,19 +250,59 @@ function UnifiedCorrelation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ytConnected])
 
+  // Pull follower counts per connected platform for the audience bars.
+  useEffect(() => {
+    if (!backendEnabled) return
+    const connected = CONNECTABLE.filter((id) => accounts[id]?.connected)
+    if (!connected.length) {
+      setAudience([])
+      return
+    }
+    Promise.all(
+      connected.map((id) =>
+        fetchStats(id)
+          .then((s) => ({ label: SHORT[id] || PLATFORMS[id].name, value: s.followers, color: PLATFORMS[id].color }))
+          .catch(() => null),
+      ),
+    ).then((rows) => setAudience(rows.filter((r): r is AudienceBar => Boolean(r))))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accounts])
+
   const liveYouTube = backendEnabled && ytConnected
-  const hasDaily = Array.isArray(daily) && daily.length > 0
+  const dailyRows = Array.isArray(daily) ? daily : []
+  const hasDaily = dailyRows.length > 0
+  const corr = dailyRows.length >= 2 ? correlationFrom(dailyRows) : null
 
   return (
     <section className="flex flex-col gap-5">
       <div className="card p-5">
-        <ColumnHeader eyebrow="Unified Correlation" title="Correlation Matrix">
+        <ColumnHeader eyebrow="Unified Correlation" title={sampleData ? 'Correlation Matrix' : 'Metric Correlation'}>
           <IconBtn>
             <Settings2 className="h-4 w-4" />
           </IconBtn>
         </ColumnHeader>
-        <p className="-mt-2 mb-3 text-xs text-slate-500">Post Frequency vs. Revenue</p>
-        {sampleData ? <CorrelationMatrix /> : <EmptyChart />}
+        <p className="-mt-2 mb-3 text-xs text-slate-500">
+          {sampleData ? 'Post Frequency vs. Revenue' : 'How your YouTube metrics move together'}
+        </p>
+        {sampleData ? (
+          <CorrelationMatrix />
+        ) : !liveYouTube ? (
+          <EmptyChart />
+        ) : daily === null ? (
+          <ChartLoading />
+        ) : daily === 'error' ? (
+          <ChartNote>Analytics unavailable. Reconnect YouTube in Settings to grant analytics access.</ChartNote>
+        ) : corr ? (
+          <CorrelationMatrix
+            rows={corr.labels}
+            cols={corr.labels}
+            matrix={corr.matrix}
+            rowAxis="Metrics"
+            colAxis="Metrics"
+          />
+        ) : (
+          <ChartNote>Need at least 2 days of analytics to correlate. YouTube data lags 1-2 days.</ChartNote>
+        )}
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -228,8 +323,8 @@ function UnifiedCorrelation() {
               <ChartNote>Analytics unavailable. Reconnect YouTube in Settings to grant analytics access.</ChartNote>
             ) : hasDaily ? (
               <EngagementTrend
-                data={(daily as DailyMetric[]).map((d) => d.views)}
-                labels={sparseLabels((daily as DailyMetric[]).map((d) => d.day))}
+                data={dailyRows.map((d) => d.views)}
+                labels={sparseLabels(dailyRows.map((d) => d.day))}
               />
             ) : (
               <ChartNote>
@@ -244,11 +339,23 @@ function UnifiedCorrelation() {
 
         <div className="card p-5">
           <div className="mb-1 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-white">Conversion by Platform</h3>
+            <h3 className="text-sm font-semibold text-white">
+              {sampleData ? 'Conversion by Platform' : 'Audience by Platform'}
+            </h3>
             <MoreHorizontal className="h-4 w-4 text-slate-500" />
           </div>
-          <p className="mb-2 text-xs text-slate-500">{sampleData ? 'Oct 20 – 26' : 'Last 7 days'}</p>
-          {sampleData ? <ConversionBars /> : <EmptyChart />}
+          <p className="mb-2 text-xs text-slate-500">{sampleData ? 'Oct 20 – 26' : 'Followers per channel'}</p>
+          {sampleData ? (
+            <ConversionBars />
+          ) : !backendEnabled ? (
+            <EmptyChart />
+          ) : audience === 'loading' ? (
+            <ChartLoading />
+          ) : audience.length ? (
+            <ConversionBars bars={audience} format={compact} />
+          ) : (
+            <ChartNote>Connect channels to compare your audience across platforms.</ChartNote>
+          )}
         </div>
       </div>
     </section>
