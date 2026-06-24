@@ -9,7 +9,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useToast } from './Toast'
-import { useAuth } from './Auth'
+import { useProfile, initialsOf } from './Profile'
 import { usePersistedState } from '../lib/usePersisted'
 import LinkInBioModal, { type BioLink } from './LinkInBioModal'
 import {
@@ -32,12 +32,12 @@ const DEFAULT_BIO_LINKS: BioLink[] = [
 
 export function LinkEngagementTools() {
   const { addToast } = useToast()
-  const { user } = useAuth()
+  const profile = useProfile()
   const [longUrl, setLongUrl] = useState('')
   const [link, setLink] = useState<ShortLink | null>(null)
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [bioTitle, setBioTitle] = usePersistedState('sl_bio_title', user?.name || 'My Links')
+  const [bioTitle, setBioTitle] = usePersistedState('sl_bio_title', profile.name || 'My Links')
   const [bioLinks, setBioLinks] = usePersistedState<BioLink[]>('sl_bio_links', DEFAULT_BIO_LINKS)
   const [editingBio, setEditingBio] = useState(false)
 
@@ -94,11 +94,17 @@ export function LinkEngagementTools() {
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               </div>
               <div className="flex flex-col items-center gap-2 pb-1">
-                <img
-                  src="https://i.pravatar.cc/80?img=32"
-                  alt=""
-                  className="h-9 w-9 rounded-full ring-2 ring-cyan-accent/40"
-                />
+                {profile.photoURL ? (
+                  <img
+                    src={profile.photoURL}
+                    alt=""
+                    className="h-9 w-9 rounded-full object-cover ring-2 ring-cyan-accent/40"
+                  />
+                ) : (
+                  <span className="grid h-9 w-9 place-items-center rounded-full gradient-cyan text-[11px] font-bold text-navy-900 ring-2 ring-cyan-accent/40">
+                    {initialsOf(bioTitle, profile.email)}
+                  </span>
+                )}
                 <span className="max-w-full truncate text-[10px] font-semibold text-white">{bioTitle}</span>
                 {(bioLinks.length ? bioLinks : DEFAULT_BIO_LINKS).slice(0, 4).map((l) => (
                   <button
