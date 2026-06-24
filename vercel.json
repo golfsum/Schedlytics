@@ -3,6 +3,12 @@
   "buildCommand": "node scripts/build.mjs",
   "outputDirectory": "out",
   "cleanUrls": true,
-  "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
+  "rewrites": [
+    {
+      "source": "/__/auth/:path*",
+      "destination": "https://schedlytics-95655.firebaseapp.com/__/auth/:path*"
+    },
+    { "source": "/(.*)", "destination": "/api" }
+  ],
   "crons": [{ "path": "/api/cron/publish", "schedule": "*/10 * * * *" }]
 }
