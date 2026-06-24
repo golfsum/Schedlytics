@@ -91,6 +91,44 @@ app.get('/api/config', async (_req, res) => {
   res.json({ configured, baseUrl: BASE_URL, earlyAccess: EARLY_ACCESS_ON, eaCap: EA_CAP, eaSpotsLeft: spotsLeft })
 })
 
+/** Confirmation email sent to a new early-access sign-up. */
+function earlyAccessConfirmHtml(accepted) {
+  const appUrl = `${FRONTEND_URL}/`
+  const lead = accepted
+    ? 'You are in. You are one of the first creators getting early access to Schedlytics.'
+    : 'Thanks for signing up. The first round is full, so you are on the waitlist and we will be in touch as spots open.'
+  return `<!doctype html><html><body style="margin:0;background:#0b1120;font-family:Inter,Arial,sans-serif;color:#e2e8f0">
+    <div style="max-width:540px;margin:0 auto;padding:28px 20px">
+      <div style="font-size:20px;font-weight:800;color:#fff">Sched<span style="color:#22d3ee">lytics</span></div>
+      <h1 style="font-size:22px;color:#fff;margin:20px 0 8px">${accepted ? 'Welcome to early access' : 'You are on the waitlist'}</h1>
+      <p style="color:#94a3b8;margin:0 0 18px">${lead}</p>
+      <p style="color:#e2e8f0;margin:0 0 8px">As an early member you get lifetime early adopter pricing, direct access to new features, a say in the roadmap, and priority support.</p>
+      <a href="${appUrl}" style="display:inline-block;margin-top:14px;padding:12px 22px;background:linear-gradient(135deg,#22d3ee,#0ea5e9);color:#0f172a;font-weight:700;text-decoration:none;border-radius:12px">Visit Schedlytics</a>
+    </div></body></html>`
+}
+
+/** Notify the owner and confirm to the signer. Best-effort; never throws. */
+async function notifyEarlyAccess(email, result) {
+  if (result.already) return
+  const adminTo = process.env.ADMIN_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER
+  try {
+    if (adminTo) {
+      await sendEmail({
+        to: adminTo,
+        subject: `New early-access signup (${result.status})`,
+        html: `<p><b>${email}</b> requested early access.</p><p>Status: <b>${result.status}</b>. Spots left: ${result.spotsLeft}.</p>`,
+      })
+    }
+    await sendEmail({
+      to: email,
+      subject: result.status === 'accepted' ? 'You are in: Schedlytics early access' : 'You are on the Schedlytics waitlist',
+      html: earlyAccessConfirmHtml(result.status === 'accepted'),
+    })
+  } catch (err) {
+    console.warn('[early-access] email failed:', err.message)
+  }
+}
+
 // Early-access sign-up: first EA_CAP accepted, rest waitlisted.
 app.post('/api/early-access', async (req, res) => {
   const { email } = req.body || {}
@@ -99,11 +137,31 @@ app.post('/api/early-access', async (req, res) => {
   }
   try {
     const result = await earlyAccess.add(email)
+    await notifyEarlyAccess(email, result)
     res.json(result)
   } catch (err) {
     console.error('[early-access] failed:', err.message)
     res.status(500).json({ error: 'Could not save your sign-up. Please try again.' })
   }
+})
+
+// Admin: list early-access sign-ups. Locked unless ADMIN_SECRET is set and matches.
+app.get('/api/admin/early-access', async (req, res) => {
+  const secret = process.env.ADMIN_SECRET
+  const provided = (req.get('authorization') || '').replace(/^Bearer /, '') || req.query.secret
+  if (!secret || provided !== secret) return res.status(401).json({ error: 'unauthorized' })
+  const all = (await earlyAccess.all()).sort((a, b) => (a.at || 0) - (b.at || 0))
+  if (req.query.format === 'csv') {
+    const rows = ['email,status,signed_up', ...all.map((e) => `${e.email},${e.status},${new Date(e.at || 0).toISOString()}`)]
+    return res.type('text/csv').send(rows.join('\n'))
+  }
+  res.json({
+    total: all.length,
+    accepted: all.filter((e) => e.status === 'accepted').length,
+    waitlist: all.filter((e) => e.status === 'waitlist').length,
+    cap: EA_CAP,
+    signups: all,
+  })
 })
 
 /* -------------------------------------------------------------------------- */
