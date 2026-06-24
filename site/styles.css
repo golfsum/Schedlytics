@@ -697,6 +697,19 @@ a:hover {
   font-weight: 500;
   color: var(--faint);
 }
+.price-card .price .price-old {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--faint);
+  text-decoration: line-through;
+  margin-right: 8px;
+}
+.price-note {
+  margin-top: -6px;
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 600;
+}
 .price-features {
   list-style: none;
   display: flex;

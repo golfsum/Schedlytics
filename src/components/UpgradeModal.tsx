@@ -18,18 +18,18 @@ interface Plan {
 const PLANS: Plan[] = [
   {
     id: 'pro',
-    name: 'Pro',
-    price: '$29',
-    blurb: 'For growing creators',
-    features: ['Unlimited channels', 'AI caption assist', 'Advanced analytics', '5 team seats'],
+    name: 'Creator',
+    price: '$9',
+    blurb: 'Launch price, regularly $15',
+    features: ['Unlimited tracked links', 'Unlimited campaigns', 'QR codes & link in bio', '90 day analytics', 'AI caption & CTA help'],
     recommended: true,
   },
   {
     id: 'business',
     name: 'Business',
-    price: '$79',
-    blurb: 'For teams and agencies',
-    features: ['Everything in Pro', 'Unlimited team seats', 'Custom reports & exports', 'Priority support', 'API access'],
+    price: '$24',
+    blurb: 'Launch price, regularly $39',
+    features: ['Everything in Creator', 'Custom branded domain', 'Team access', 'Revenue tracking', 'Advanced reports & CSV export', 'Priority support'],
   },
 ]
 
