@@ -7,10 +7,8 @@ import {
   backendEnabled,
   sampleData,
   fetchStats,
-  fetchYouTubeDaily,
   fetchYouTubeRecentVideos,
   type RemoteStats,
-  type DailyMetric,
   type YouTubeVideo,
 } from '../lib/socialApi'
 import { CHANNEL_STATS, PLATFORMS } from '../data'
@@ -314,13 +312,11 @@ function Stat({ value, label, accent }: { value: string; label: string; accent?:
 /*  Unified Correlation                                                         */
 /* -------------------------------------------------------------------------- */
 
-// Metrics correlated in the matrix (from the YouTube daily series).
-const CORR_METRICS: [keyof DailyMetric, string][] = [
+// Metrics correlated across the channel's recent videos (live counts, no lag).
+const VIDEO_METRICS: [keyof YouTubeVideo, string][] = [
   ['views', 'Views'],
-  ['estimatedMinutesWatched', 'Watch'],
   ['likes', 'Likes'],
   ['comments', 'Comments'],
-  ['subscribersGained', 'Subs'],
 ]
 
 // Short codes for the per-platform audience bars.
@@ -353,16 +349,11 @@ function pearson(x: number[], y: number[]): number {
   return num / Math.sqrt(dx2 * dy2)
 }
 
-function formatDay(d: string) {
-  const [y, m, dd] = d.split('-').map(Number)
-  return new Date(y, (m || 1) - 1, dd || 1).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-}
-
-/** Build a metric-correlation matrix from the daily series. */
-function correlationFrom(daily: DailyMetric[]) {
-  const series = CORR_METRICS.map(([key]) => daily.map((d) => Number(d[key] || 0)))
+/** Correlate views/likes/comments across the channel's recent videos. */
+function correlationFromVideos(videos: YouTubeVideo[]) {
+  const series = VIDEO_METRICS.map(([key]) => videos.map((v) => Number(v[key] || 0)))
   return {
-    labels: CORR_METRICS.map(([, label]) => label),
+    labels: VIDEO_METRICS.map(([, label]) => label),
     matrix: series.map((a) => series.map((b) => Math.round(pearson(a, b) * 100) / 100)),
   }
 }
@@ -376,15 +367,15 @@ interface AudienceBar {
 function UnifiedCorrelation() {
   const { accounts } = useConnections()
   const ytConnected = Boolean(accounts.youtube?.connected)
-  const [daily, setDaily] = useState<DailyMetric[] | 'error' | null>(null)
+  const [videos, setVideos] = useState<YouTubeVideo[] | 'error' | null>(null)
   const [audience, setAudience] = useState<AudienceBar[] | 'loading'>('loading')
 
-  // Pull real YouTube daily metrics (powers the trend + correlation matrix).
+  // Recent videos with LIVE counts (no analytics lag) power the trend + matrix.
   useEffect(() => {
-    if (backendEnabled && ytConnected && daily === null) {
-      fetchYouTubeDaily()
-        .then(setDaily)
-        .catch(() => setDaily('error'))
+    if (backendEnabled && ytConnected && videos === null) {
+      fetchYouTubeRecentVideos(20)
+        .then(setVideos)
+        .catch(() => setVideos('error'))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ytConnected])
@@ -408,9 +399,12 @@ function UnifiedCorrelation() {
   }, [accounts])
 
   const liveYouTube = backendEnabled && ytConnected
-  const dailyRows = Array.isArray(daily) ? daily : []
-  const hasDaily = dailyRows.length > 0
-  const corr = dailyRows.length >= 2 ? correlationFrom(dailyRows) : null
+  // Oldest -> newest so the trend reads left to right.
+  const vids = Array.isArray(videos)
+    ? [...videos].sort((a, b) => Date.parse(a.publishedAt || '') - Date.parse(b.publishedAt || ''))
+    : []
+  const hasVids = vids.length > 0
+  const corr = vids.length >= 3 ? correlationFromVideos(vids) : null
 
   return (
     <section className="flex flex-col gap-5">
@@ -421,26 +415,26 @@ function UnifiedCorrelation() {
           </IconBtn>
         </ColumnHeader>
         <p className="-mt-2 mb-3 text-xs text-slate-500">
-          {sampleData ? 'Post Frequency vs. Revenue' : 'How your YouTube metrics move together'}
+          {sampleData ? 'Post Frequency vs. Revenue' : 'How views, likes & comments move together across your videos'}
         </p>
         {sampleData ? (
           <CorrelationMatrix />
         ) : !liveYouTube ? (
           <EmptyChart />
-        ) : daily === null ? (
+        ) : videos === null ? (
           <ChartLoading />
-        ) : daily === 'error' ? (
-          <ChartNote>Analytics unavailable. Reconnect YouTube in Settings to grant analytics access.</ChartNote>
+        ) : videos === 'error' ? (
+          <ChartNote>Could not load videos. Reconnect YouTube in Settings.</ChartNote>
         ) : corr ? (
           <CorrelationMatrix
             rows={corr.labels}
             cols={corr.labels}
             matrix={corr.matrix}
-            rowAxis="Metrics"
-            colAxis="Metrics"
+            rowAxis="Per video"
+            colAxis="Per video"
           />
         ) : (
-          <ChartNote>Need at least 2 days of analytics to correlate. YouTube data lags 1-2 days.</ChartNote>
+          <ChartNote>Need at least 3 videos to correlate. Publish a few and they'll show here.</ChartNote>
         )}
       </div>
 
@@ -454,28 +448,23 @@ function UnifiedCorrelation() {
             {sampleData
               ? 'Oct 20 – 26'
               : liveYouTube
-                ? hasDaily
-                  ? `Daily views through ${formatDay(dailyRows[dailyRows.length - 1].day)} (Pacific time) · the latest day is an estimate and finalizes in ~1-2 days`
-                  : 'YouTube views'
+                ? 'Views per recent video · live counts, no delay'
                 : 'Last 7 days'}
           </p>
           {sampleData ? (
             <EngagementTrend />
           ) : liveYouTube ? (
-            daily === null ? (
+            videos === null ? (
               <ChartLoading />
-            ) : daily === 'error' ? (
-              <ChartNote>Analytics unavailable. Reconnect YouTube in Settings to grant analytics access.</ChartNote>
-            ) : hasDaily ? (
+            ) : videos === 'error' ? (
+              <ChartNote>Could not load videos. Reconnect YouTube in Settings.</ChartNote>
+            ) : hasVids ? (
               <EngagementTrend
-                data={dailyRows.map((d) => d.views)}
-                labels={sparseLabels(dailyRows.map((d) => d.day))}
+                data={vids.map((v) => v.views)}
+                labels={sparseLabels(vids.map((v) => (v.publishedAt || '').slice(0, 10)))}
               />
             ) : (
-              <ChartNote>
-                No analytics yet. YouTube reports views with a 1-2 day delay, and private videos
-                show no public views.
-              </ChartNote>
+              <ChartNote>No videos yet. Publish one and its live views show up here.</ChartNote>
             )
           ) : (
             <EmptyChart />
