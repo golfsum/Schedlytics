@@ -285,6 +285,18 @@ export function fetchYouTubeRecentVideos(max = 6) {
   return getJson<YouTubeVideo[]>(`/api/youtube/recent-videos?max=${max}`)
 }
 
+/** Opt the user in/out of the weekly growth brief email. Best-effort, no-throw. */
+export function subscribeWeeklyBrief(email: string, enabled: boolean): Promise<void> {
+  if (!backendEnabled || !email) return Promise.resolve()
+  return fetch(`${apiBase}/api/weekly-brief/subscribe`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, enabled }),
+  })
+    .then(() => undefined)
+    .catch(() => undefined)
+}
+
 // Chunk size for resumable uploads: 4MB (a multiple of 256KB, as Google
 // requires) and under serverless request-body limits (Vercel ~4.5MB).
 const YT_CHUNK = 4 * 1024 * 1024

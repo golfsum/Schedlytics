@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Plug,
   Check,
@@ -18,8 +18,10 @@ import { useToast } from './Toast'
 import { useImageUpload } from './ImageUpload'
 import { useConnections, CONNECTABLE } from './Connections'
 import { useProfile, initialsOf } from './Profile'
+import { useAuth } from './Auth'
 import { usePlan, PLAN_INFO } from './Plan'
 import UpgradeModal from './UpgradeModal'
+import { subscribeWeeklyBrief } from '../lib/socialApi'
 import { useSeededState } from '../lib/usePersisted'
 import { PLATFORMS } from '../data'
 import type { PlatformId } from '../types'
@@ -366,11 +368,19 @@ const DEFAULT_NOTIF_PREFS = {
 
 function NotificationsSection() {
   const { addToast } = useToast()
+  const { user } = useAuth()
   const [prefs, setPrefs] = useSeededState('sl_notif_prefs', DEFAULT_NOTIF_PREFS, DEFAULT_NOTIF_PREFS)
+
+  // Keep the weekly-brief email subscription in sync with the toggle + account.
+  useEffect(() => {
+    if (user?.email) subscribeWeeklyBrief(user.email, prefs.weekly)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.email, prefs.weekly])
 
   const set = (key: keyof typeof prefs, value: boolean) => {
     setPrefs((p) => ({ ...p, [key]: value }))
     addToast(`${value ? 'Enabled' : 'Disabled'} ${LABELS[key]}`, 'info')
+    if (key === 'weekly' && user?.email) subscribeWeeklyBrief(user.email, value)
   }
 
   const LABELS: Record<keyof typeof prefs, string> = {

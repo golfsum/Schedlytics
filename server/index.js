@@ -9,6 +9,8 @@ import { getPlatform, platforms, PUBLISH_CAPABILITIES } from './platforms/index.
 import { store } from './store.js'
 import { links } from './links-store.js'
 import { scheduled } from './scheduled-store.js'
+import { weeklySubs } from './weekly-store.js'
+import { sendEmail, emailEnabled } from './email.js'
 import { stateStore } from './kv.js'
 import { validAccessToken } from './tokens.js'
 import youtubeRoutes from './routes/youtube.js'
@@ -331,6 +333,83 @@ app.get('/api/cron/publish', async (req, res) => {
     }
   }
   res.json({ ranAt: Date.now(), processed: results.length, results })
+})
+
+/* -------------------------------------------------------------------------- */
+/*  Weekly growth brief email (opt-in via Settings, sent by a Monday cron)      */
+/* -------------------------------------------------------------------------- */
+
+app.post('/api/weekly-brief/subscribe', async (req, res) => {
+  const { email, enabled } = req.body || {}
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email))) {
+    return res.status(400).json({ error: 'valid email is required' })
+  }
+  await weeklySubs.set(email, Boolean(enabled))
+  res.json({ ok: true, enabled: Boolean(enabled), emailConfigured: emailEnabled })
+})
+
+/** Build the weekly brief HTML from the real link aggregates we hold. */
+function weeklyEmailHtml({ clicks, visitors, topLink, tip }) {
+  const appUrl = `${FRONTEND_URL}/app/`
+  const card = (label, value) =>
+    `<td style="padding:14px 16px;background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:12px">
+       <div style="font-size:22px;font-weight:800;color:#fff">${value}</div>
+       <div style="font-size:12px;color:#94a3b8">${label}</div>
+     </td>`
+  return `<!doctype html><html><body style="margin:0;background:#0b1120;font-family:Inter,Arial,sans-serif;color:#e2e8f0">
+    <div style="max-width:560px;margin:0 auto;padding:28px 20px">
+      <div style="font-size:20px;font-weight:800;color:#fff">Sched<span style="color:#22d3ee">lytics</span></div>
+      <h1 style="font-size:24px;color:#fff;margin:20px 0 6px">Your week at a glance</h1>
+      <p style="color:#94a3b8;margin:0 0 20px">Here is how your tracked content performed.</p>
+      <table style="width:100%;border-collapse:separate;border-spacing:10px 0"><tr>
+        ${card('Total clicks', clicks.toLocaleString())}
+        ${card('Unique visitors', visitors.toLocaleString())}
+      </tr></table>
+      ${topLink ? `<p style="margin:20px 0 0;color:#e2e8f0">Top link: <b style="color:#22d3ee">${topLink}</b></p>` : ''}
+      <div style="margin:20px 0;padding:16px;background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.2);border-radius:12px">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#22d3ee">Growth Coach</div>
+        <p style="margin:8px 0 0;color:#e2e8f0">${tip}</p>
+      </div>
+      <a href="${appUrl}" style="display:inline-block;margin-top:8px;padding:12px 22px;background:linear-gradient(135deg,#22d3ee,#0ea5e9);color:#0f172a;font-weight:700;text-decoration:none;border-radius:12px">Open your dashboard</a>
+      <p style="margin-top:28px;font-size:12px;color:#64748b">You are receiving this because you turned on the weekly performance report in Schedlytics. Turn it off any time in Settings, Notifications.</p>
+    </div></body></html>`
+}
+
+const WEEKLY_TIPS = [
+  'Repost your best-performing link in your newsletter to compound its reach.',
+  'Add a clear call to action to your captions; it is the fastest way to lift click rate.',
+  'Group this week\'s posts into a campaign so you can compare them side by side.',
+  'Your best posting window is usually mid-morning. Schedule your next post then.',
+  'Turn your top post into a short series; consistency beats one-off spikes.',
+]
+
+app.get('/api/cron/weekly-brief', async (req, res) => {
+  const secret = process.env.CRON_SECRET
+  if (secret && req.get('authorization') !== `Bearer ${secret}`) {
+    return res.status(401).json({ error: 'unauthorized' })
+  }
+  // Real aggregates from the link store (honest data, no fabricated stats).
+  const all = await links.all()
+  const clicks = all.reduce((s, l) => s + (l.clicks || 0), 0)
+  const visitors = all.reduce((s, l) => s + (l.uniqueVisitors || 0), 0)
+  const top = all.slice().sort((a, b) => (b.clicks || 0) - (a.clicks || 0))[0]
+  const topLink = top ? `${BASE_URL}/s/${top.slug}` : ''
+  const weekIndex = Math.floor(Date.now() / (7 * 86400000))
+  const tip = WEEKLY_TIPS[weekIndex % WEEKLY_TIPS.length]
+  const html = weeklyEmailHtml({ clicks, visitors, topLink, tip })
+
+  const subs = await weeklySubs.all()
+  const results = []
+  for (const s of subs) {
+    try {
+      const r = await sendEmail({ to: s.email, subject: 'Your weekly growth brief', html })
+      results.push({ to: s.email, ...r })
+    } catch (err) {
+      console.error('[weekly] send failed for', s.email, err.message)
+      results.push({ to: s.email, error: err.message })
+    }
+  }
+  res.json({ ranAt: Date.now(), subscribers: subs.length, emailConfigured: emailEnabled, results })
 })
 
 /* -------------------------------------------------------------------------- */

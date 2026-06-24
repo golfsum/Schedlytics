@@ -1,0 +1,7 @@
+{
+  "test@example.com": {
+    "email": "test@example.com",
+    "enabled": true,
+    "since": 1782333950880
+  }
+}
