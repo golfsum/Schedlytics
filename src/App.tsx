@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
 import CalendarView from './components/CalendarView'
@@ -21,7 +21,30 @@ import type { CalendarPost, NavId } from './types'
 
 export default function App() {
   const { addToast } = useToast()
-  const [nav, setNav] = useState<NavId>('calendar')
+  const [nav, setNav] = useState<NavId>(
+    () => (window.history.state?.slNav as NavId) || 'calendar',
+  )
+
+  // Keep in-app navigation in the browser history so Back/Forward move between
+  // views inside the app instead of leaving it. Each navigate() pushes an entry;
+  // popstate restores the view from that entry.
+  const navRef = useRef(nav)
+  navRef.current = nav
+  const navigate = useCallback((id: NavId) => {
+    if (id === navRef.current) return
+    window.history.pushState({ slNav: id }, '')
+    setNav(id)
+  }, [])
+
+  useEffect(() => {
+    if (window.history.state?.slNav == null) {
+      window.history.replaceState({ slNav: navRef.current }, '')
+    }
+    const onPop = (e: PopStateEvent) => setNav((e.state?.slNav as NavId) || 'calendar')
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
   const [posts, setPosts] = useSeededState<CalendarPost[]>('sl_posts', INITIAL_POSTS, [])
   const [panelOpen, setPanelOpen] = useState(false)
   const [editingPost, setEditingPost] = useState<CalendarPost | null>(null)
@@ -54,7 +77,7 @@ export default function App() {
     <div className="flex h-screen overflow-hidden bg-navy-900 text-slate-200">
       <Sidebar
         active={nav}
-        onNavigate={setNav}
+        onNavigate={navigate}
         onUpgrade={() => setUpgradeOpen(true)}
         mobileOpen={mobileNav}
         onCloseMobile={() => setMobileNav(false)}
@@ -63,7 +86,7 @@ export default function App() {
       {/* main column */}
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar
-          onNavigate={setNav}
+          onNavigate={navigate}
           onUpgrade={() => setUpgradeOpen(true)}
           posts={posts}
           onMenu={() => setMobileNav(true)}
@@ -97,7 +120,7 @@ export default function App() {
             )}
 
             {nav === 'media-studio' && (
-              <MediaStudioView onSchedule={addPost} onScheduled={() => setNav('calendar')} />
+              <MediaStudioView onSchedule={addPost} onScheduled={() => navigate('calendar')} />
             )}
             {nav === 'campaigns' && <CampaignsView />}
             {nav === 'insights' && <InsightsView />}
@@ -108,9 +131,9 @@ export default function App() {
             {nav === 'dashboard' && (
               <DashboardView
                 posts={posts}
-                onNavigate={setNav}
+                onNavigate={navigate}
                 onQuickCreate={() => {
-                  setNav('calendar')
+                  navigate('calendar')
                   setPanelOpen(true)
                 }}
               />

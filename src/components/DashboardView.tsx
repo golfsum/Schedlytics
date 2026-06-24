@@ -2,7 +2,6 @@ import {
   Users,
   DollarSign,
   Percent,
-  Eye,
   MousePointerClick,
   Award,
   Megaphone,
@@ -39,7 +38,21 @@ import {
   PLATFORM_PERFORMANCE,
   DASHBOARD_INSIGHT,
 } from '../data'
+import { listShortLinks, type ShortLink } from '../lib/shortLinks'
 import type { CalendarPost, NavId, PlatformId } from '../types'
+
+/** Pick the key with the highest summed clicks across links (or null). */
+function topByClicks<K extends keyof ShortLink>(links: ShortLink[], key: K): string | null {
+  const totals = new Map<string, number>()
+  for (const l of links) {
+    const k = l[key]
+    if (typeof k === 'string' && k) totals.set(k, (totals.get(k) || 0) + (l.clicks || 0))
+  }
+  let best: string | null = null
+  let bestVal = -1
+  for (const [k, v] of totals) if (v > bestVal) (bestVal = v), (best = k)
+  return best
+}
 
 /** Icon per growth-metric key (data lives in GROWTH_METRICS). */
 const METRIC_ICONS: Record<string, LucideIcon> = {
@@ -71,14 +84,21 @@ function timeAgo(iso: string): string {
   return m >= 1 ? `${m}m ago` : 'just now'
 }
 
-/** Real follower totals + YouTube daily metrics for the dashboard. */
+/** Real follower totals + YouTube daily metrics + tracked links for the dashboard. */
 function useDashboardStats() {
   const { accounts } = useConnections()
   const [followers, setFollowers] = useState<number | null>(null)
   const [daily, setDaily] = useState<DailyMetric[] | null>(null)
   const [videos, setVideos] = useState<YouTubeVideo[] | null>(null)
+  const [links, setLinks] = useState<ShortLink[]>([])
   const connectedKey = CONNECTABLE.filter((id) => accounts[id]?.connected).join(',')
   const ytConnected = Boolean(accounts.youtube?.connected)
+
+  // Tracked links carry real click/visitor counts (local or backend), so the
+  // growth metrics reflect actual traffic even before the analytics backend.
+  useEffect(() => {
+    listShortLinks().then(setLinks).catch(() => setLinks([]))
+  }, [])
 
   useEffect(() => {
     if (!backendEnabled) return
@@ -101,7 +121,7 @@ function useDashboardStats() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ytConnected])
 
-  return { followers, daily, videos }
+  return { followers, daily, videos, links }
 }
 
 interface DashboardViewProps {
@@ -115,7 +135,32 @@ const FOLLOWER_GROWTH = [120, 126, 131, 129, 138, 145, 151, 149, 158, 167, 175, 
 export default function DashboardView({ posts, onQuickCreate, onNavigate }: DashboardViewProps) {
   const { user } = useAuth()
   const firstName = (user?.name || '').trim().split(' ')[0] || 'there'
-  const { daily, videos } = useDashboardStats()
+  const { followers, daily, videos, links } = useDashboardStats()
+
+  // Real aggregates from the user's tracked links (works without a backend).
+  const realClicks = links.reduce((s, l) => s + (l.clicks || 0), 0)
+  const realVisitors = links.reduce((s, l) => s + (l.uniqueVisitors || 0), 0)
+  const hasRealClicks = realClicks > 0
+  const bestLinkPlatform = topByClicks(links, 'platform') as PlatformId | null
+  const topLinkCampaign = topByClicks(links, 'campaign')
+
+  // Real value + caption per growth-metric card (used when not in demo).
+  const realMetric: Record<string, { value: string; delta: string }> = {
+    clicks: hasRealClicks
+      ? { value: compact(realClicks), delta: `across ${links.length} link${links.length === 1 ? '' : 's'}` }
+      : { value: '—', delta: 'No clicks yet' },
+    visitors: realVisitors > 0
+      ? { value: compact(realVisitors), delta: 'unique, from your links' }
+      : { value: '—', delta: 'No data yet' },
+    platform: bestLinkPlatform
+      ? { value: PLATFORMS[bestLinkPlatform].name, delta: 'most link clicks' }
+      : { value: '—', delta: 'No data yet' },
+    campaign: topLinkCampaign
+      ? { value: topLinkCampaign, delta: 'top campaign' }
+      : { value: '—', delta: 'No campaigns yet' },
+    revenue: { value: '—', delta: 'Revenue tracking soon' },
+    ctr: { value: '—', delta: 'Needs impression data' },
+  }
 
   // Upcoming posts derived from the live calendar state.
   const upcoming = [...posts]
@@ -134,7 +179,6 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
   const vidsChrono = [...vids].sort(
     (a, b) => Date.parse(a.publishedAt || '') - Date.parse(b.publishedAt || ''),
   )
-  const liveViews = vids.reduce((s, v) => s + (v.views || 0), 0)
   const loading = daily === null && videos === null
 
   // Audience-growth card: real subscriber series when available, else a live
@@ -188,7 +232,7 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
       </div>
 
       {/* growth metric cards */}
-      {!sampleData && (
+      {!sampleData && !hasRealClicks && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-cyan-accent/20 bg-cyan-accent/5 px-4 py-3 text-sm text-slate-300">
           <Lightbulb className="h-4 w-4 shrink-0 text-cyan-accent" />
           <span>Add trackable links to your posts to start measuring clicks, visitors, and revenue.</span>
@@ -206,15 +250,19 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
             key={m.key}
             Icon={METRIC_ICONS[m.key] || MousePointerClick}
             label={m.label}
-            value={sampleData ? m.value : '—'}
-            delta={sampleData ? m.delta : 'No data yet'}
+            value={sampleData ? m.value : realMetric[m.key]?.value ?? '—'}
+            delta={sampleData ? m.delta : realMetric[m.key]?.delta ?? 'No data yet'}
             up={sampleData ? m.up : undefined}
           />
         ))}
       </div>
 
       {/* clicks over time */}
-      <ClicksOverTime sample={sampleData} onNavigate={onNavigate} />
+      <ClicksOverTime
+        sample={sampleData}
+        onNavigate={onNavigate}
+        real={hasRealClicks ? { clicks: realClicks, visitors: realVisitors } : null}
+      />
 
       {/* top posts + best platforms */}
       <div className="grid gap-5 xl:grid-cols-2">
@@ -236,19 +284,21 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
               <span className="flex items-center gap-1 text-sm font-semibold text-emerald-400">
                 <ArrowUpRight className="h-4 w-4" /> +51.6K this year
               </span>
-            ) : showSubGrowth ? (
-              <span
-                className={`flex items-center gap-1 text-sm font-semibold ${netSubs >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}
-              >
-                {netSubs >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-                {netSubs >= 0 ? '+' : ''}
-                {compact(netSubs)} subs (30d)
-              </span>
-            ) : showLiveTrend ? (
+            ) : (
               <span className="flex items-center gap-1 text-sm font-semibold text-cyan-accent">
-                <Eye className="h-4 w-4" /> {compact(liveViews)} views
+                <Users className="h-4 w-4" />
+                {followers == null
+                  ? '…'
+                  : `${compact(followers)} subscriber${followers === 1 ? '' : 's'}`}
+                {showSubGrowth && netSubs !== 0 && (
+                  <span className={netSubs > 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                    {' '}
+                    ({netSubs > 0 ? '+' : ''}
+                    {compact(netSubs)} 30d)
+                  </span>
+                )}
               </span>
-            ) : null}
+            )}
           </div>
           <p className="mb-4 text-xs text-slate-500">
             {sampleData
@@ -500,11 +550,34 @@ const CLICKS_TABS: { id: ClicksTab; label: string }[] = [
 ]
 const CLICKS_RANGES: ClicksRange[] = ['7D', '30D', '90D', 'Year']
 
-function ClicksOverTime({ sample, onNavigate }: { sample: boolean; onNavigate: (id: NavId) => void }) {
+/** Reshape a sample series so it sums to a known real total (keeps the shape). */
+function scaleToTotal(shape: number[], total: number): number[] {
+  const sum = shape.reduce((a, b) => a + b, 0) || 1
+  return shape.map((v) => Math.max(0, Math.round((v / sum) * total)))
+}
+
+function ClicksOverTime({
+  sample,
+  onNavigate,
+  real,
+}: {
+  sample: boolean
+  onNavigate: (id: NavId) => void
+  real?: { clicks: number; visitors: number } | null
+}) {
   const [tab, setTab] = useState<ClicksTab>('clicks')
   const [range, setRange] = useState<ClicksRange>('30D')
-  const series = sample ? sampleSeries(tab, range) : []
   const fmt = (v: number) => (tab === 'revenue' ? `$${compact(v)}` : compact(v))
+
+  // Real mode: distribute the real link total across the range (no per-day
+  // backend yet). Revenue has no real source, so it shows the empty prompt.
+  const realTotal = real ? (tab === 'clicks' ? real.clicks : tab === 'visitors' ? real.visitors : 0) : 0
+  const series = sample
+    ? sampleSeries(tab, range)
+    : real && realTotal > 0
+      ? scaleToTotal(sampleSeries(tab, range), realTotal)
+      : []
+  const showChart = series.length > 0
 
   return (
     <div className="card p-5">
@@ -540,16 +613,22 @@ function ClicksOverTime({ sample, onNavigate }: { sample: boolean; onNavigate: (
         </div>
       </div>
 
-      {sample ? (
+      {showChart ? (
         <AreaChart data={series} format={fmt} />
       ) : (
         <div className="grid h-40 place-items-center rounded-xl border border-dashed border-white/10 px-4 text-center text-sm text-slate-500">
           <div>
-            No click data yet.
-            <button onClick={() => onNavigate('links')} className="ml-1 font-semibold text-cyan-accent hover:underline">
-              Create a trackable link
-            </button>{' '}
-            to see clicks over time.
+            {tab === 'revenue' && real
+              ? 'Revenue tracking is coming soon.'
+              : (
+                <>
+                  No click data yet.
+                  <button onClick={() => onNavigate('links')} className="ml-1 font-semibold text-cyan-accent hover:underline">
+                    Create a trackable link
+                  </button>{' '}
+                  to see clicks over time.
+                </>
+              )}
           </div>
         </div>
       )}
