@@ -321,7 +321,7 @@ function UnifiedCorrelation() {
               ? 'Oct 20 – 26'
               : liveYouTube
                 ? hasDaily
-                  ? `Views through ${formatDay(dailyRows[dailyRows.length - 1].day)} · YouTube reports ~1-2 days behind`
+                  ? `Daily views through ${formatDay(dailyRows[dailyRows.length - 1].day)} (Pacific time) · the latest day is an estimate and finalizes in ~1-2 days`
                   : 'YouTube views'
                 : 'Last 7 days'}
           </p>
