@@ -697,18 +697,86 @@ a:hover {
   font-weight: 500;
   color: var(--faint);
 }
-.price-card .price .price-old {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--faint);
-  text-decoration: line-through;
-  margin-right: 8px;
+/* monthly / annual toggle */
+.billing-check {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
 }
-.price-note {
-  margin-top: -6px;
-  color: var(--cyan);
-  font-size: 12px;
+.billing-switch {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+.billing-switch label {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
   font-weight: 600;
+  font-size: 14px;
+  color: var(--muted);
+}
+.bs-opt em {
+  font-style: normal;
+  color: var(--cyan);
+}
+.bs-track {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  transition: background 0.2s ease;
+}
+.bs-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--cyan);
+  transition: transform 0.2s ease;
+}
+.billing-check:checked ~ .billing-switch .bs-track {
+  background: rgba(34, 211, 238, 0.3);
+}
+.billing-check:checked ~ .billing-switch .bs-knob {
+  transform: translateX(20px);
+}
+.billing-check:focus-visible ~ .billing-switch .bs-track {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+/* price swap: monthly shown by default, annual when toggled */
+.price-annual {
+  display: none;
+}
+.billing-check:checked ~ .pricing .price-monthly {
+  display: none;
+}
+.billing-check:checked ~ .pricing .price-annual {
+  display: inline;
+}
+.plan-lead {
+  margin-top: -4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.price-features .soon {
+  font-style: normal;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 .price-features {
   list-style: none;

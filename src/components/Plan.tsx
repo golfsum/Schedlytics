@@ -11,8 +11,8 @@ export interface PlanInfo {
 
 export const PLAN_INFO: Record<PlanId, PlanInfo> = {
   free: { id: 'free', name: 'Free', price: '$0' },
-  pro: { id: 'pro', name: 'Creator', price: '$9' },
-  business: { id: 'business', name: 'Business', price: '$24' },
+  pro: { id: 'pro', name: 'Creator', price: '$15' },
+  business: { id: 'business', name: 'Business', price: '$39' },
 }
 
 interface PlanContextValue {

@@ -321,8 +321,19 @@
         <div class="container">
           <div class="section-head">
             <h2>Simple pricing that grows with you</h2>
-            <p>Start free. Launch pricing is live for a limited time, and your rate is locked in for as long as you stay subscribed.</p>
+            <p>Start free. Early adopter pricing: lock in your rate now and keep it for as long as your subscription stays active. Prices go up as we ship new features.</p>
           </div>
+
+          <!-- Monthly / annual toggle (CSS-only, checkbox controls the cards below) -->
+          <input type="checkbox" id="annual-toggle" class="billing-check" aria-label="Switch to annual billing" />
+          <div class="billing-switch">
+            <label for="annual-toggle">
+              <span class="bs-opt">Monthly</span>
+              <span class="bs-track"><span class="bs-knob"></span></span>
+              <span class="bs-opt">Annual <em>Save up to 45%</em></span>
+            </label>
+          </div>
+
           <div class="pricing">
             <div class="price-card">
               <h3>Free</h3>
@@ -338,27 +349,32 @@
             <div class="price-card featured">
               <span class="price-tag">Most popular</span>
               <h3>Creator</h3>
-              <div class="price"><span class="price-old">$15</span>$9<span>/month</span></div>
-              <p class="price-note">Launch price, regularly $15/mo</p>
+              <div class="price">
+                <span class="price-monthly">$15<span>/month</span></span>
+                <span class="price-annual">$99<span>/year</span></span>
+              </div>
               <ul class="price-features">
                 <li>Unlimited tracked links</li>
                 <li>Unlimited campaigns</li>
-                <li>QR codes and link in bio</li>
+                <li>QR codes</li>
+                <li>Link in bio</li>
                 <li>90 day analytics</li>
-                <li>AI caption and CTA help</li>
               </ul>
               <a class="btn btn-primary" href="/app/">Start tracking</a>
             </div>
             <div class="price-card">
               <h3>Business</h3>
-              <div class="price"><span class="price-old">$39</span>$24<span>/month</span></div>
-              <p class="price-note">Launch price, regularly $39/mo</p>
+              <div class="price">
+                <span class="price-monthly">$39<span>/month</span></span>
+                <span class="price-annual">$299<span>/year</span></span>
+              </div>
+              <p class="plan-lead">Everything in Creator, plus:</p>
               <ul class="price-features">
-                <li>Custom branded domain</li>
-                <li>Team access</li>
-                <li>Revenue tracking</li>
-                <li>Advanced reports and CSV export</li>
-                <li>Priority support</li>
+                <li>Custom branded domains</li>
+                <li>Team collaboration</li>
+                <li>Revenue attribution <em class="soon">coming soon</em></li>
+                <li>White-label reports</li>
+                <li>Advanced CSV exports</li>
               </ul>
               <a class="btn btn-ghost" href="/app/">Choose Business</a>
             </div>

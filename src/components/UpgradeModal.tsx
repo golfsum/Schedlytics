@@ -19,17 +19,17 @@ const PLANS: Plan[] = [
   {
     id: 'pro',
     name: 'Creator',
-    price: '$9',
-    blurb: 'Launch price, regularly $15',
-    features: ['Unlimited tracked links', 'Unlimited campaigns', 'QR codes & link in bio', '90 day analytics', 'AI caption & CTA help'],
+    price: '$15',
+    blurb: 'Early adopter pricing, locked in',
+    features: ['Unlimited tracked links', 'Unlimited campaigns', 'QR codes', 'Link in bio', '90 day analytics'],
     recommended: true,
   },
   {
     id: 'business',
     name: 'Business',
-    price: '$24',
-    blurb: 'Launch price, regularly $39',
-    features: ['Everything in Creator', 'Custom branded domain', 'Team access', 'Revenue tracking', 'Advanced reports & CSV export', 'Priority support'],
+    price: '$39',
+    blurb: 'Early adopter pricing, locked in',
+    features: ['Everything in Creator', 'Custom branded domains', 'Team collaboration', 'Revenue attribution (coming soon)', 'White-label reports', 'Advanced CSV exports'],
   },
 ]
 
