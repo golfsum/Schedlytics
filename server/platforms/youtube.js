@@ -132,6 +132,33 @@ export const youtube = {
     }
   },
 
+  /**
+   * Recent uploads with LIVE view/like/comment counts (Data API statistics,
+   * no analytics lag). Uses the uploads playlist (cheap) instead of search.
+   */
+  async getRecentVideosLive(accessToken, max = 6) {
+    const ch = await getJson(`${DATA_API}/channels?part=contentDetails&mine=true`, accessToken)
+    const uploads = ch.items?.[0]?.contentDetails?.relatedPlaylists?.uploads
+    if (!uploads) return []
+    const pl = await getJson(
+      `${DATA_API}/playlistItems?part=contentDetails&playlistId=${uploads}&maxResults=${Math.min(max, 25)}`,
+      accessToken,
+    )
+    const ids = (pl.items || []).map((i) => i.contentDetails?.videoId).filter(Boolean)
+    if (!ids.length) return []
+    const data = await getJson(`${DATA_API}/videos?part=snippet,statistics&id=${ids.join(',')}`, accessToken)
+    return (data.items || []).map((v) => ({
+      id: v.id,
+      title: v.snippet?.title,
+      thumbnail: v.snippet?.thumbnails?.medium?.url || v.snippet?.thumbnails?.default?.url,
+      publishedAt: v.snippet?.publishedAt,
+      views: Number(v.statistics?.viewCount || 0),
+      likes: Number(v.statistics?.likeCount || 0),
+      comments: Number(v.statistics?.commentCount || 0),
+      url: `https://www.youtube.com/watch?v=${v.id}`,
+    }))
+  },
+
   /** Most recent uploads with per-video view/like counts. */
   async getRecentVideos(accessToken, max = 5) {
     const search = await getJson(

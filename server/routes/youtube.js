@@ -55,6 +55,11 @@ router.get('/top-videos', guard(async (req, res, token) => {
   res.json(await youtube.getTopVideos(token, { max: Number(req.query.max) || 10, ...range(req) }))
 }))
 
+// Live per-video counts (no analytics lag).
+router.get('/recent-videos', guard(async (req, res, token) => {
+  res.json(await youtube.getRecentVideosLive(token, Number(req.query.max) || 6))
+}))
+
 /* -------------------------- Data API v3 (comments) ----------------------- */
 
 router.get('/comments', guard(async (req, res, token) => {

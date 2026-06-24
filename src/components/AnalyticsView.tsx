@@ -1,9 +1,18 @@
 import { useEffect, useState } from 'react'
-import { Maximize2, MoreHorizontal, Settings2, Loader2 } from 'lucide-react'
+import { Maximize2, MoreHorizontal, Settings2, Loader2, Eye, ThumbsUp, MessageCircle, RefreshCw, Play } from 'lucide-react'
 import Toggle from './Toggle'
 import { useToast } from './Toast'
 import { useConnections, CONNECTABLE } from './Connections'
-import { backendEnabled, sampleData, fetchStats, fetchYouTubeDaily, type RemoteStats, type DailyMetric } from '../lib/socialApi'
+import {
+  backendEnabled,
+  sampleData,
+  fetchStats,
+  fetchYouTubeDaily,
+  fetchYouTubeRecentVideos,
+  type RemoteStats,
+  type DailyMetric,
+  type YouTubeVideo,
+} from '../lib/socialApi'
 import { CHANNEL_STATS, PLATFORMS } from '../data'
 import { CorrelationMatrix, EngagementTrend, ConversionBars } from './charts'
 
@@ -23,6 +32,131 @@ export default function AnalyticsView() {
           <UnifiedCorrelation />
         </div>
       </div>
+
+      <RecentVideos />
+    </div>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Recent videos - LIVE per-video counts (Data API, no analytics lag)          */
+/* -------------------------------------------------------------------------- */
+
+const SAMPLE_VIDEOS: YouTubeVideo[] = [
+  { id: 'sv1', title: 'Summer styling haul 2026', thumbnail: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=320&q=60', publishedAt: '2026-06-20T12:00:00Z', views: 12480, likes: 842, comments: 96, url: '#' },
+  { id: 'sv2', title: 'Behind the shoot', thumbnail: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=320&q=60', publishedAt: '2026-06-17T12:00:00Z', views: 8230, likes: 514, comments: 61, url: '#' },
+  { id: 'sv3', title: 'Trending audio remix', thumbnail: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=320&q=60', publishedAt: '2026-06-14T12:00:00Z', views: 21950, likes: 1310, comments: 188, url: '#' },
+]
+
+function timeSince(ms: number): string {
+  const s = Math.floor((Date.now() - ms) / 1000)
+  if (s < 5) return 'just now'
+  if (s < 60) return `${s}s ago`
+  return `${Math.floor(s / 60)}m ago`
+}
+
+function RecentVideos() {
+  const { accounts } = useConnections()
+  const ytConnected = Boolean(accounts.youtube?.connected)
+  const live = backendEnabled && ytConnected
+  const [videos, setVideos] = useState<YouTubeVideo[] | 'error' | null>(sampleData ? SAMPLE_VIDEOS : null)
+  const [refreshedAt, setRefreshedAt] = useState<number | null>(sampleData ? Date.now() : null)
+  const [loading, setLoading] = useState(false)
+
+  const load = () => {
+    if (!live) return
+    setLoading(true)
+    fetchYouTubeRecentVideos(6)
+      .then((v) => {
+        setVideos(v)
+        setRefreshedAt(Date.now())
+      })
+      .catch(() => setVideos('error'))
+      .finally(() => setLoading(false))
+  }
+
+  // Initial load + poll every 60s while the tab is visible (live counts).
+  useEffect(() => {
+    if (!live) return
+    load()
+    const t = window.setInterval(() => document.visibilityState === 'visible' && load(), 60000)
+    return () => window.clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ytConnected])
+
+  const list = Array.isArray(videos) ? videos : []
+
+  return (
+    <div className="card p-5">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-bold text-white">Recent videos</h2>
+          <span className="flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Live
+          </span>
+        </div>
+        {live && (
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            {refreshedAt && <span>updated {timeSince(refreshedAt)}</span>}
+            <button
+              onClick={load}
+              disabled={loading}
+              className="flex items-center gap-1.5 rounded-lg border border-white/5 bg-navy-900/60 px-2.5 py-1.5 font-medium text-slate-200 hover:text-white disabled:opacity-60"
+            >
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              Refresh
+            </button>
+          </div>
+        )}
+      </div>
+      <p className="mb-4 text-xs text-slate-500">Current view, like, and comment counts (no reporting delay).</p>
+
+      {videos === null ? (
+        <ChartLoading />
+      ) : videos === 'error' ? (
+        <ChartNote>Could not load videos. Reconnect YouTube in Settings.</ChartNote>
+      ) : !sampleData && !live ? (
+        <ChartNote>Connect YouTube to see your latest videos with live counts.</ChartNote>
+      ) : list.length === 0 ? (
+        <ChartNote>No uploads yet. Publish a video and it'll show here with live stats.</ChartNote>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {list.map((v) => (
+            <a
+              key={v.id}
+              href={v.url}
+              target="_blank"
+              rel="noreferrer"
+              className="group overflow-hidden rounded-xl border border-white/5 bg-navy-900/50 transition-colors hover:border-cyan-accent/30"
+            >
+              <div className="relative aspect-video bg-navy-950">
+                {v.thumbnail && <img src={v.thumbnail} alt="" className="h-full w-full object-cover" />}
+                <span className="absolute inset-0 grid place-items-center bg-navy-950/20 opacity-0 transition-opacity group-hover:opacity-100">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-white/90 text-navy-900">
+                    <Play className="h-4 w-4 translate-x-0.5 fill-navy-900" />
+                  </span>
+                </span>
+              </div>
+              <div className="p-3">
+                <div className="truncate text-sm font-semibold text-white" title={v.title}>
+                  {v.title}
+                </div>
+                <div className="mt-2 flex items-center gap-3 text-xs text-slate-400">
+                  <span className="flex items-center gap-1" title="Views">
+                    <Eye className="h-3.5 w-3.5" /> {compact(v.views)}
+                  </span>
+                  <span className="flex items-center gap-1" title="Likes">
+                    <ThumbsUp className="h-3.5 w-3.5" /> {compact(v.likes)}
+                  </span>
+                  <span className="flex items-center gap-1" title="Comments">
+                    <MessageCircle className="h-3.5 w-3.5" /> {compact(v.comments)}
+                  </span>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

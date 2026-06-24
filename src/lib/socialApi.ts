@@ -269,6 +269,22 @@ export function fetchYouTubeComments(max = 20) {
   return getJson<YouTubeComment[]>(`/api/youtube/comments?max=${max}`)
 }
 
+export interface YouTubeVideo {
+  id: string
+  title: string
+  thumbnail?: string
+  publishedAt: string
+  views: number
+  likes: number
+  comments: number
+  url: string
+}
+
+/** Data API v3 - recent uploads with LIVE view/like/comment counts (no lag). */
+export function fetchYouTubeRecentVideos(max = 6) {
+  return getJson<YouTubeVideo[]>(`/api/youtube/recent-videos?max=${max}`)
+}
+
 // Chunk size for resumable uploads: 4MB (a multiple of 256KB, as Google
 // requires) and under serverless request-body limits (Vercel ~4.5MB).
 const YT_CHUNK = 4 * 1024 * 1024
