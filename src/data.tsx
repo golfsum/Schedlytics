@@ -10,7 +10,7 @@ import {
   LayoutDashboard,
   Calendar,
   Clapperboard,
-  BarChart3,
+  Lightbulb,
   Link2,
   MessageSquare,
   Settings,
@@ -94,10 +94,10 @@ export const PLATFORM_LIST = Object.values(PLATFORMS)
 
 export const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard },
-  { id: 'calendar', label: 'Calendar', Icon: Calendar },
+  { id: 'calendar', label: 'Content Calendar', Icon: Calendar },
+  { id: 'links', label: 'Links', Icon: Link2 },
+  { id: 'insights', label: 'Insights', Icon: Lightbulb },
   { id: 'media-studio', label: 'Media Studio', Icon: Clapperboard },
-  { id: 'analytics', label: 'Analytics', Icon: BarChart3 },
-  { id: 'link-tools', label: 'Link Tools', Icon: Link2 },
   { id: 'inbox', label: 'Inbox', Icon: MessageSquare },
   { id: 'settings', label: 'Settings', Icon: Settings },
 ]
@@ -168,3 +168,96 @@ export const CONVERSION_BARS: { label: string; value: number; color: string }[] 
   { label: 'FB', value: 44, color: '#1877F2' },
   { label: 'Twitch', value: 38, color: '#9146FF' },
 ]
+
+/* -------------------------------------------------------------------------- */
+/*  Growth / attribution - sample data (demo mode only)                         */
+/* -------------------------------------------------------------------------- */
+
+/** Campaigns a post or link can be grouped under (sample options in demo). */
+export const SAMPLE_CAMPAIGNS = [
+  'Summer Sale',
+  'Digital Planner Launch',
+  'Black Friday',
+  'Newsletter Growth',
+]
+
+export interface GrowthMetric {
+  key: string
+  label: string
+  value: string
+  /** Secondary line: a +/-% trend, or a descriptive subtitle. */
+  delta: string
+  /** true = green up, false = red down, undefined = neutral subtitle. */
+  up?: boolean
+}
+
+/** Top dashboard metric cards (Growth Dashboard, demo mode). */
+export const GROWTH_METRICS: GrowthMetric[] = [
+  { key: 'clicks', label: 'Total Clicks', value: '18,420', delta: '+12.4% this week', up: true },
+  { key: 'visitors', label: 'Unique Visitors', value: '11,240', delta: '+8.1% this week', up: true },
+  { key: 'platform', label: 'Best Platform', value: 'Instagram', delta: '62% of tracked clicks' },
+  { key: 'campaign', label: 'Top Campaign', value: 'Summer Sale', delta: '$4.2k attributed' },
+  { key: 'revenue', label: 'Revenue Tracked', value: '$9,840', delta: '+18% this week', up: true },
+  { key: 'ctr', label: 'Avg Click Rate', value: '4.7%', delta: '+0.6% this week', up: true },
+]
+
+export interface TopPost {
+  title: string
+  platform: PlatformId
+  views: number
+  clicks: number
+  ctr: string
+  revenue: string
+}
+
+/** Top performing posts table (Growth Dashboard, demo mode). */
+export const TOP_POSTS: TopPost[] = [
+  { title: 'Summer drop carousel', platform: 'instagram', views: 48200, clicks: 3120, ctr: '6.5%', revenue: '$2,140' },
+  { title: 'Planner launch trailer', platform: 'youtube', views: 31900, clicks: 2280, ctr: '7.1%', revenue: '$1,860' },
+  { title: 'Styling reel', platform: 'reels', views: 62400, clicks: 1740, ctr: '2.8%', revenue: '$640' },
+  { title: 'Behind the scenes', platform: 'tiktok', views: 54100, clicks: 1290, ctr: '2.4%', revenue: '$410' },
+  { title: 'Pin board refresh', platform: 'pinterest', views: 18700, clicks: 1510, ctr: '8.1%', revenue: '$980' },
+]
+
+export interface PlatformPerf {
+  platform: PlatformId
+  views: string
+  clicks: string
+  ctr: string
+  revenue: string
+}
+
+/** Best platforms breakdown (Growth Dashboard, demo mode). */
+export const PLATFORM_PERFORMANCE: PlatformPerf[] = [
+  { platform: 'instagram', views: '212K', clicks: '8,940', ctr: '4.2%', revenue: '$4,210' },
+  { platform: 'tiktok', views: '186K', clicks: '2,610', ctr: '1.4%', revenue: '$720' },
+  { platform: 'youtube', views: '141K', clicks: '4,120', ctr: '2.9%', revenue: '$2,980' },
+  { platform: 'facebook', views: '63K', clicks: '1,540', ctr: '2.4%', revenue: '$910' },
+  { platform: 'pinterest', views: '47K', clicks: '1,210', ctr: '2.6%', revenue: '$1,020' },
+]
+
+/** Headline insight callout shown on the Growth Dashboard (demo mode). */
+export const DASHBOARD_INSIGHT =
+  'Instagram is driving 4.8x more clicks than TikTok this week. Consider posting more product-focused content there.'
+
+export interface GrowthInsights {
+  bestPlatform: string
+  bestContentType: string
+  bestPostingTime: string
+  underperforming: string
+  recommendedActions: string[]
+}
+
+/** Insight-first summary on the Insights page (demo mode). */
+export const INSIGHTS: GrowthInsights = {
+  bestPlatform: 'Instagram generated 62% of your tracked traffic this week.',
+  bestContentType: 'Carousel posts drove 2.4x more clicks than Reels.',
+  bestPostingTime: 'Posts between 9 AM and 11 AM have the highest CTR.',
+  underperforming: 'TikTok has high views but low clicks. Try stronger calls to action.',
+  recommendedActions: [
+    'Create 2 more Instagram carousel posts',
+    "Reuse your top link in tomorrow's newsletter",
+    'Add a clearer CTA to TikTok captions',
+    'Turn your best post into a campaign',
+  ],
+}

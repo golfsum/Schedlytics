@@ -90,7 +90,7 @@ export default function Topbar({ onNavigate, onUpgrade, posts, onMenu }: TopbarP
             (PLATFORMS[id].name.toLowerCase().includes(q) ||
               (accounts[id]?.handle || '').toLowerCase().includes(q)),
         ).map((id) => ({
-          nav: 'analytics' as NavId,
+          nav: 'insights' as NavId,
           label: PLATFORMS[id].name,
           sub: accounts[id]?.handle || 'Connected channel',
           Icon: PLATFORMS[id].Icon,

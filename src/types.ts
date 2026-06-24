@@ -24,8 +24,8 @@ export type NavId =
   | 'dashboard'
   | 'calendar'
   | 'media-studio'
-  | 'analytics'
-  | 'link-tools'
+  | 'insights'
+  | 'links'
   | 'inbox'
   | 'settings'
 
@@ -49,6 +49,13 @@ export interface CalendarPost {
   span: number
   /** Week offset relative to the current week (0 = this week) */
   week?: number
+  /* Optional attribution metadata (Phase 1: planning only). */
+  campaign?: string
+  destinationUrl?: string
+  trackClicks?: boolean
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
 }
 
 /** A row in the Cross-Platform Sync panel. */

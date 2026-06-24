@@ -12,13 +12,14 @@ import {
   CalendarDays,
   Send,
   Lock,
+  Link2,
 } from 'lucide-react'
 import Toggle from './Toggle'
 import { useToast } from './Toast'
 import { useImageUpload } from './ImageUpload'
 import { useConnections } from './Connections'
 import { sampleData } from '../lib/socialApi'
-import { PLATFORM_LIST, PLATFORMS } from '../data'
+import { PLATFORM_LIST, PLATFORMS, SAMPLE_CAMPAIGNS } from '../data'
 import type { CalendarPost, PlatformId } from '../types'
 
 interface NewPostPanelProps {
@@ -38,6 +39,13 @@ export default function NewPostPanel({ onClose, onSchedule }: NewPostPanelProps)
   const [day, setDay] = useState(0)
   const [time, setTime] = useState('10:00')
   const [scheduled, setScheduled] = useState(false)
+  // Link tracking / attribution
+  const [trackClicks, setTrackClicks] = useState(sampleData)
+  const [destinationUrl, setDestinationUrl] = useState(sampleData ? 'https://yourstore.com/summer-sale' : '')
+  const [campaign, setCampaign] = useState(sampleData ? 'Summer Sale' : '')
+  const [utmSource, setUtmSource] = useState('')
+  const [utmMedium, setUtmMedium] = useState('')
+  const [utmCampaign, setUtmCampaign] = useState('')
   const { addToast } = useToast()
   const { accounts } = useConnections()
   const media = useImageUpload(
@@ -70,6 +78,12 @@ export default function NewPostPanel({ onClose, onSchedule }: NewPostPanelProps)
       day,
       slot: Math.max(0, ['9:00', '10:00', '11:00', '12:00', '1:00', '2:00'].indexOf(time)),
       span: 1,
+      trackClicks,
+      campaign: trackClicks && campaign ? campaign : undefined,
+      destinationUrl: trackClicks && destinationUrl ? destinationUrl : undefined,
+      utmSource: trackClicks && utmSource ? utmSource : undefined,
+      utmMedium: trackClicks && utmMedium ? utmMedium : undefined,
+      utmCampaign: trackClicks && utmCampaign ? utmCampaign : undefined,
     })
     addToast('Post Scheduled! 🎉')
     setScheduled(true)
@@ -222,6 +236,46 @@ export default function NewPostPanel({ onClose, onSchedule }: NewPostPanelProps)
               checked={altText}
               onChange={setAltText}
             />
+          </div>
+        </div>
+
+        {/* Link tracking / attribution */}
+        <div>
+          <Label>Link Tracking</Label>
+          <div className="mt-2 space-y-3 rounded-xl border border-white/5 bg-navy-900/40 p-3">
+            <TagRow
+              icon={<Link2 className="h-4 w-4 text-cyan-accent" />}
+              label="Track clicks"
+              hint="Auto short link"
+              checked={trackClicks}
+              onChange={setTrackClicks}
+            />
+            {trackClicks && (
+              <div className="space-y-3 border-t border-white/5 pt-3">
+                <input
+                  value={destinationUrl}
+                  onChange={(e) => setDestinationUrl(e.target.value)}
+                  placeholder="Destination URL (https://…)"
+                  className="w-full rounded-lg border border-white/5 bg-navy-950/70 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+                />
+                <div className="relative">
+                  <select
+                    value={campaign}
+                    onChange={(e) => setCampaign(e.target.value)}
+                    className="w-full appearance-none rounded-lg border border-white/5 bg-navy-950/70 px-3 py-2 text-sm text-slate-200 focus:border-cyan-accent/40 focus:outline-none"
+                  >
+                    <option value="">{sampleData ? 'No campaign' : 'No campaigns yet'}</option>
+                    {sampleData && SAMPLE_CAMPAIGNS.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <input value={utmSource} onChange={(e) => setUtmSource(e.target.value)} placeholder="utm_source" className="rounded-lg border border-white/5 bg-navy-950/70 px-2.5 py-2 text-xs text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none" />
+                  <input value={utmMedium} onChange={(e) => setUtmMedium(e.target.value)} placeholder="utm_medium" className="rounded-lg border border-white/5 bg-navy-950/70 px-2.5 py-2 text-xs text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none" />
+                  <input value={utmCampaign} onChange={(e) => setUtmCampaign(e.target.value)} placeholder="utm_campaign" className="rounded-lg border border-white/5 bg-navy-950/70 px-2.5 py-2 text-xs text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

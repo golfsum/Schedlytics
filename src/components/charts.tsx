@@ -38,7 +38,7 @@ export function CorrelationMatrix({
 } = {}) {
   const n = rows.length
   return (
-    <div className="flex gap-3">
+    <div className="mx-auto flex w-full max-w-[440px] gap-3">
       {/* y-axis label */}
       <div className="flex flex-col items-center justify-center">
         <span className="rotate-180 text-[10px] font-medium tracking-wide text-slate-500 [writing-mode:vertical-rl]">

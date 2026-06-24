@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
 import CalendarView from './components/CalendarView'
-import AnalyticsView from './components/AnalyticsView'
+import InsightsView from './components/InsightsView'
 import MediaStudioView from './components/MediaStudioView'
 import DashboardView from './components/DashboardView'
 import SettingsView from './components/SettingsView'
@@ -96,8 +96,8 @@ export default function App() {
             {nav === 'media-studio' && (
               <MediaStudioView onSchedule={addPost} onScheduled={() => setNav('calendar')} />
             )}
-            {nav === 'analytics' && <AnalyticsView />}
-            {nav === 'link-tools' && <LinkToolsView />}
+            {nav === 'insights' && <InsightsView />}
+            {nav === 'links' && <LinkToolsView onNavigate={setNav} />}
             {nav === 'inbox' && <InboxView />}
             {nav === 'settings' && <SettingsView />}
 

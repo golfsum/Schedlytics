@@ -104,12 +104,14 @@ await nav('Calendar').click()
 await sleep(500)
 await page.screenshot({ path: join(OUT, 'calendar.png') })
 
-await nav('Analytics').click()
+// "Analytics" was renamed to "Insights"; keep the analytics.png filename
+// since the marketing page references /site-media/analytics.png.
+await nav('Insights').click()
 await sleep(700)
 await page.screenshot({ path: join(OUT, 'analytics.png') })
 
 await nav('Dashboard').click()
-await sleep(700)
+await sleep(900)
 await page.screenshot({ path: join(OUT, 'dashboard.png') })
 
 // Media Studio, with an AI title topic typed + suggestions generated

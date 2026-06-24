@@ -12,6 +12,7 @@
  * redirects - never the unowned "sched.ly" placeholder.
  */
 import { apiBase, backendEnabled } from './socialApi'
+import type { PlatformId } from '../types'
 
 export interface ShortLink {
   slug: string
@@ -19,6 +20,26 @@ export interface ShortLink {
   shortUrl: string
   clicks: number
   createdAt?: number
+  /* Optional attribution metadata (populated client-side for the demo path). */
+  campaign?: string
+  sourcePost?: string
+  platform?: PlatformId
+  uniqueVisitors?: number
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
+  expiresAt?: number
+}
+
+/** Metadata accepted when creating a tracked link. */
+export interface ShortLinkMeta {
+  customSlug?: string
+  campaign?: string
+  sourcePost?: string
+  platform?: PlatformId
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
 }
 
 const KEY = 'schedlytics_links_v1'
@@ -57,14 +78,24 @@ function randomSlug(): string {
 /** Seed a few working example links on first run (demo polish). */
 function seedIfEmpty() {
   if (localStorage.getItem(KEY) !== null) return
-  const seeds: [string, string, number][] = [
-    ['https://www.instagram.com/', 'sumr26', 1284],
-    ['https://www.youtube.com/', 'ytlive', 932],
-    ['https://www.pinterest.com/', 'newco', 2571],
+  const seeds: Partial<ShortLink>[] = [
+    {
+      url: 'https://www.instagram.com/', slug: 'sumr26', clicks: 1284, uniqueVisitors: 1041,
+      campaign: 'Summer Sale', sourcePost: 'Summer drop', platform: 'instagram',
+      utmSource: 'instagram', utmMedium: 'social', utmCampaign: 'summer_sale',
+    },
+    {
+      url: 'https://www.youtube.com/', slug: 'ytlive', clicks: 932, uniqueVisitors: 778,
+      campaign: 'Digital Planner Launch', sourcePost: 'Launch trailer', platform: 'youtube',
+      utmSource: 'youtube', utmMedium: 'video', utmCampaign: 'planner_launch',
+    },
+    {
+      url: 'https://www.pinterest.com/', slug: 'newco', clicks: 2571, uniqueVisitors: 1903,
+      campaign: 'Newsletter Growth', sourcePost: 'Pin board refresh', platform: 'pinterest',
+      utmSource: 'pinterest', utmMedium: 'social', utmCampaign: 'newsletter',
+    },
   ]
-  writeLocal(
-    seeds.map(([url, slug, clicks]) => ({ slug, url, shortUrl: localShortUrl(slug), clicks })),
-  )
+  writeLocal(seeds.map((s) => ({ ...s, shortUrl: localShortUrl(s.slug as string) }) as ShortLink))
 }
 
 /* ------------------------------ backend calls ----------------------------- */
@@ -89,9 +120,22 @@ async function apiDelete(slug: string): Promise<void> {
 
 /* ------------------------------ unified API ------------------------------- */
 
-function createLocal(url: string): ShortLink {
-  const slug = randomSlug()
-  const link: ShortLink = { slug, url, shortUrl: localShortUrl(slug), clicks: 0, createdAt: Date.now() }
+function createLocal(url: string, meta?: ShortLinkMeta): ShortLink {
+  const slug = (meta?.customSlug || '').trim().replace(/[^A-Za-z0-9_-]/g, '') || randomSlug()
+  const link: ShortLink = {
+    slug,
+    url,
+    shortUrl: localShortUrl(slug),
+    clicks: 0,
+    uniqueVisitors: 0,
+    createdAt: Date.now(),
+    campaign: meta?.campaign,
+    sourcePost: meta?.sourcePost,
+    platform: meta?.platform,
+    utmSource: meta?.utmSource,
+    utmMedium: meta?.utmMedium,
+    utmCampaign: meta?.utmCampaign,
+  }
   writeLocal([link, ...readLocal()])
   return link
 }
@@ -108,17 +152,26 @@ export async function listShortLinks(): Promise<ShortLink[]> {
   return readLocal()
 }
 
-export async function createShortLink(rawUrl: string): Promise<ShortLink> {
+export async function createShortLink(rawUrl: string, meta?: ShortLinkMeta): Promise<ShortLink> {
   const url = normalizeUrl(rawUrl)
   if (!url) throw new Error('Please enter a URL')
   if (backendEnabled) {
     try {
-      return await apiCreate(url)
+      // Backend ignores attribution metadata for now (Phase 1); merge it back
+      // onto the returned link so the UI reflects what the user entered.
+      return { ...(await apiCreate(url)), ...stripUndefined(meta) }
     } catch {
       // backend unreachable - still give the user a working (local) short link
     }
   }
-  return createLocal(url)
+  return createLocal(url, meta)
+}
+
+/** Drop undefined keys so a spread does not clobber server-provided values. */
+function stripUndefined(meta?: ShortLinkMeta): Partial<ShortLink> {
+  if (!meta) return {}
+  const { customSlug: _omit, ...rest } = meta
+  return Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined))
 }
 
 export async function deleteShortLink(slug: string): Promise<void> {

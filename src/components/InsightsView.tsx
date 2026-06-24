@@ -11,14 +11,26 @@ import {
   type RemoteStats,
   type YouTubeVideo,
 } from '../lib/socialApi'
-import { CHANNEL_STATS, PLATFORMS } from '../data'
+import { TrendingUp, LayoutGrid, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { CHANNEL_STATS, PLATFORMS, INSIGHTS } from '../data'
 import { CorrelationMatrix, EngagementTrend, ConversionBars } from './charts'
 
-export default function AnalyticsView() {
+export default function InsightsView() {
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold text-white">Analytics</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-white">Insights</h1>
+        <p className="mt-1 text-sm text-slate-400">
+          Understand what is working and what to post next.
+        </p>
+      </div>
+
+      {/* insight-first summary */}
+      <InsightSummary />
+
+      {/* supporting charts */}
+      <div className="flex items-center gap-3">
+        <h2 className="text-lg font-bold text-white">The data behind it</h2>
         <span className="rounded-full border border-cyan-accent/20 bg-cyan-accent/10 px-3 py-1 text-xs font-semibold text-cyan-accent">
           Unified Correlation
         </span>
@@ -32,6 +44,71 @@ export default function AnalyticsView() {
       </div>
 
       <RecentVideos />
+    </div>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Insight-first summary (sample data in demo; gentle prompt for real)         */
+/* -------------------------------------------------------------------------- */
+
+function InsightSummary() {
+  if (!sampleData) {
+    return (
+      <div className="card flex items-start gap-3 border-cyan-accent/20 bg-cyan-accent/5 p-5">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl gradient-cyan-soft text-cyan-accent">
+          <TrendingUp className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-xs font-semibold uppercase tracking-wide text-cyan-accent">Insights</div>
+          <p className="mt-1 text-sm leading-relaxed text-slate-200">
+            Add trackable links to your posts and let a few days of clicks roll in. Schedlytics will
+            surface your best platform, content type, and posting time here automatically.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  const cards = [
+    { Icon: TrendingUp, title: 'Best Platform', body: INSIGHTS.bestPlatform, tone: 'good' as const },
+    { Icon: LayoutGrid, title: 'Best Content Type', body: INSIGHTS.bestContentType, tone: 'good' as const },
+    { Icon: Clock, title: 'Best Posting Time', body: INSIGHTS.bestPostingTime, tone: 'good' as const },
+    { Icon: AlertTriangle, title: 'Needs Attention', body: INSIGHTS.underperforming, tone: 'warn' as const },
+  ]
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
+        {cards.map((c) => (
+          <div key={c.title} className="card p-5">
+            <div className="flex items-center gap-2">
+              <span
+                className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${
+                  c.tone === 'warn' ? 'bg-amber-400/10 text-amber-300' : 'gradient-cyan-soft text-cyan-accent'
+                }`}
+              >
+                <c.Icon className="h-4 w-4" />
+              </span>
+              <h3 className="font-semibold text-white">{c.title}</h3>
+            </div>
+            <p className="mt-2.5 text-sm leading-relaxed text-slate-300">{c.body}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* recommended next actions */}
+      <div className="card p-5">
+        <h3 className="mb-3 font-semibold text-white">Recommended Next Actions</h3>
+        <ul className="space-y-2.5">
+          {INSIGHTS.recommendedActions.map((a) => (
+            <li key={a} className="flex items-start gap-2.5 text-sm text-slate-300">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-accent" />
+              <span>{a}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   )
 }
@@ -436,7 +513,7 @@ function UnifiedCorrelation() {
           {sampleData ? 'Post Frequency vs. Revenue' : 'How views, likes & comments move together across your videos'}
         </p>
         {/* Fixed min height so the empty/loading states match the filled matrix. */}
-        <div className="flex min-h-[210px] flex-col justify-center">
+        <div className="flex min-h-[250px] flex-col justify-center">
           {sampleData ? (
             <CorrelationMatrix />
           ) : !liveYouTube ? (
