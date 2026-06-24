@@ -41,6 +41,10 @@ export const apiOrigin =
  */
 export const sampleData = demoMode || !firebaseEnabled
 
+/** Early-access mode: shows an "Early Access" badge in the app. Off only when
+ *  VITE_EARLY_ACCESS is explicitly "false" (production). */
+export const earlyAccess = import.meta.env.VITE_EARLY_ACCESS !== 'false'
+
 export interface RemoteAccount {
   connected: boolean
   connecting: boolean

@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { PlatformId } from '../types'
-import { PLATFORMS } from '../data'
+import { PLATFORMS, isComingSoon } from '../data'
 import { useToast } from './Toast'
 import { useNotifications } from './Notifications'
 import {
@@ -171,6 +171,10 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
 
   const connect = useCallback(
     (id: PlatformId) => {
+      if (isComingSoon(id)) {
+        addToast(`${PLATFORMS[id].name} is coming soon`, 'info')
+        return
+      }
       if (backendEnabled) {
         // Real OAuth: open the consent screen in a popup so the app stays put.
         setAccounts((a) => ({ ...a, [id]: { ...a[id], connecting: true } }))

@@ -10,6 +10,7 @@ import { store } from './store.js'
 import { links } from './links-store.js'
 import { scheduled } from './scheduled-store.js'
 import { weeklySubs } from './weekly-store.js'
+import { earlyAccess, EA_CAP } from './early-access-store.js'
 import { sendEmail, emailEnabled } from './email.js'
 import { stateStore } from './kv.js'
 import { validAccessToken } from './tokens.js'
@@ -72,13 +73,37 @@ const STATE_TTL = 600 // seconds
 
 app.get('/health', (_req, res) => res.json({ ok: true, store: store.driver }))
 
+// EARLY_ACCESS is on unless explicitly set to "false".
+const EARLY_ACCESS_ON = process.env.EARLY_ACCESS !== 'false'
+
 // Which platforms have credentials configured (so the UI can hint setup).
-app.get('/api/config', (_req, res) => {
+app.get('/api/config', async (_req, res) => {
   const configured = {}
   for (const id of Object.keys(platforms)) {
     configured[id] = Boolean(creds[id]?.clientId || creds[id]?.clientKey)
   }
-  res.json({ configured, baseUrl: BASE_URL })
+  let spotsLeft = EA_CAP
+  try {
+    spotsLeft = Math.max(0, EA_CAP - (await earlyAccess.acceptedCount()))
+  } catch {
+    /* store unavailable - report full cap */
+  }
+  res.json({ configured, baseUrl: BASE_URL, earlyAccess: EARLY_ACCESS_ON, eaCap: EA_CAP, eaSpotsLeft: spotsLeft })
+})
+
+// Early-access sign-up: first EA_CAP accepted, rest waitlisted.
+app.post('/api/early-access', async (req, res) => {
+  const { email } = req.body || {}
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email))) {
+    return res.status(400).json({ error: 'A valid email is required' })
+  }
+  try {
+    const result = await earlyAccess.add(email)
+    res.json(result)
+  } catch (err) {
+    console.error('[early-access] failed:', err.message)
+    res.status(500).json({ error: 'Could not save your sign-up. Please try again.' })
+  }
 })
 
 /* -------------------------------------------------------------------------- */

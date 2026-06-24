@@ -19,7 +19,7 @@ import { useToast } from './Toast'
 import { useImageUpload } from './ImageUpload'
 import { useConnections } from './Connections'
 import { sampleData } from '../lib/socialApi'
-import { PLATFORM_LIST, PLATFORMS, SAMPLE_CAMPAIGNS } from '../data'
+import { PLATFORM_LIST, PLATFORMS, SAMPLE_CAMPAIGNS, isComingSoon } from '../data'
 import type { CalendarPost, PlatformId } from '../types'
 
 interface NewPostPanelProps {
@@ -30,7 +30,7 @@ interface NewPostPanelProps {
 const CONTENT_TYPES = ['Reel', 'Post', 'Story', 'Carousel'] as const
 
 export default function NewPostPanel({ onClose, onSchedule }: NewPostPanelProps) {
-  const [selected, setSelected] = useState<PlatformId[]>(sampleData ? ['instagram', 'facebook'] : [])
+  const [selected, setSelected] = useState<PlatformId[]>(sampleData ? ['youtube', 'tiktok'] : [])
   const [contentType, setContentType] = useState<(typeof CONTENT_TYPES)[number]>('Reel')
   const [caption, setCaption] = useState(sampleData ? 'New summer look! #fashion #summer ☀️' : '')
   const [geotag, setGeotag] = useState(sampleData)
@@ -113,19 +113,20 @@ export default function NewPostPanel({ onClose, onSchedule }: NewPostPanelProps)
             <Label>Platform Selector</Label>
             <div className="mt-2 flex flex-wrap gap-2">
               {PLATFORM_LIST.filter((p) => p.id !== 'reels').map((p) => {
+                const soon = isComingSoon(p.id)
                 const connected = Boolean(accounts[p.id]?.connected)
-                const isOn = connected && selected.includes(p.id)
+                const isOn = connected && !soon && selected.includes(p.id)
                 const { Icon } = p
                 return (
                   <button
                     key={p.id}
-                    onClick={() => connected && togglePlatform(p.id)}
-                    disabled={!connected}
-                    title={connected ? p.name : `${p.name} - not connected (connect in Settings)`}
+                    onClick={() => !soon && connected && togglePlatform(p.id)}
+                    disabled={!connected || soon}
+                    title={soon ? `${p.name} - coming soon` : connected ? p.name : `${p.name} - not connected (connect in Settings)`}
                     className={`relative grid h-11 w-11 place-items-center rounded-xl border transition-all ${
                       isOn
                         ? `border-transparent bg-gradient-to-br ${p.gradient} text-white shadow-md`
-                        : connected
+                        : !soon && connected
                           ? 'border-white/10 bg-navy-900/60 text-slate-400 hover:text-white'
                           : 'cursor-not-allowed border-white/5 bg-navy-900/40 text-slate-600'
                     }`}
@@ -136,7 +137,7 @@ export default function NewPostPanel({ onClose, onSchedule }: NewPostPanelProps)
                         <Check className="h-2.5 w-2.5 text-navy-900" strokeWidth={3.5} />
                       </span>
                     )}
-                    {!connected && (
+                    {(soon || !connected) && !isOn && (
                       <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-navy-800 text-slate-400 ring-2 ring-navy-850">
                         <Lock className="h-2.5 w-2.5" strokeWidth={2.5} />
                       </span>

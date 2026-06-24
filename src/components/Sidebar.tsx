@@ -3,6 +3,7 @@ import Logo from './Logo'
 import { NAV_ITEMS } from '../data'
 import { useInbox } from './Inbox'
 import { usePlan } from './Plan'
+import { earlyAccess } from '../lib/socialApi'
 import type { NavId } from '../types'
 
 interface SidebarProps {
@@ -24,6 +25,11 @@ export default function Sidebar({ active, onNavigate, onUpgrade, mobileOpen, onC
       {/* Brand */}
       <div className="px-2">
         <Logo />
+        {earlyAccess && (
+          <span className="mt-2 inline-flex items-center gap-1 rounded-full border border-cyan-accent/30 bg-cyan-accent/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-cyan-accent">
+            <Sparkles className="h-3 w-3" /> Early Access
+          </span>
+        )}
       </div>
 
       {/* Nav */}

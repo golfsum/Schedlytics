@@ -27,7 +27,7 @@ import { useConnections } from './Connections'
 import { usePersistedState } from '../lib/usePersisted'
 import { backendEnabled, publishYouTubeVideo, publishYouTubeFile, publishPost, publishMedia, schedulePost } from '../lib/socialApi'
 import { aiTitles, aiCaptions, aiHashtags, type Suggestion } from '../lib/aiSuggest'
-import { PLATFORM_LIST, PLATFORMS } from '../data'
+import { PLATFORM_LIST, PLATFORMS, isComingSoon } from '../data'
 import type { CalendarPost, PlatformId } from '../types'
 
 interface MediaStudioViewProps {
@@ -371,18 +371,24 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
           {PLATFORM_LIST.map((p) => {
             const { Icon } = p
             const on = platform === p.id
+            const soon = isComingSoon(p.id)
             return (
               <button
                 key={p.id}
-                onClick={() => setPlatform(p.id)}
+                onClick={() => !soon && setPlatform(p.id)}
+                disabled={soon}
+                title={soon ? `${p.name} - coming soon` : p.name}
                 className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-all ${
                   on
                     ? `border-transparent bg-gradient-to-r ${p.gradient} text-white shadow-md`
-                    : 'border-white/10 bg-navy-900/60 text-slate-300 hover:text-white'
+                    : soon
+                      ? 'cursor-not-allowed border-white/5 bg-navy-900/40 text-slate-600'
+                      : 'border-white/10 bg-navy-900/60 text-slate-300 hover:text-white'
                 }`}
               >
                 <Icon className="h-4 w-4" />
                 {p.name}
+                {soon && <span className="rounded-full bg-white/5 px-1.5 text-[10px] font-semibold text-slate-400">Soon</span>}
               </button>
             )
           })}

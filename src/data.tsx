@@ -89,6 +89,13 @@ export const PLATFORMS: Record<PlatformId, Platform> = {
 
 export const PLATFORM_LIST = Object.values(PLATFORMS)
 
+/**
+ * Platforms that are not live yet (e.g. pending Meta app review). They show a
+ * "Coming soon" state and are locked everywhere they can be selected.
+ */
+export const COMING_SOON: PlatformId[] = ['instagram', 'facebook']
+export const isComingSoon = (id: PlatformId) => COMING_SOON.includes(id)
+
 /* -------------------------------------------------------------------------- */
 /*  Sidebar navigation                                                         */
 /* -------------------------------------------------------------------------- */

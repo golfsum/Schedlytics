@@ -23,7 +23,7 @@ import { usePlan, PLAN_INFO } from './Plan'
 import UpgradeModal from './UpgradeModal'
 import { subscribeWeeklyBrief } from '../lib/socialApi'
 import { useSeededState } from '../lib/usePersisted'
-import { PLATFORMS } from '../data'
+import { PLATFORMS, isComingSoon } from '../data'
 import type { PlatformId } from '../types'
 
 const SECTIONS = [
@@ -96,35 +96,53 @@ function AccountsSection() {
           const plat = PLATFORMS[id]
           const { Icon } = plat
           const acct = accounts[id]
+          const soon = isComingSoon(id)
           return (
             <div
               key={id}
-              className="flex flex-wrap items-center gap-3 rounded-xl border border-white/5 bg-navy-900/50 p-4"
+              title={soon ? 'Coming soon' : undefined}
+              className={`flex flex-wrap items-center gap-3 rounded-xl border border-white/5 bg-navy-900/50 p-4 ${soon ? 'opacity-60' : ''}`}
             >
               <span
-                className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${plat.gradient} text-white`}
+                className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${plat.gradient} text-white ${soon ? 'grayscale' : ''}`}
               >
                 <Icon className="h-5 w-5" />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-white">{plat.name}</span>
-                  {acct.connected && (
-                    <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
-                      <Check className="h-3 w-3" /> Connected
+                  {soon ? (
+                    <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] font-semibold text-slate-300">
+                      Coming soon
                     </span>
+                  ) : (
+                    acct.connected && (
+                      <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
+                        <Check className="h-3 w-3" /> Connected
+                      </span>
+                    )
                   )}
                 </div>
                 <div className="text-xs text-slate-500">
-                  {acct.connected
-                    ? acct.handle
-                      ? `${acct.handle}${acct.followers ? ` · ${acct.followers} followers` : ''}`
-                      : 'Connected'
-                    : 'Authorize Schedlytics to post on your behalf'}
+                  {soon
+                    ? 'This integration is in review and will be available soon.'
+                    : acct.connected
+                      ? acct.handle
+                        ? `${acct.handle}${acct.followers ? ` · ${acct.followers} followers` : ''}`
+                        : 'Connected'
+                      : 'Authorize Schedlytics to post on your behalf'}
                 </div>
               </div>
 
-              {acct.connecting ? (
+              {soon ? (
+                <button
+                  disabled
+                  title="Coming soon"
+                  className="flex shrink-0 cursor-not-allowed items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-slate-500"
+                >
+                  Coming soon
+                </button>
+              ) : acct.connecting ? (
                 <button
                   disabled
                   className="flex shrink-0 items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-cyan-accent"

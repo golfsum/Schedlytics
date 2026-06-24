@@ -37,6 +37,7 @@ import {
   TOP_POSTS,
   PLATFORM_PERFORMANCE,
   DASHBOARD_INSIGHT,
+  isComingSoon,
 } from '../data'
 import { listShortLinks, type ShortLink } from '../lib/shortLinks'
 import { realGrowthScore, realWeeklyBrief, topByClicks } from '../lib/growth'
@@ -511,20 +512,23 @@ function ConnectedAccountsCard({ onNavigate }: { onNavigate: (id: NavId) => void
           const plat = PLATFORMS[id]
           const { Icon } = plat
           const acct = accounts[id]
+          const soon = isComingSoon(id)
           return (
-            <div key={id} className="flex items-center gap-3">
+            <div key={id} className={`flex items-center gap-3 ${soon ? 'opacity-60' : ''}`} title={soon ? 'Coming soon' : undefined}>
               <span
-                className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${plat.gradient} text-white`}
+                className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${plat.gradient} text-white ${soon ? 'grayscale' : ''}`}
               >
                 <Icon className="h-4 w-4" />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-white">{plat.name}</div>
                 <div className="truncate text-xs text-slate-500">
-                  {acct.connected ? acct.handle || 'Connected' : 'Not connected'}
+                  {soon ? 'Coming soon' : acct.connected ? acct.handle || 'Connected' : 'Not connected'}
                 </div>
               </div>
-              {acct.connected ? (
+              {soon ? (
+                <span className="shrink-0 rounded-full bg-white/5 px-2 py-0.5 text-[11px] font-semibold text-slate-400">Soon</span>
+              ) : acct.connected ? (
                 <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-emerald-400">
                   <Check className="h-3.5 w-3.5" /> Synced
                 </span>

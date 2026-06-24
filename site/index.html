@@ -62,8 +62,9 @@
           <a href="#platforms">Platforms</a>
           <a href="/app/?demo=1">Try demo</a>
         </nav>
-        <!-- Update this href to your deployed app URL for production. -->
-        <a class="btn btn-primary" href="/app/">Start tracking free</a>
+        <!-- Early-access mode: link to the sign-up form. The inline script at the
+             bottom restores the app link when EARLY_ACCESS is off (production). -->
+        <a class="btn btn-primary" href="#early-access" data-app-href="/app/" data-app-text="Start tracking free">Get early access</a>
       </div>
     </header>
 
@@ -80,7 +81,7 @@
                 content into customers.
               </p>
               <div class="hero-cta">
-                <a class="btn btn-primary btn-lg" href="/app/">Start tracking free</a>
+                <a class="btn btn-primary btn-lg" href="#early-access" data-app-href="/app/" data-app-text="Start tracking free">Get early access</a>
                 <a class="btn btn-ghost btn-lg" href="/app/?demo=1">Try demo, no signup</a>
               </div>
             </div>
@@ -96,6 +97,24 @@
                 alt="Schedlytics growth dashboard showing total clicks, unique visitors, revenue, top posts, and best platforms"
               />
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================== early access === -->
+      <section class="section" id="early-access">
+        <div class="container">
+          <div class="cta-band">
+            <h2>Get early access</h2>
+            <p>
+              We are opening Schedlytics to a small group of early users.<span id="ea-spots"></span>
+              Add your email and we will send you an invite.
+            </p>
+            <form id="ea-form" class="ea-form" novalidate>
+              <input type="email" id="ea-email" placeholder="you@email.com" autocomplete="email" aria-label="Email address" required />
+              <button class="btn btn-primary btn-lg" type="submit" id="ea-submit">Request access</button>
+            </form>
+            <div id="ea-result" class="ea-result" role="status"></div>
           </div>
         </div>
       </section>
@@ -344,7 +363,7 @@
                 <li>Basic calendar</li>
                 <li>7 day analytics history</li>
               </ul>
-              <a class="btn btn-ghost" href="/app/">Start free</a>
+              <a class="btn btn-ghost" href="#early-access" data-app-href="/app/" data-app-text="Start free">Get early access</a>
             </div>
             <div class="price-card featured">
               <span class="price-tag">Most popular</span>
@@ -360,7 +379,7 @@
                 <li>Link in bio</li>
                 <li>90 day analytics</li>
               </ul>
-              <a class="btn btn-primary" href="/app/">Start tracking</a>
+              <a class="btn btn-primary" href="#early-access" data-app-href="/app/" data-app-text="Start tracking">Get early access</a>
             </div>
             <div class="price-card">
               <h3>Business</h3>
@@ -376,7 +395,7 @@
                 <li>White-label reports</li>
                 <li>Advanced CSV exports</li>
               </ul>
-              <a class="btn btn-ghost" href="/app/">Choose Business</a>
+              <a class="btn btn-ghost" href="#early-access" data-app-href="/app/" data-app-text="Choose Business">Get early access</a>
             </div>
           </div>
         </div>
@@ -388,7 +407,7 @@
           <div class="cta-band">
             <h2>Start tracking what actually works</h2>
             <p>Connect your channels, add a trackable link, and watch the data roll in.</p>
-            <a class="btn btn-primary btn-lg" href="/app/">Start tracking free</a>
+            <a class="btn btn-primary btn-lg" href="#early-access" data-app-href="/app/" data-app-text="Start tracking free">Get early access</a>
           </div>
         </div>
       </section>
@@ -414,5 +433,83 @@
         <p class="copy">&copy; 2026 Schedlytics. All rights reserved.</p>
       </div>
     </footer>
+
+    <!-- Early-access toggle + sign-up. EARLY_ACCESS is read from /api/config.
+         When off, app links are restored and the sign-up section is hidden. -->
+    <script>
+      (function () {
+        function applyProduction() {
+          var els = document.querySelectorAll('[data-app-href]')
+          for (var i = 0; i < els.length; i++) {
+            var a = els[i]
+            a.setAttribute('href', a.getAttribute('data-app-href'))
+            if (a.getAttribute('data-app-text')) a.textContent = a.getAttribute('data-app-text')
+          }
+          var sec = document.getElementById('early-access')
+          if (sec) sec.style.display = 'none'
+        }
+        fetch('/api/config')
+          .then(function (r) { return r.json() })
+          .then(function (c) {
+            if (c.earlyAccess === false) { applyProduction(); return }
+            var spots = document.getElementById('ea-spots')
+            if (spots && typeof c.eaSpotsLeft === 'number') {
+              spots.textContent = c.eaSpotsLeft > 0
+                ? ' Only ' + c.eaSpotsLeft + ' spots left.'
+                : ' The first round is full, so new sign-ups join the waitlist.'
+            }
+          })
+          .catch(function () { /* keep early-access default */ })
+
+        var form = document.getElementById('ea-form')
+        if (form) {
+          form.addEventListener('submit', function (e) {
+            e.preventDefault()
+            var email = (document.getElementById('ea-email').value || '').trim()
+            var result = document.getElementById('ea-result')
+            var btn = document.getElementById('ea-submit')
+            if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+              result.className = 'ea-result err'
+              result.textContent = 'Please enter a valid email address.'
+              return
+            }
+            btn.disabled = true
+            btn.textContent = 'Submitting...'
+            fetch('/api/early-access', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: email }),
+            })
+              .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d } }) })
+              .then(function (res) {
+                btn.disabled = false
+                btn.textContent = 'Request access'
+                if (!res.ok) {
+                  result.className = 'ea-result err'
+                  result.textContent = (res.d && res.d.error) || 'Something went wrong. Please try again.'
+                  return
+                }
+                result.className = 'ea-result ok'
+                if (res.d.already) {
+                  result.textContent = res.d.status === 'accepted'
+                    ? 'You are already on the early-access list.'
+                    : 'You are already on the waitlist.'
+                } else if (res.d.status === 'accepted') {
+                  result.textContent = "You are in. We will email your invite soon."
+                } else {
+                  result.textContent = "The first round is full, but you are on the waitlist. We will be in touch."
+                }
+                form.reset()
+              })
+              .catch(function () {
+                btn.disabled = false
+                btn.textContent = 'Request access'
+                result.className = 'ea-result err'
+                result.textContent = 'Network error. Please try again.'
+              })
+          })
+        }
+      })()
+    </script>
   </body>
 </html>
