@@ -12,12 +12,49 @@ import {
   Sparkles,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { AreaChart } from './charts'
 import { useConnections, CONNECTABLE } from './Connections'
 import { useAuth } from './Auth'
-import { sampleData } from '../lib/socialApi'
+import { backendEnabled, sampleData, fetchStats, fetchYouTubeDaily, type DailyMetric } from '../lib/socialApi'
 import { PLATFORMS, WEEKDAYS, TIME_SLOTS } from '../data'
 import type { CalendarPost, NavId, PlatformId } from '../types'
+
+/** Compact number formatting (12345 -> "12.3K"). */
+function compact(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+  return String(n)
+}
+
+/** Real follower totals + YouTube daily metrics for the dashboard. */
+function useDashboardStats() {
+  const { accounts } = useConnections()
+  const [followers, setFollowers] = useState<number | null>(null)
+  const [daily, setDaily] = useState<DailyMetric[] | null>(null)
+  const connectedKey = CONNECTABLE.filter((id) => accounts[id]?.connected).join(',')
+  const ytConnected = Boolean(accounts.youtube?.connected)
+
+  useEffect(() => {
+    if (!backendEnabled) return
+    const connected = CONNECTABLE.filter((id) => accounts[id]?.connected)
+    if (!connected.length) {
+      setFollowers(0)
+      return
+    }
+    Promise.all(connected.map((id) => fetchStats(id).then((s) => s.followers).catch(() => 0))).then((arr) =>
+      setFollowers(arr.reduce((a, b) => a + b, 0)),
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectedKey])
+
+  useEffect(() => {
+    if (backendEnabled && ytConnected) fetchYouTubeDaily().then(setDaily).catch(() => setDaily([]))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ytConnected])
+
+  return { followers, daily }
+}
 
 interface DashboardViewProps {
   posts: CalendarPost[]
@@ -30,11 +67,21 @@ const FOLLOWER_GROWTH = [120, 126, 131, 129, 138, 145, 151, 149, 158, 167, 175, 
 export default function DashboardView({ posts, onQuickCreate, onNavigate }: DashboardViewProps) {
   const { user } = useAuth()
   const firstName = (user?.name || '').trim().split(' ')[0] || 'there'
+  const { followers, daily } = useDashboardStats()
 
   // Upcoming posts derived from the live calendar state.
   const upcoming = [...posts]
     .sort((a, b) => a.day - b.day || a.slot - b.slot)
     .slice(0, 4)
+
+  // Real metrics (live mode): engagement rate + cumulative subscriber growth.
+  const dailyRows = daily || []
+  const totalViews = dailyRows.reduce((s, d) => s + (d.views || 0), 0)
+  const totalEng = dailyRows.reduce((s, d) => s + (d.likes || 0) + (d.comments || 0) + (d.shares || 0), 0)
+  const engRate = totalViews > 0 ? `${((totalEng / totalViews) * 100).toFixed(1)}%` : '-'
+  let cum = 0
+  const growth = dailyRows.map((d) => (cum += (d.subscribersGained || 0) - (d.subscribersLost || 0)))
+  const netSubs = growth.length ? growth[growth.length - 1] : 0
 
   return (
     <div className="space-y-6">
@@ -60,15 +107,15 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
         <StatCard
           Icon={Users}
           label="Total Followers"
-          value={sampleData ? '182.4K' : '-'}
-          delta={sampleData ? '+4.2%' : 'No data yet'}
+          value={sampleData ? '182.4K' : followers === null ? '…' : compact(followers)}
+          delta={sampleData ? '+4.2%' : 'across connected channels'}
           up={sampleData || undefined}
         />
         <StatCard
           Icon={Heart}
           label="Engagement Rate"
-          value={sampleData ? '6.8%' : '-'}
-          delta={sampleData ? '+0.9%' : 'No data yet'}
+          value={sampleData ? '6.8%' : engRate}
+          delta={sampleData ? '+0.9%' : 'likes + comments / views (30d)'}
           up={sampleData || undefined}
         />
         <StatCard
@@ -91,13 +138,25 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
         <div className="card p-5 xl:col-span-2">
           <div className="mb-1 flex items-center justify-between">
             <h2 className="text-lg font-bold text-white">Audience Growth</h2>
-            {sampleData && (
+            {sampleData ? (
               <span className="flex items-center gap-1 text-sm font-semibold text-emerald-400">
                 <ArrowUpRight className="h-4 w-4" /> +51.6K this year
               </span>
+            ) : (
+              growth.length > 0 && (
+                <span
+                  className={`flex items-center gap-1 text-sm font-semibold ${netSubs >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}
+                >
+                  {netSubs >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                  {netSubs >= 0 ? '+' : ''}
+                  {compact(netSubs)} subs (30d)
+                </span>
+              )
             )}
           </div>
-          <p className="mb-4 text-xs text-slate-500">Followers across all connected channels</p>
+          <p className="mb-4 text-xs text-slate-500">
+            {sampleData ? 'Followers across all connected channels' : 'YouTube subscribers gained over the last 30 days'}
+          </p>
           {sampleData ? (
             <>
               <AreaChart data={FOLLOWER_GROWTH} format={(v) => `${v}K`} />
@@ -107,9 +166,13 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
                 ))}
               </div>
             </>
+          ) : growth.length >= 2 ? (
+            <AreaChart data={growth} format={(v) => String(v)} />
           ) : (
-            <div className="grid h-40 place-items-center rounded-xl border border-dashed border-white/10 text-center text-sm text-slate-500">
-              Connect channels to track your follower growth.
+            <div className="grid h-40 place-items-center rounded-xl border border-dashed border-white/10 px-4 text-center text-sm text-slate-500">
+              {daily === null
+                ? 'Loading…'
+                : 'No subscriber data yet. YouTube reports analytics with a 1-2 day delay.'}
             </div>
           )}
         </div>
