@@ -11,8 +11,9 @@ import {
   type RemoteStats,
   type YouTubeVideo,
 } from '../lib/socialApi'
-import { TrendingUp, LayoutGrid, Clock, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react'
-import { CHANNEL_STATS, PLATFORMS, INSIGHTS, WEEKLY_BRIEF } from '../data'
+import { TrendingUp, LayoutGrid, Clock, AlertTriangle, CheckCircle2, Sparkles, ArrowRight } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { CHANNEL_STATS, PLATFORMS, INSIGHTS, WEEKLY_BRIEF, CORRELATION_INSIGHTS } from '../data'
 import { aiRecommendations } from '../lib/aiSuggest'
 import { realHighlights, topByClicks } from '../lib/growth'
 import { listShortLinks, type ShortLink } from '../lib/shortLinks'
@@ -52,6 +53,24 @@ export default function InsightsView() {
 
       {/* insight-first summary */}
       <InsightSummary />
+
+      {/* correlation engine: cross-platform patterns */}
+      {sampleData && (
+        <div className="card border-cyan-accent/20 bg-cyan-accent/5 p-5">
+          <div className="mb-3 flex items-center gap-2 text-cyan-accent">
+            <Sparkles className="h-4 w-4" />
+            <span className="text-xs font-semibold uppercase tracking-wide">Cross-platform patterns detected</span>
+          </div>
+          <ul className="space-y-2.5">
+            {CORRELATION_INSIGHTS.map((i) => (
+              <li key={i} className="flex items-start gap-2.5 text-sm text-slate-200">
+                <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-cyan-accent" />
+                <span>{i}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* supporting charts */}
       <div className="flex items-center gap-3">
@@ -95,35 +114,49 @@ function InsightSummary() {
     )
   }
 
-  const cards = [
-    { Icon: TrendingUp, title: 'Best Platform', body: INSIGHTS.bestPlatform, tone: 'good' as const },
-    { Icon: LayoutGrid, title: 'Best Content Type', body: INSIGHTS.bestContentType, tone: 'good' as const },
-    { Icon: Clock, title: 'Best Posting Time', body: INSIGHTS.bestPostingTime, tone: 'good' as const },
-    { Icon: AlertTriangle, title: 'Needs Attention', body: INSIGHTS.underperforming, tone: 'warn' as const },
-  ]
+  const ICONS: Record<string, LucideIcon> = {
+    'Best Platform': TrendingUp,
+    'Best Content Type': LayoutGrid,
+    'Best Time': Clock,
+    'Biggest Opportunity': AlertTriangle,
+  }
+  const cards = [...INSIGHTS.findings, INSIGHTS.opportunity]
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
-        {cards.map((c) => (
-          <div key={c.title} className="card p-5">
-            <div className="flex items-center gap-2">
-              <span
-                className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${
-                  c.tone === 'warn' ? 'bg-amber-400/10 text-amber-300' : 'gradient-cyan-soft text-cyan-accent'
-                }`}
-              >
-                <c.Icon className="h-4 w-4" />
-              </span>
-              <h3 className="font-semibold text-white">{c.title}</h3>
-            </div>
-            <p className="mt-2.5 text-sm leading-relaxed text-slate-300">{c.body}</p>
-          </div>
-        ))}
-      </div>
+    <div>
+      <h2 className="mb-3 text-lg font-bold text-white">This Week's Findings</h2>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
+          {cards.map((c) => {
+            const Icon = ICONS[c.title] || TrendingUp
+            return (
+              <div key={c.title} className="card p-5">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${
+                      c.tone === 'warn' ? 'bg-amber-400/10 text-amber-300' : 'gradient-cyan-soft text-cyan-accent'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">{c.title}</h3>
+                </div>
+                <div className="mt-2.5 text-lg font-bold text-white">{c.value}</div>
+                <div className="text-sm text-slate-400">{c.detail}</div>
+                {c.action && (
+                  <p className="mt-2.5 flex items-start gap-1.5 text-sm font-medium text-cyan-accent">
+                    <ArrowRight className="mt-0.5 h-4 w-4 shrink-0" />
+                    {c.action}
+                  </p>
+                )}
+              </div>
+            )
+          })}
+        </div>
 
-      {/* recommended next actions */}
-      <RecommendedActions />
+        {/* recommended next actions */}
+        <RecommendedActions />
+      </div>
     </div>
   )
 }

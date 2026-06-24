@@ -242,11 +242,20 @@ export const PLATFORM_PERFORMANCE: PlatformPerf[] = [
 export const DASHBOARD_INSIGHT =
   'Instagram is driving 4.8x more clicks than TikTok this week. Consider posting more product-focused content there.'
 
+export interface Finding {
+  title: string
+  /** The headline answer, e.g. "YouTube". */
+  value: string
+  /** The quantified detail, e.g. "67% of tracked traffic". */
+  detail: string
+  /** The action to take next (what makes a finding useful, not just true). */
+  action?: string
+  tone?: 'good' | 'warn'
+}
 export interface GrowthInsights {
-  bestPlatform: string
-  bestContentType: string
-  bestPostingTime: string
-  underperforming: string
+  findings: Finding[]
+  /** The single biggest, most actionable opportunity this week. */
+  opportunity: Finding
   recommendedActions: string[]
 }
 
@@ -283,6 +292,12 @@ export interface Campaign {
   ctr: string
   bestPlatform: PlatformId
   insight: string
+  /** Click goal for forecasting (optional). */
+  goalClicks?: number
+  /** Rough fraction of the campaign window elapsed, for projection. */
+  elapsed?: number
+  /** Target date label, e.g. "July 1". */
+  goalDate?: string
   postRows: CampaignPostRow[]
   linkRows: CampaignLinkRow[]
 }
@@ -302,6 +317,9 @@ export const CAMPAIGNS: Campaign[] = [
     bestPlatform: 'instagram',
     insight:
       'Carousel posts are producing the highest click rate in this campaign. Reels have more views but lower traffic.',
+    goalClicks: 8000,
+    elapsed: 0.78,
+    goalDate: 'Jun 30',
     postRows: [
       { title: 'Summer drop carousel', platform: 'instagram', date: 'Jun 3', views: 48200, clicks: 3120, ctr: '6.5%', revenue: '$2,140' },
       { title: 'Styling reel', platform: 'reels', date: 'Jun 9', views: 62400, clicks: 1740, ctr: '2.8%', revenue: '$640' },
@@ -325,6 +343,9 @@ export const CAMPAIGNS: Campaign[] = [
     bestPlatform: 'youtube',
     insight:
       'YouTube descriptions are driving the most qualified clicks. Add the link higher in the description for the next upload.',
+    goalClicks: 5000,
+    elapsed: 0.6,
+    goalDate: 'Jul 10',
     postRows: [
       { title: 'Planner launch trailer', platform: 'youtube', date: 'Jun 11', views: 31900, clicks: 2280, ctr: '7.1%', revenue: '$1,860' },
       { title: 'Planner walkthrough', platform: 'youtube', date: 'Jun 18', views: 18400, clicks: 1210, ctr: '6.6%', revenue: '$1,320' },
@@ -347,6 +368,9 @@ export const CAMPAIGNS: Campaign[] = [
     ctr: '-',
     bestPlatform: 'instagram',
     insight: 'This campaign has not started yet. Schedule posts and trackable links to start measuring.',
+    goalClicks: 10000,
+    elapsed: 0,
+    goalDate: 'Nov 30',
     postRows: [],
     linkRows: [],
   },
@@ -363,6 +387,9 @@ export const CAMPAIGNS: Campaign[] = [
     bestPlatform: 'pinterest',
     insight:
       'Pinterest is the top driver of newsletter signups. Repurpose your best pins into a weekly series.',
+    goalClicks: 5000,
+    elapsed: 0.7,
+    goalDate: 'this month',
     postRows: [
       { title: 'Pin board refresh', platform: 'pinterest', date: 'May 12', views: 18700, clicks: 1510, ctr: '8.1%', revenue: '$520' },
       { title: 'Free guide announcement', platform: 'instagram', date: 'May 20', views: 24100, clicks: 980, ctr: '4.1%', revenue: '$340' },
@@ -414,6 +441,13 @@ export interface WeeklyBrief {
   highlights: string[]
 }
 
+/** Cross-platform timing patterns surfaced by the correlation engine (demo). */
+export const CORRELATION_INSIGHTS: string[] = [
+  'Instagram traffic spikes about 6 hours after you publish a YouTube video.',
+  'Viewers who watch your YouTube uploads tend to click your Instagram profile within 24 hours.',
+  'Your link traffic peaks roughly 3 hours after you post a Short.',
+]
+
 export type OpportunityTier = 'Highest Impact' | 'Easy Win' | 'Missing Data'
 export interface Opportunity {
   tier: OpportunityTier
@@ -449,14 +483,40 @@ export const WEEKLY_BRIEF: WeeklyBrief = {
 
 /** Insight-first summary on the Insights page (demo mode). */
 export const INSIGHTS: GrowthInsights = {
-  bestPlatform: 'Instagram generated 62% of your tracked traffic this week.',
-  bestContentType: 'Carousel posts drove 2.4x more clicks than Reels.',
-  bestPostingTime: 'Posts between 9 AM and 11 AM have the highest CTR.',
-  underperforming: 'TikTok has high views but low clicks. Try stronger calls to action.',
+  findings: [
+    {
+      title: 'Best Platform',
+      value: 'YouTube',
+      detail: '67% of tracked traffic',
+      action: 'Put your primary link higher in every description.',
+      tone: 'good',
+    },
+    {
+      title: 'Best Content Type',
+      value: 'Tutorial videos',
+      detail: '2.3x more clicks than your average post',
+      action: 'Plan two more tutorials this week.',
+      tone: 'good',
+    },
+    {
+      title: 'Best Time',
+      value: 'Tue, 9-11 AM',
+      detail: 'Your highest click-through window',
+      action: 'Schedule your next post into this window.',
+      tone: 'good',
+    },
+  ],
+  opportunity: {
+    title: 'Biggest Opportunity',
+    value: 'Add links to your TikTok captions',
+    detail: 'Potential +32 clicks per week',
+    action: 'Add a trackable link to your next 3 TikToks.',
+    tone: 'warn',
+  },
   recommendedActions: [
-    'Create 2 more Instagram carousel posts',
+    'Create 2 more tutorial videos this week',
     "Reuse your top link in tomorrow's newsletter",
-    'Add a clearer CTA to TikTok captions',
+    'Add a trackable link to your TikTok captions',
     'Turn your best post into a campaign',
   ],
 }

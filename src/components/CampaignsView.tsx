@@ -10,6 +10,7 @@ import {
   DollarSign,
   Award,
   FileText,
+  TrendingUp,
   X,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -152,6 +153,55 @@ function Metric({ label, value }: { label: string; value: string }) {
   )
 }
 
+/* ------------------------------- forecast -------------------------------- */
+
+function CampaignForecast({ campaign: c }: { campaign: Campaign }) {
+  const goal = c.goalClicks || 0
+  const elapsed = c.elapsed ?? 0.5
+  const started = elapsed > 0.05 && c.clicks > 0
+  // Linear projection from clicks-so-far over the fraction of the window elapsed.
+  const projected = started ? Math.round(c.clicks / elapsed) : 0
+  const pct = goal ? Math.min(100, Math.round((c.clicks / goal) * 100)) : 0
+  const willHit = started && projected >= goal
+  const projPct = goal ? Math.min(140, Math.round((projected / goal) * 100)) : 0
+
+  return (
+    <div className="card p-5">
+      <h2 className="mb-4 text-lg font-bold text-white">Forecast</h2>
+      {started ? (
+        <>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <Metric label="Goal" value={compact(goal)} />
+            <Metric label="Current" value={`${compact(c.clicks)} (${pct}%)`} />
+            <div>
+              <div className={`text-lg font-bold ${willHit ? 'text-emerald-400' : 'text-amber-300'}`}>
+                {compact(projected)}
+              </div>
+              <div className="text-[10px] uppercase tracking-wide text-slate-500">Projected by {c.goalDate}</div>
+            </div>
+          </div>
+          {/* progress: current (solid) + projected (faded) toward the goal */}
+          <div className="relative mt-4 h-2.5 overflow-hidden rounded-full bg-white/5">
+            <div className="absolute inset-y-0 left-0 rounded-full bg-cyan-accent/25" style={{ width: `${Math.min(100, projPct)}%` }} />
+            <div className="absolute inset-y-0 left-0 rounded-full bg-cyan-accent" style={{ width: `${pct}%` }} />
+          </div>
+          <p className={`mt-3 flex items-center gap-2 text-sm font-medium ${willHit ? 'text-emerald-400' : 'text-amber-300'}`}>
+            <TrendingUp className="h-4 w-4" />
+            {willHit
+              ? `On pace to reach your goal of ${compact(goal)} clicks by ${c.goalDate}.`
+              : `Projected to fall short of ${compact(goal)} clicks. Add more posts or links to close the gap.`}
+          </p>
+        </>
+      ) : (
+        <p className="text-sm text-slate-400">
+          Goal: {compact(goal)} clicks. The projection appears once this campaign starts collecting
+          clicks.
+        </p>
+      )}
+    </div>
+  )
+}
+
 /* ------------------------------ detail page ------------------------------- */
 
 function CampaignDetail({ campaign: c, onBack }: { campaign: Campaign; onBack: () => void }) {
@@ -204,6 +254,9 @@ function CampaignDetail({ campaign: c, onBack }: { campaign: Campaign; onBack: (
           </div>
         ))}
       </div>
+
+      {/* forecast */}
+      {c.goalClicks ? <CampaignForecast campaign={c} /> : null}
 
       {/* clicks over time */}
       <div className="card p-5">
