@@ -15,6 +15,7 @@ import {
   Trash2,
   ListOrdered,
   X,
+  Repeat,
 } from 'lucide-react'
 import Toggle from './Toggle'
 import ThumbnailPicker from './ThumbnailPicker'
@@ -59,6 +60,25 @@ interface Chapter {
   label: string
 }
 
+interface RecurringSlot {
+  weekday: number // 0 = Sunday
+  time: string // "HH:MM"
+}
+
+const WEEK_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+/** Next date/time matching a weekly slot (e.g. next Friday 20:00). */
+function nextWeeklyOccurrence({ weekday, time }: RecurringSlot): Date {
+  const [h, m] = time.split(':').map(Number)
+  const now = new Date()
+  const d = new Date()
+  d.setHours(h || 0, m || 0, 0, 0)
+  let add = (weekday - now.getDay() + 7) % 7
+  if (add === 0 && d.getTime() <= now.getTime()) add = 7 // today's slot passed -> next week
+  d.setDate(d.getDate() + add)
+  return d
+}
+
 export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudioViewProps) {
   const { addToast } = useToast()
   const { push } = useNotifications()
@@ -81,6 +101,8 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   const [chapters, setChapters] = useState<Chapter[]>([{ time: '0:00', label: 'Intro' }])
   const [videoUrl, setVideoUrl] = useState('')
   const [privacy, setPrivacy] = useState<'public' | 'unlisted' | 'private'>('public')
+  // Persisted weekly upload slot (e.g. "every Friday 8 PM").
+  const [recurring, setRecurring] = usePersistedState<RecurringSlot | null>('sl_recurring_slot', null)
 
   // Per-platform default description (boilerplate: links, socials) that persists.
   const [defaults, setDefaults] = usePersistedState<Partial<Record<PlatformId, string>>>(
@@ -454,22 +476,6 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             <Suggestions items={titleSugs} onPick={(s) => setTitle(s)} />
           </Field>
 
-          {/* Caption / Description */}
-          <Field
-            label="Caption / Description"
-            loading={loading === 'caption'}
-            onGenerate={() => run('caption', () => aiCaptions(title), setCaptionSugs)}
-          >
-            <textarea
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              rows={3}
-              placeholder="What this specific post is about"
-              className="w-full resize-none rounded-lg border border-white/5 bg-navy-900/60 px-3.5 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
-            />
-            <Suggestions items={captionSugs} onPick={(s) => setCaption(s)} />
-          </Field>
-
           {/* Hashtags */}
           <Field
             label="Trending hashtags"
@@ -588,6 +594,22 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             </p>
           </Field>
 
+          {/* Caption / Description */}
+          <Field
+            label="Caption / Description"
+            loading={loading === 'caption'}
+            onGenerate={() => run('caption', () => aiCaptions(title), setCaptionSugs)}
+          >
+            <textarea
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              rows={3}
+              placeholder="What this specific post is about"
+              className="w-full resize-none rounded-lg border border-white/5 bg-navy-900/60 px-3.5 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+            />
+            <Suggestions items={captionSugs} onPick={(s) => setCaption(s)} />
+          </Field>
+
           {/* Combined description preview */}
           {composeDescription() && (
             <details className="rounded-lg border border-white/5 bg-navy-900/40 px-3.5 py-2.5">
@@ -629,6 +651,54 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
               </p>
             </div>
           )}
+
+          {/* Recurring weekly slot - e.g. "every Friday 8 PM". Set it once, then
+              one tap drops this week's upload on the next slot. */}
+          <div className="rounded-lg border border-white/5 bg-navy-900/50 p-3.5">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2 text-sm font-medium text-slate-200">
+                <Repeat className="h-4 w-4 text-cyan-accent" /> Recurring slot
+              </span>
+              <Toggle
+                checked={Boolean(recurring)}
+                onChange={(v) => setRecurring(v ? { weekday: 5, time: '20:00' } : null)}
+                size="sm"
+                label="Recurring slot"
+              />
+            </div>
+            {recurring && (
+              <>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-slate-400">Every</span>
+                  <select
+                    value={recurring.weekday}
+                    onChange={(e) => setRecurring({ ...recurring, weekday: Number(e.target.value) })}
+                    className="rounded-lg border border-white/5 bg-navy-900/60 px-2.5 py-1.5 text-sm text-slate-200 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+                  >
+                    {WEEK_DAYS.map((d, i) => (
+                      <option key={d} value={i}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-xs text-slate-400">at</span>
+                  <input
+                    type="time"
+                    value={recurring.time}
+                    onChange={(e) => setRecurring({ ...recurring, time: e.target.value })}
+                    className="rounded-lg border border-white/5 bg-navy-900/60 px-2.5 py-1.5 text-sm text-slate-200 [color-scheme:dark] focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+                  />
+                </div>
+                <button
+                  onClick={() => setScheduleAt(nextWeeklyOccurrence(recurring))}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-accent/30 px-3 py-2 text-sm font-semibold text-cyan-accent transition-colors hover:bg-cyan-accent/10"
+                >
+                  <Repeat className="h-4 w-4" />
+                  Use next slot ({fmtWhen(nextWeeklyOccurrence(recurring))})
+                </button>
+              </>
+            )}
+          </div>
 
           <div>
             <span className="mb-2 block text-sm font-semibold text-white">Scheduled time</span>
