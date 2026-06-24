@@ -8,6 +8,7 @@ import {
   Twitch,
   HandCoins,
   LayoutDashboard,
+  Megaphone,
   Calendar,
   Clapperboard,
   Lightbulb,
@@ -94,6 +95,7 @@ export const PLATFORM_LIST = Object.values(PLATFORMS)
 
 export const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard },
+  { id: 'campaigns', label: 'Campaigns', Icon: Megaphone },
   { id: 'calendar', label: 'Content Calendar', Icon: Calendar },
   { id: 'links', label: 'Links', Icon: Link2 },
   { id: 'insights', label: 'Insights', Icon: Lightbulb },
@@ -247,6 +249,131 @@ export interface GrowthInsights {
   underperforming: string
   recommendedActions: string[]
 }
+
+export type CampaignStatus = 'Active' | 'Scheduled' | 'Ended'
+
+export interface CampaignPostRow {
+  title: string
+  platform: PlatformId
+  date: string
+  views: number
+  clicks: number
+  ctr: string
+  revenue: string
+}
+
+export interface CampaignLinkRow {
+  short: string
+  destination: string
+  clicks: number
+  visitors: number
+  source: string
+  created: string
+}
+
+export interface Campaign {
+  id: string
+  name: string
+  status: CampaignStatus
+  range: string
+  posts: number
+  clicks: number
+  visitors: number
+  revenue: string
+  ctr: string
+  bestPlatform: PlatformId
+  insight: string
+  postRows: CampaignPostRow[]
+  linkRows: CampaignLinkRow[]
+}
+
+/** Campaigns with full attribution detail (demo mode). */
+export const CAMPAIGNS: Campaign[] = [
+  {
+    id: 'summer-sale',
+    name: 'Summer Sale',
+    status: 'Active',
+    range: 'June 1 - June 30',
+    posts: 8,
+    clicks: 6240,
+    visitors: 4810,
+    revenue: '$4,210',
+    ctr: '5.2%',
+    bestPlatform: 'instagram',
+    insight:
+      'Carousel posts are producing the highest click rate in this campaign. Reels have more views but lower traffic.',
+    postRows: [
+      { title: 'Summer drop carousel', platform: 'instagram', date: 'Jun 3', views: 48200, clicks: 3120, ctr: '6.5%', revenue: '$2,140' },
+      { title: 'Styling reel', platform: 'reels', date: 'Jun 9', views: 62400, clicks: 1740, ctr: '2.8%', revenue: '$640' },
+      { title: 'Sale reminder story', platform: 'instagram', date: 'Jun 21', views: 21800, clicks: 1380, ctr: '6.3%', revenue: '$1,430' },
+    ],
+    linkRows: [
+      { short: 'ashrt.link/sumr26', destination: 'yourstore.com/summer-sale', clicks: 3120, visitors: 2410, source: 'Summer drop carousel', created: 'Jun 3' },
+      { short: 'ashrt.link/sumr-rl', destination: 'yourstore.com/summer-sale', clicks: 1740, visitors: 1290, source: 'Styling reel', created: 'Jun 9' },
+    ],
+  },
+  {
+    id: 'planner-launch',
+    name: 'Digital Planner Launch',
+    status: 'Active',
+    range: 'June 10 - July 10',
+    posts: 6,
+    clicks: 4120,
+    visitors: 3180,
+    revenue: '$3,860',
+    ctr: '6.1%',
+    bestPlatform: 'youtube',
+    insight:
+      'YouTube descriptions are driving the most qualified clicks. Add the link higher in the description for the next upload.',
+    postRows: [
+      { title: 'Planner launch trailer', platform: 'youtube', date: 'Jun 11', views: 31900, clicks: 2280, ctr: '7.1%', revenue: '$1,860' },
+      { title: 'Planner walkthrough', platform: 'youtube', date: 'Jun 18', views: 18400, clicks: 1210, ctr: '6.6%', revenue: '$1,320' },
+      { title: 'Planner teaser pin', platform: 'pinterest', date: 'Jun 24', views: 12600, clicks: 630, ctr: '5.0%', revenue: '$680' },
+    ],
+    linkRows: [
+      { short: 'ashrt.link/planner', destination: 'yourstore.com/planner', clicks: 2280, visitors: 1740, source: 'Planner launch trailer', created: 'Jun 11' },
+      { short: 'ashrt.link/plan-wk', destination: 'yourstore.com/planner', clicks: 1210, visitors: 980, source: 'Planner walkthrough', created: 'Jun 18' },
+    ],
+  },
+  {
+    id: 'black-friday',
+    name: 'Black Friday',
+    status: 'Scheduled',
+    range: 'Nov 24 - Nov 30',
+    posts: 0,
+    clicks: 0,
+    visitors: 0,
+    revenue: '$0',
+    ctr: '-',
+    bestPlatform: 'instagram',
+    insight: 'This campaign has not started yet. Schedule posts and trackable links to start measuring.',
+    postRows: [],
+    linkRows: [],
+  },
+  {
+    id: 'newsletter-growth',
+    name: 'Newsletter Growth',
+    status: 'Active',
+    range: 'May 1 - ongoing',
+    posts: 11,
+    clicks: 2980,
+    visitors: 2540,
+    revenue: '$1,120',
+    ctr: '3.8%',
+    bestPlatform: 'pinterest',
+    insight:
+      'Pinterest is the top driver of newsletter signups. Repurpose your best pins into a weekly series.',
+    postRows: [
+      { title: 'Pin board refresh', platform: 'pinterest', date: 'May 12', views: 18700, clicks: 1510, ctr: '8.1%', revenue: '$520' },
+      { title: 'Free guide announcement', platform: 'instagram', date: 'May 20', views: 24100, clicks: 980, ctr: '4.1%', revenue: '$340' },
+      { title: 'Subscriber shoutout', platform: 'facebook', date: 'Jun 2', views: 9800, clicks: 490, ctr: '5.0%', revenue: '$260' },
+    ],
+    linkRows: [
+      { short: 'ashrt.link/newco', destination: 'yoursite.com/newsletter', clicks: 1510, visitors: 1280, source: 'Pin board refresh', created: 'May 12' },
+      { short: 'ashrt.link/free-gd', destination: 'yoursite.com/guide', clicks: 980, visitors: 870, source: 'Free guide announcement', created: 'May 20' },
+    ],
+  },
+]
 
 /** Insight-first summary on the Insights page (demo mode). */
 export const INSIGHTS: GrowthInsights = {

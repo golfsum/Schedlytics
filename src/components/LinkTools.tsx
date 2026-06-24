@@ -10,6 +10,7 @@ import {
   Plus,
   QrCode,
   Pencil,
+  FileText,
   X,
 } from 'lucide-react'
 import { useToast } from './Toast'
@@ -18,8 +19,11 @@ import { usePersistedState } from '../lib/usePersisted'
 import { sampleData } from '../lib/socialApi'
 import { SAMPLE_CAMPAIGNS, PLATFORMS } from '../data'
 import { CONNECTABLE } from './Connections'
-import type { NavId, PlatformId } from '../types'
+import type { PlatformId } from '../types'
 import LinkInBioModal, { type BioLink } from './LinkInBioModal'
+import LinkDetail from './LinkDetail'
+import LinkInBio from './LinkInBio'
+import { exportCsv } from '../lib/csv'
 import {
   listShortLinks,
   createShortLink,
@@ -219,12 +223,14 @@ const fmtDate = (ms?: number) =>
 const qrSrc = (url: string) =>
   `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(url)}`
 
-export default function LinkToolsView({ onNavigate }: { onNavigate?: (id: NavId) => void }) {
+export default function LinkToolsView() {
   const { addToast } = useToast()
   const [items, setItems] = useState<ShortLink[]>([])
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null)
   const [creating, setCreating] = useState<false | { qr: boolean }>(false)
   const [qrLink, setQrLink] = useState<ShortLink | null>(null)
+  const [detailLink, setDetailLink] = useState<ShortLink | null>(null)
+  const [view, setView] = useState<'links' | 'bio'>('links')
 
   // filters
   const [fCampaign, setFCampaign] = useState(ALL)
@@ -273,8 +279,31 @@ export default function LinkToolsView({ onNavigate }: { onNavigate?: (id: NavId)
 
   const totalClicks = items.reduce((sum, l) => sum + (l.clicks || 0), 0)
 
+  if (detailLink) {
+    return <LinkDetail link={detailLink} onBack={() => setDetailLink(null)} />
+  }
+
   return (
     <div className="space-y-6">
+      {/* view switch */}
+      <div className="flex rounded-xl border border-white/5 bg-navy-800/70 p-1">
+        {(['links', 'bio'] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all ${
+              view === v ? 'gradient-cyan text-navy-900 shadow-sm' : 'text-slate-400 hover:text-slate-100'
+            }`}
+          >
+            {v === 'links' ? 'Tracked Links' : 'Link in Bio'}
+          </button>
+        ))}
+      </div>
+
+      {view === 'bio' && <LinkInBio />}
+
+      {view === 'links' && (
+       <>
       <div className="flex flex-wrap items-end gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white">Tracked Links</h1>
@@ -287,6 +316,27 @@ export default function LinkToolsView({ onNavigate }: { onNavigate?: (id: NavId)
           {totalClicks.toLocaleString()} total clicks
         </span>
         <div className="ml-auto flex flex-wrap gap-2">
+          {items.length > 0 && (
+            <button
+              onClick={() =>
+                exportCsv(
+                  'tracked-links.csv',
+                  items.map((l) => ({
+                    'Short Link': displayShort(l.shortUrl),
+                    Destination: l.url,
+                    Campaign: l.campaign || '',
+                    'Source Post': l.sourcePost || '',
+                    Clicks: l.clicks || 0,
+                    Visitors: l.uniqueVisitors ?? '',
+                    Status: linkStatus(l),
+                  })),
+                )
+              }
+              className="flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:text-white"
+            >
+              <FileText className="h-4 w-4" /> Export CSV
+            </button>
+          )}
           <button
             onClick={() => setCreating({ qr: false })}
             className="flex items-center gap-2 rounded-xl gradient-cyan px-4 py-2.5 text-sm font-bold text-navy-900 transition-transform hover:scale-[1.02]"
@@ -375,13 +425,7 @@ export default function LinkToolsView({ onNavigate }: { onNavigate?: (id: NavId)
                   <div className="flex items-center justify-end gap-1">
                     <RowAction Icon={copiedSlug === l.slug ? Check : Copy} title="Copy" onClick={() => copy(l)} />
                     <RowAction Icon={QrCode} title="QR code" onClick={() => setQrLink(l)} />
-                    <RowAction
-                      Icon={BarChart3}
-                      title="Analytics"
-                      onClick={() =>
-                        onNavigate ? onNavigate('insights') : addToast('Detailed link analytics are coming soon', 'info')
-                      }
-                    />
+                    <RowAction Icon={BarChart3} title="Analytics" onClick={() => setDetailLink(l)} />
                     <RowAction Icon={Pencil} title="Edit" onClick={() => addToast('Link editing is coming soon', 'info')} />
                     <RowAction Icon={Trash2} title="Delete" danger onClick={() => remove(l.slug)} />
                   </div>
@@ -398,6 +442,8 @@ export default function LinkToolsView({ onNavigate }: { onNavigate?: (id: NavId)
           </p>
         )}
       </div>
+      </>
+      )}
 
       {creating && (
         <CreateLinkModal

@@ -11,8 +11,9 @@ import {
   type RemoteStats,
   type YouTubeVideo,
 } from '../lib/socialApi'
-import { TrendingUp, LayoutGrid, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { TrendingUp, LayoutGrid, Clock, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react'
 import { CHANNEL_STATS, PLATFORMS, INSIGHTS } from '../data'
+import { aiRecommendations } from '../lib/aiSuggest'
 import { CorrelationMatrix, EngagementTrend, ConversionBars } from './charts'
 
 export default function InsightsView() {
@@ -98,17 +99,50 @@ function InsightSummary() {
       </div>
 
       {/* recommended next actions */}
-      <div className="card p-5">
-        <h3 className="mb-3 font-semibold text-white">Recommended Next Actions</h3>
-        <ul className="space-y-2.5">
-          {INSIGHTS.recommendedActions.map((a) => (
-            <li key={a} className="flex items-start gap-2.5 text-sm text-slate-300">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-accent" />
-              <span>{a}</span>
-            </li>
-          ))}
-        </ul>
+      <RecommendedActions />
+    </div>
+  )
+}
+
+function RecommendedActions() {
+  const [recs, setRecs] = useState<string[]>(INSIGHTS.recommendedActions)
+  const [busy, setBusy] = useState(false)
+
+  const regenerate = async () => {
+    setBusy(true)
+    try {
+      setRecs(await aiRecommendations(4))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="card p-5">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="flex items-center gap-2 font-semibold text-white">
+          Recommended Next Actions
+          <span className="flex items-center gap-1 rounded-full bg-cyan-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-cyan-accent">
+            <Sparkles className="h-3 w-3" /> AI
+          </span>
+        </h3>
+        <button
+          onClick={regenerate}
+          disabled={busy}
+          className="flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs font-semibold text-slate-300 transition-colors hover:text-white disabled:opacity-60"
+        >
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+          Regenerate
+        </button>
       </div>
+      <ul className="space-y-2.5">
+        {recs.map((a) => (
+          <li key={a} className="flex items-start gap-2.5 text-sm text-slate-300">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-accent" />
+            <span>{a}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

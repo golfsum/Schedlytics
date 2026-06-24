@@ -9,6 +9,8 @@ import {
   Bell,
   CreditCard,
   Link2,
+  Globe,
+  Lock,
   Sparkles,
 } from 'lucide-react'
 import Toggle from './Toggle'
@@ -24,6 +26,7 @@ import type { PlatformId } from '../types'
 
 const SECTIONS = [
   { id: 'accounts', label: 'Connected Accounts', Icon: Link2 },
+  { id: 'domain', label: 'Branded Domain', Icon: Globe },
   { id: 'profile', label: 'Profile', Icon: User },
   { id: 'notifications', label: 'Notifications', Icon: Bell },
   { id: 'billing', label: 'Billing', Icon: CreditCard },
@@ -59,6 +62,7 @@ export default function SettingsView() {
 
         <div>
           {section === 'accounts' && <AccountsSection />}
+          {section === 'domain' && <BrandedDomainSection />}
           {section === 'profile' && <ProfileSection />}
           {section === 'notifications' && <NotificationsSection />}
           {section === 'billing' && <BillingSection />}
@@ -153,6 +157,107 @@ function AccountsSection() {
           keep only an access token you can revoke any time.
         </span>
       </div>
+    </div>
+  )
+}
+
+/* ----------------------------- branded domain ----------------------------- */
+
+interface BrandedDomain {
+  domain: string
+  verified: boolean
+}
+
+function BrandedDomainSection() {
+  const { addToast } = useToast()
+  const { plan } = usePlan()
+  const [bd, setBd] = useSeededState<BrandedDomain>(
+    'sl_branded_domain',
+    { domain: 'go.mystore.com', verified: true },
+    { domain: '', verified: false },
+  )
+  const [draft, setDraft] = useState(bd.domain)
+  const isBusiness = plan === 'business'
+
+  if (!isBusiness) {
+    return (
+      <div className="card p-5">
+        <div className="mb-1 flex items-center gap-2">
+          <Globe className="h-5 w-5 text-cyan-accent" />
+          <h2 className="text-lg font-bold text-white">Branded Domain</h2>
+        </div>
+        <p className="mb-5 text-sm text-slate-400">
+          Send short links from your own domain like <span className="text-slate-200">go.yourbrand.com</span>{' '}
+          instead of the default. Available on the Business plan.
+        </p>
+        <div className="flex items-center gap-3 rounded-xl border border-dashed border-white/10 bg-navy-900/40 p-4">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-navy-800 text-slate-500">
+            <Lock className="h-5 w-5" />
+          </span>
+          <div className="flex-1 text-sm text-slate-400">
+            Upgrade to <span className="font-semibold text-white">Business</span> to connect a custom
+            branded domain for your tracked links.
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const save = () => {
+    const clean = draft.trim().replace(/^https?:\/\//, '').replace(/\/+$/, '')
+    setBd({ domain: clean, verified: clean === bd.domain ? bd.verified : false })
+    addToast(clean ? 'Branded domain saved' : 'Branded domain cleared')
+  }
+  const verify = () => {
+    setBd((d) => ({ ...d, verified: true }))
+    addToast('Domain verified ✓')
+  }
+
+  return (
+    <div className="card p-5">
+      <div className="mb-1 flex items-center gap-2">
+        <Globe className="h-5 w-5 text-cyan-accent" />
+        <h2 className="text-lg font-bold text-white">Branded Domain</h2>
+      </div>
+      <p className="mb-5 text-sm text-slate-400">
+        New tracked links will use this domain. Point a CNAME record at{' '}
+        <span className="text-slate-200">cname.schedlytics.app</span> to finish setup.
+      </p>
+
+      <Labeled label="Custom domain">
+        <div className="flex flex-wrap gap-2">
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="go.yourbrand.com"
+            className="min-w-[200px] flex-1 rounded-lg border border-white/5 bg-navy-900/60 px-3.5 py-2.5 text-sm text-slate-200 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+          />
+          <button
+            onClick={save}
+            className="rounded-lg gradient-cyan px-4 py-2.5 text-sm font-bold text-navy-900 transition-transform hover:scale-[1.02]"
+          >
+            Save
+          </button>
+        </div>
+      </Labeled>
+
+      {bd.domain && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-white/5 bg-navy-900/50 p-4">
+          <span className="font-mono text-sm text-cyan-accent">{bd.domain}/abc123</span>
+          {bd.verified ? (
+            <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-400">
+              <Check className="h-3 w-3" /> Verified
+            </span>
+          ) : (
+            <button
+              onClick={verify}
+              className="rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-[11px] font-semibold text-amber-300 hover:bg-amber-400/20"
+            >
+              Verify DNS
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

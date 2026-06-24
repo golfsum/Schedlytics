@@ -5,9 +5,11 @@ import CalendarView from './components/CalendarView'
 import InsightsView from './components/InsightsView'
 import MediaStudioView from './components/MediaStudioView'
 import DashboardView from './components/DashboardView'
+import CampaignsView from './components/CampaignsView'
 import SettingsView from './components/SettingsView'
 import NewPostPanel from './components/NewPostPanel'
 import EditPostModal from './components/EditPostModal'
+import PostDetailDrawer from './components/PostDetailDrawer'
 import UpgradeModal from './components/UpgradeModal'
 import LinkToolsView from './components/LinkTools'
 import InboxView from './components/InboxView'
@@ -23,6 +25,7 @@ export default function App() {
   const [posts, setPosts] = useSeededState<CalendarPost[]>('sl_posts', INITIAL_POSTS, [])
   const [panelOpen, setPanelOpen] = useState(false)
   const [editingPost, setEditingPost] = useState<CalendarPost | null>(null)
+  const [detailPost, setDetailPost] = useState<CalendarPost | null>(null)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
   const [mobileNav, setMobileNav] = useState(false)
 
@@ -89,15 +92,16 @@ export default function App() {
                 posts={posts}
                 setPosts={setPosts}
                 onCreateNew={() => setPanelOpen(true)}
-                onEditPost={setEditingPost}
+                onOpenPost={setDetailPost}
               />
             )}
 
             {nav === 'media-studio' && (
               <MediaStudioView onSchedule={addPost} onScheduled={() => setNav('calendar')} />
             )}
+            {nav === 'campaigns' && <CampaignsView />}
             {nav === 'insights' && <InsightsView />}
-            {nav === 'links' && <LinkToolsView onNavigate={setNav} />}
+            {nav === 'links' && <LinkToolsView />}
             {nav === 'inbox' && <InboxView />}
             {nav === 'settings' && <SettingsView />}
 
@@ -121,6 +125,18 @@ export default function App() {
           )}
         </div>
       </div>
+
+      {/* post detail drawer */}
+      {detailPost && (
+        <PostDetailDrawer
+          post={detailPost}
+          onClose={() => setDetailPost(null)}
+          onEdit={() => {
+            setEditingPost(detailPost)
+            setDetailPost(null)
+          }}
+        />
+      )}
 
       {/* edit-post modal */}
       {editingPost && (

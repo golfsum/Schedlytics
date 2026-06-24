@@ -20,7 +20,7 @@ interface CalendarViewProps {
   posts: CalendarPost[]
   setPosts: React.Dispatch<React.SetStateAction<CalendarPost[]>>
   onCreateNew: () => void
-  onEditPost: (post: CalendarPost) => void
+  onOpenPost: (post: CalendarPost) => void
 }
 
 const TABS = ['Visual Grid', 'Stories', 'Reels Planner'] as const
@@ -42,7 +42,7 @@ export default function CalendarView({
   posts,
   setPosts,
   onCreateNew,
-  onEditPost,
+  onOpenPost,
 }: CalendarViewProps) {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Visual Grid')
   const [weekOffset, setWeekOffset] = useState(0)
@@ -174,7 +174,7 @@ export default function CalendarView({
                               setDraggingId(null)
                               setHoverCell(null)
                             }}
-                            onClick={onEditPost}
+                            onClick={onOpenPost}
                           />
                         ))}
                       </div>

@@ -153,3 +153,30 @@ export async function aiHashtags(topic: string): Promise<Suggestion[]> {
   await delay(500)
   return makeHashtags(topic)
 }
+
+/* --------------------------- growth recommendations ----------------------- */
+
+const RECO_POOL = [
+  'Create 2 more Instagram carousel posts',
+  "Reuse your top link in tomorrow's newsletter",
+  'Add a clearer CTA to TikTok captions',
+  'Turn your best post into a campaign',
+  'Post your next Reel between 9 and 11 AM',
+  'Add a trackable link to every YouTube description',
+  'Repurpose your top pin into a weekly series',
+  'A/B test two thumbnails on your next upload',
+  'Move the link higher in your TikTok bio',
+  'Bundle this week\'s posts into one campaign',
+  'Shorten and tag your link before the next launch',
+  'Double down on carousels, they convert best for you',
+]
+
+/**
+ * Suggested next actions for the Insights page. Returns a fresh, ranked set
+ * each call (shuffled from a curated pool); swap the body for a real model
+ * call when the AI endpoint supports growth recommendations.
+ */
+export async function aiRecommendations(count = 4): Promise<string[]> {
+  await delay(550)
+  return shuffle(RECO_POOL).slice(0, count)
+}
