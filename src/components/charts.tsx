@@ -14,6 +14,7 @@ import {
 
 /** Map correlation strength (|v|, 0–1) to an orange→amber heat color. */
 function heat(v: number): string {
+  if (Number.isNaN(v)) return '#1E293B' // no variation -> neutral
   const a = Math.abs(v)
   if (a >= 0.7) return '#F97316'
   if (a >= 0.55) return '#FB923C'
@@ -57,16 +58,25 @@ export function CorrelationMatrix({
       <div className="flex-1">
         <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))` }}>
           {matrix.map((row, r) =>
-            row.map((val, c) => (
-              <div
-                key={`${r}-${c}`}
-                title={`${rows[r]} vs ${cols[c]}: ${val.toFixed(2)}`}
-                className="grid aspect-[1.7/1] place-items-center rounded-md text-[11px] font-bold text-navy-900 transition-transform hover:scale-105"
-                style={{ backgroundColor: heat(val) }}
-              >
-                {val.toFixed(2)}
-              </div>
-            )),
+            row.map((val, c) => {
+              const undef = Number.isNaN(val)
+              return (
+                <div
+                  key={`${r}-${c}`}
+                  title={
+                    undef
+                      ? `${rows[r]} vs ${cols[c]}: no variation in this window`
+                      : `${rows[r]} vs ${cols[c]}: ${val.toFixed(2)}`
+                  }
+                  className={`grid aspect-[1.7/1] place-items-center rounded-md text-[11px] font-bold transition-transform hover:scale-105 ${
+                    undef ? 'text-slate-600' : 'text-navy-900'
+                  }`}
+                  style={{ backgroundColor: heat(val) }}
+                >
+                  {undef ? '—' : val.toFixed(2)}
+                </div>
+              )
+            }),
           )}
         </div>
         {/* x-axis ticks */}

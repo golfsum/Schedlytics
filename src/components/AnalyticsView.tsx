@@ -215,8 +215,13 @@ function pearson(x: number[], y: number[]): number {
     dx2 += a * a
     dy2 += b * b
   }
-  if (dx2 === 0 || dy2 === 0) return 0
+  if (dx2 === 0 || dy2 === 0) return NaN // a flat metric can't be correlated
   return num / Math.sqrt(dx2 * dy2)
+}
+
+function formatDay(d: string) {
+  const [y, m, dd] = d.split('-').map(Number)
+  return new Date(y, (m || 1) - 1, dd || 1).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
 /** Build a metric-correlation matrix from the daily series. */
@@ -312,7 +317,13 @@ function UnifiedCorrelation() {
             <MoreHorizontal className="h-4 w-4 text-slate-500" />
           </div>
           <p className="mb-2 text-xs text-slate-500">
-            {sampleData ? 'Oct 20 – 26' : liveYouTube ? 'YouTube views, last 30 days' : 'Last 7 days'}
+            {sampleData
+              ? 'Oct 20 – 26'
+              : liveYouTube
+                ? hasDaily
+                  ? `Views through ${formatDay(dailyRows[dailyRows.length - 1].day)} · YouTube reports ~1-2 days behind`
+                  : 'YouTube views'
+                : 'Last 7 days'}
           </p>
           {sampleData ? (
             <EngagementTrend />
