@@ -14,10 +14,30 @@ import {
 import { TrendingUp, LayoutGrid, Clock, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react'
 import { CHANNEL_STATS, PLATFORMS, INSIGHTS, WEEKLY_BRIEF } from '../data'
 import { aiRecommendations } from '../lib/aiSuggest'
+import { realHighlights, topByClicks } from '../lib/growth'
+import { listShortLinks, type ShortLink } from '../lib/shortLinks'
 import { CoachHighlights } from './GrowthCoach'
 import { CorrelationMatrix, EngagementTrend, ConversionBars } from './charts'
+import type { PlatformId } from '../types'
 
 export default function InsightsView() {
+  // Real coach highlights for live accounts (sample in demo).
+  const [links, setLinks] = useState<ShortLink[]>([])
+  const [vids, setVids] = useState<YouTubeVideo[]>([])
+  useEffect(() => {
+    if (sampleData || !backendEnabled) return
+    listShortLinks().then(setLinks).catch(() => {})
+    fetchYouTubeRecentVideos(25).then((v) => setVids(Array.isArray(v) ? v : [])).catch(() => {})
+  }, [])
+
+  const realClicks = links.reduce((s, l) => s + (l.clicks || 0), 0)
+  const realVisitors = links.reduce((s, l) => s + (l.uniqueVisitors || 0), 0)
+  const bestPlatform = topByClicks(links, 'platform') as PlatformId | null
+  const topCampaign = topByClicks(links, 'campaign')
+  const topVid = [...vids].sort((a, b) => (b.views || 0) - (a.views || 0))[0]
+  const realHL = realHighlights(realClicks, realVisitors, bestPlatform, topCampaign, topVid?.title)
+  const coachBuilding = !sampleData && realClicks === 0 && vids.length === 0
+
   return (
     <div className="space-y-6">
       <div>
@@ -28,7 +48,7 @@ export default function InsightsView() {
       </div>
 
       {/* AI growth coach weekly brief */}
-      <CoachHighlights highlights={WEEKLY_BRIEF.highlights} building={!sampleData} />
+      <CoachHighlights highlights={sampleData ? WEEKLY_BRIEF.highlights : realHL} building={coachBuilding} />
 
       {/* insight-first summary */}
       <InsightSummary />
