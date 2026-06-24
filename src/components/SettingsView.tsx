@@ -429,7 +429,9 @@ function BillingSection() {
               </div>
               <div className="mt-2 text-2xl font-bold text-white">{info.name}</div>
               <div className="text-sm text-slate-300">
-                {isFree ? 'No payment due. Upgrade any time.' : `${info.price} / month`}
+                {isFree
+                  ? 'No payment due. Upgrade any time.'
+                  : `${info.price} / month${info.priceAnnual ? ` or ${info.priceAnnual} / year` : ''}`}
               </div>
             </div>
             <button
