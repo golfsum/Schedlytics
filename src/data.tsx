@@ -414,6 +414,22 @@ export interface WeeklyBrief {
   highlights: string[]
 }
 
+export type OpportunityTier = 'Highest Impact' | 'Easy Win' | 'Missing Data'
+export interface Opportunity {
+  tier: OpportunityTier
+  label: string
+  potential: number
+  /** Where the action button should take the user. */
+  nav?: 'links' | 'campaigns' | 'calendar' | 'settings'
+}
+
+/** Growth Opportunities roadmap (demo mode). */
+export const SAMPLE_OPPORTUNITIES: Opportunity[] = [
+  { tier: 'Highest Impact', label: 'Add trackable links to Instagram', potential: 22, nav: 'links' },
+  { tier: 'Easy Win', label: 'Create your first campaign', potential: 15, nav: 'campaigns' },
+  { tier: 'Missing Data', label: 'Connect Facebook', potential: 8, nav: 'settings' },
+]
+
 /** The Monday "Weekly Growth Brief" (demo mode). */
 export const WEEKLY_BRIEF: WeeklyBrief = {
   trafficDelta: '+14%',

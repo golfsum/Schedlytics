@@ -8,8 +8,10 @@ import {
   Loader2,
 } from 'lucide-react'
 import { useState } from 'react'
-import { PLATFORMS, type GrowthScore, type WeeklyBrief } from '../data'
+import { Zap, Target, Database, ArrowRight } from 'lucide-react'
+import { PLATFORMS, type GrowthScore, type WeeklyBrief, type Opportunity } from '../data'
 import { aiRecommendations } from '../lib/aiSuggest'
+import { levelFor } from '../lib/growth'
 import type { NavId } from '../types'
 
 /* ----------------------------- celebrate wins ---------------------------- */
@@ -31,6 +33,7 @@ export function WinBanner({ headline, detail }: { headline: string; detail: stri
 /* ------------------------------ growth score ----------------------------- */
 
 const scoreColor = (n: number) => (n >= 80 ? '#34D399' : n >= 60 ? '#22D3EE' : n >= 40 ? '#F59E0B' : '#F87171')
+const clampPct = (n: number) => Math.max(0, Math.min(100, n))
 
 export function GrowthScoreCard({ data, building }: { data: GrowthScore | null; building?: boolean }) {
   if (building || !data) {
@@ -47,6 +50,10 @@ export function GrowthScoreCard({ data, building }: { data: GrowthScore | null; 
 
   const { score, delta, factors } = data
   const color = scoreColor(score)
+  const { current, next } = levelFor(score)
+  // Progress from the current level threshold to the next one.
+  const span = next ? next.min - current.min : 1
+  const pct = next ? clampPct(((score - current.min) / span) * 100) : 100
   // SVG ring geometry
   const r = 52
   const c = 2 * Math.PI * r
@@ -55,7 +62,7 @@ export function GrowthScoreCard({ data, building }: { data: GrowthScore | null; 
   return (
     <div className="card p-5">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-white">Growth Score</h2>
+        <h2 className="text-lg font-bold text-white">Growth Level</h2>
         {delta !== 0 && (
           <span className={`flex items-center gap-1 text-sm font-semibold ${delta > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
             <ArrowUpRight className={`h-4 w-4 ${delta < 0 ? 'rotate-90' : ''}`} />
@@ -84,19 +91,81 @@ export function GrowthScoreCard({ data, building }: { data: GrowthScore | null; 
             <div className="text-[10px] uppercase tracking-wide text-slate-500">/ 100</div>
           </div>
         </div>
-        <div className="min-w-0 flex-1 space-y-2.5">
-          {factors.map((f) => (
-            <div key={f.label}>
-              <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="text-slate-300">{f.label}</span>
-                <span className="font-semibold text-white">{f.value}</span>
+        <div className="min-w-0 flex-1">
+          <div className="text-xl font-bold text-white">{current.name}</div>
+          {next ? (
+            <>
+              <div className="mt-1 text-xs text-slate-400">
+                Next level: <span className="font-semibold text-cyan-accent">{next.name}</span> at {next.min}
               </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
-                <div className="h-full rounded-full" style={{ width: `${f.value}%`, background: scoreColor(f.value) }} />
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/5">
+                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
               </div>
-            </div>
-          ))}
+              <div className="mt-1 text-[11px] text-slate-500">{next.min - score} points to go</div>
+            </>
+          ) : (
+            <div className="mt-1 text-xs font-semibold text-cyan-accent">Top level reached</div>
+          )}
         </div>
+      </div>
+      {/* factor breakdown */}
+      <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-2.5 border-t border-white/5 pt-4">
+        {factors.map((f) => (
+          <div key={f.label}>
+            <div className="mb-1 flex items-center justify-between text-xs">
+              <span className="text-slate-300">{f.label}</span>
+              <span className="font-semibold text-white">{f.value}</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+              <div className="h-full rounded-full" style={{ width: `${f.value}%`, background: scoreColor(f.value) }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* --------------------------- growth opportunities ------------------------ */
+
+const TIER_META: Record<Opportunity['tier'], { Icon: typeof Zap; color: string; bg: string }> = {
+  'Highest Impact': { Icon: Zap, color: 'text-emerald-300', bg: 'bg-emerald-400/10' },
+  'Easy Win': { Icon: Target, color: 'text-cyan-accent', bg: 'bg-cyan-accent/10' },
+  'Missing Data': { Icon: Database, color: 'text-amber-300', bg: 'bg-amber-400/10' },
+}
+
+export function OpportunitiesCard({
+  opportunities,
+  onNavigate,
+}: {
+  opportunities: Opportunity[]
+  onNavigate?: (id: NavId) => void
+}) {
+  if (!opportunities.length) return null
+  return (
+    <div className="card p-5">
+      <h2 className="text-lg font-bold text-white">Growth Opportunities</h2>
+      <p className="mb-4 mt-1 text-sm text-slate-400">Your fastest path to a higher Growth Level.</p>
+      <div className="grid gap-3 md:grid-cols-3">
+        {opportunities.map((o) => {
+          const meta = TIER_META[o.tier]
+          return (
+            <button
+              key={o.label}
+              onClick={() => o.nav && onNavigate?.(o.nav)}
+              className="group flex flex-col rounded-xl border border-white/5 bg-navy-900/50 p-4 text-left transition-colors hover:border-cyan-accent/30"
+            >
+              <span className={`mb-2 inline-flex w-fit items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.bg} ${meta.color}`}>
+                <meta.Icon className="h-3 w-3" /> {o.tier}
+              </span>
+              <span className="font-semibold text-white">{o.label}</span>
+              <span className="mt-2 flex items-center justify-between">
+                <span className="text-xs font-semibold text-emerald-400">Potential +{o.potential} Growth Score</span>
+                {o.nav && <ArrowRight className="h-4 w-4 text-slate-500 transition-transform group-hover:translate-x-0.5 group-hover:text-cyan-accent" />}
+              </span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )

@@ -12,6 +12,35 @@ import type { PlatformId } from '../types'
 const compact = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n))
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
 
+/* ------------------------------- growth level ----------------------------- */
+
+export interface GrowthLevel {
+  name: string
+  min: number
+}
+
+export const GROWTH_LEVELS: GrowthLevel[] = [
+  { name: 'Starter', min: 0 },
+  { name: 'Explorer', min: 30 },
+  { name: 'Creator', min: 60 },
+  { name: 'Growth Builder', min: 75 },
+  { name: 'Influencer', min: 85 },
+  { name: 'Authority', min: 95 },
+]
+
+/** Current level for a score and the next one up (null at the top). */
+export function levelFor(score: number): { current: GrowthLevel; next: GrowthLevel | null } {
+  let current = GROWTH_LEVELS[0]
+  let next: GrowthLevel | null = GROWTH_LEVELS[1] || null
+  for (let i = 0; i < GROWTH_LEVELS.length; i++) {
+    if (score >= GROWTH_LEVELS[i].min) {
+      current = GROWTH_LEVELS[i]
+      next = GROWTH_LEVELS[i + 1] || null
+    }
+  }
+  return { current, next }
+}
+
 /** Key with the highest summed clicks across links (or null). */
 export function topByClicks<K extends keyof ShortLink>(links: ShortLink[], key: K): string | null {
   const totals = new Map<string, number>()

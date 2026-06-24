@@ -40,8 +40,8 @@ import {
 } from '../data'
 import { listShortLinks, type ShortLink } from '../lib/shortLinks'
 import { realGrowthScore, realWeeklyBrief, topByClicks } from '../lib/growth'
-import { GROWTH_SCORE, WEEKLY_BRIEF } from '../data'
-import { WinBanner, GrowthScoreCard, WeeklyBriefCard } from './GrowthCoach'
+import { GROWTH_SCORE, WEEKLY_BRIEF, SAMPLE_OPPORTUNITIES, type Opportunity } from '../data'
+import { WinBanner, GrowthScoreCard, WeeklyBriefCard, OpportunitiesCard } from './GrowthCoach'
 import type { CalendarPost, NavId, PlatformId } from '../types'
 
 /** Icon per growth-metric key (data lives in GROWTH_METRICS). */
@@ -52,6 +52,24 @@ const METRIC_ICONS: Record<string, LucideIcon> = {
   campaign: Megaphone,
   revenue: DollarSign,
   ctr: Percent,
+}
+
+/** Actionable growth opportunities derived from real connection + link state. */
+function realOpportunities(accounts: Record<string, { connected: boolean }>, links: ShortLink[]): Opportunity[] {
+  const opps: Opportunity[] = []
+  if (links.length < 3) {
+    opps.push({ tier: 'Highest Impact', label: 'Add trackable links to more posts', potential: 22, nav: 'links' })
+  } else if (!links.some((l) => l.utmSource)) {
+    opps.push({ tier: 'Highest Impact', label: 'Add UTM tags to your links', potential: 18, nav: 'links' })
+  }
+  if (!links.some((l) => l.campaign)) {
+    opps.push({ tier: 'Easy Win', label: 'Create your first campaign', potential: 15, nav: 'campaigns' })
+  }
+  const notConnected = CONNECTABLE.filter((id) => !accounts[id]?.connected)
+  if (notConnected.length) {
+    opps.push({ tier: 'Missing Data', label: `Connect ${PLATFORMS[notConnected[0]].name}`, potential: 8, nav: 'settings' })
+  }
+  return opps.slice(0, 3)
 }
 
 /** Compact number formatting (12345 -> "12.3K"). */
@@ -126,6 +144,7 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
   const { user } = useAuth()
   const firstName = (user?.name || '').trim().split(' ')[0] || 'there'
   const { followers, daily, videos, links } = useDashboardStats()
+  const { accounts } = useConnections()
 
   // Real aggregates from the user's tracked links (works without a backend).
   const realClicks = links.reduce((s, l) => s + (l.clicks || 0), 0)
@@ -189,6 +208,7 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
   // Growth Coach: sample in demo; computed from real signals for live accounts.
   const realScore = realGrowthScore(realClicks, vids, posts.length, links)
   const realBrief = realWeeklyBrief(realClicks, realVisitors, bestLinkPlatform, topLinkCampaign, vids, links)
+  const opportunities = sampleData ? SAMPLE_OPPORTUNITIES : realOpportunities(accounts, links)
 
   return (
     <div className="space-y-6">
@@ -211,14 +231,14 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
           </button>
           <button
             onClick={() => onNavigate('links')}
-            className="flex items-center gap-2 rounded-xl border border-cyan-accent/30 px-4 py-2.5 text-sm font-semibold text-cyan-accent transition-colors hover:bg-cyan-accent/10"
+            className="flex items-center gap-2 rounded-xl border border-white/10 px-3.5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
           >
             <Link2 className="h-4 w-4" />
-            Create Trackable Link
+            Create Link
           </button>
           <button
             onClick={() => onNavigate('campaigns')}
-            className="flex items-center gap-2 rounded-xl border border-cyan-accent/30 px-4 py-2.5 text-sm font-semibold text-cyan-accent transition-colors hover:bg-cyan-accent/10"
+            className="flex items-center gap-2 rounded-xl border border-white/10 px-3.5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
           >
             <Megaphone className="h-4 w-4" />
             Create Campaign
@@ -250,6 +270,9 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
           onNavigate={onNavigate}
         />
       </div>
+
+      {/* actionable roadmap */}
+      <OpportunitiesCard opportunities={opportunities} onNavigate={onNavigate} />
 
       {/* growth metric cards */}
       {!sampleData && !hasRealClicks && (
