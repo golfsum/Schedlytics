@@ -199,6 +199,16 @@ export function resolveShortLinkRedirect(): boolean {
   const link = list.find((l) => l.slug === slug)
   if (!link) return false
   link.clicks = (link.clicks || 0) + 1
+  // Count this browser as a unique visitor once per slug.
+  const visitedKey = `sl_v_${slug}`
+  if (!localStorage.getItem(visitedKey)) {
+    link.uniqueVisitors = (link.uniqueVisitors || 0) + 1
+    try {
+      localStorage.setItem(visitedKey, '1')
+    } catch {
+      /* ignore quota errors */
+    }
+  }
   writeLocal(list)
   location.replace(link.url)
   return true

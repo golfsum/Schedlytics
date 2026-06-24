@@ -379,7 +379,21 @@ app.post('/api/data-deletion', async (req, res) => {
 /*    GET    /s/:slug          -> 302 redirect to the long URL (+ click count)  */
 /* -------------------------------------------------------------------------- */
 
-const withShort = (l) => ({ ...l, shortUrl: `${BASE_URL}/s/${l.slug}` })
+// Never expose the internal visitor-hash set to clients.
+const withShort = ({ visitorHashes, ...l }) => ({ ...l, shortUrl: `${BASE_URL}/s/${l.slug}` })
+
+/**
+ * Pseudonymous per-link visitor fingerprint. We hash IP + user agent + slug and
+ * keep only the hash (never the raw IP), so we can count unique visitors without
+ * storing personal data.
+ */
+function visitorHash(req, slug) {
+  const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
+    .split(',')[0]
+    .trim()
+  const ua = req.get('user-agent') || ''
+  return crypto.createHash('sha256').update(`${ip}|${ua}|${slug}`).digest('hex').slice(0, 16)
+}
 
 const ashrtEnabled = Boolean(ashrt.apiUrl)
 const ashrtFetch = (path, opts = {}) =>
@@ -408,7 +422,7 @@ app.post('/api/links', async (req, res) => {
   let clean = String(url).trim()
   if (!/^https?:\/\//i.test(clean)) clean = `https://${clean}`
   const slug = crypto.randomBytes(3).toString('hex')
-  const link = await links.add({ slug, url: clean, clicks: 0, createdAt: Date.now() })
+  const link = await links.add({ slug, url: clean, clicks: 0, uniqueVisitors: 0, createdAt: Date.now() })
   res.json(withShort(link))
 })
 
@@ -446,7 +460,15 @@ app.get('/s/:slug', async (req, res) => {
       .type('html')
       .send('<h1 style="font-family:sans-serif">Short link not found</h1>')
   }
-  await links.update(link.slug, { clicks: (link.clicks || 0) + 1 })
+  // Count the click, and increment unique visitors only for a new fingerprint.
+  const hash = visitorHash(req, link.slug)
+  const seen = link.visitorHashes || []
+  const patch = { clicks: (link.clicks || 0) + 1 }
+  if (!seen.includes(hash)) {
+    patch.uniqueVisitors = (link.uniqueVisitors || 0) + 1
+    patch.visitorHashes = [...seen, hash].slice(-2000) // bound storage
+  }
+  await links.update(link.slug, patch)
   res.redirect(302, link.url)
 })
 
