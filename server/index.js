@@ -13,6 +13,7 @@ import { weeklySubs } from './weekly-store.js'
 import { earlyAccess, EA_CAP } from './early-access-store.js'
 import { support } from './support-store.js'
 import { sendEmail, emailEnabled } from './email.js'
+import { isConfigured as fbAdminConfigured, listUsers, passwordResetLink, setUserDisabled } from './lib/firebaseAdmin.js'
 import { verifyIdToken } from './lib/firebaseAuth.js'
 import { stateStore } from './kv.js'
 import { validAccessToken } from './tokens.js'
@@ -236,6 +237,65 @@ app.patch('/api/admin/support/:id', async (req, res) => {
   const next = await support.update(req.params.id, { status })
   if (!next) return res.status(404).json({ error: 'not found' })
   res.json(next)
+})
+
+/* -- Firebase user management (v2). Needs a service account; see firebaseAdmin.js. */
+
+// List Firebase Auth users. { configured:false } when the Admin SDK has no creds.
+app.get('/api/admin/users', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  try {
+    const users = await listUsers()
+    if (users === null) return res.json({ configured: false, users: [] })
+    res.json({ configured: true, users })
+  } catch (err) {
+    console.error('[admin/users] failed:', err.message)
+    res.status(500).json({ error: 'Could not list users' })
+  }
+})
+
+// Mint a password-reset link for an email and (if SMTP is set) send it to them.
+app.post('/api/admin/users/reset-link', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  const email = String(req.body?.email || '').trim()
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'A valid email is required' })
+  try {
+    const link = await passwordResetLink(email)
+    if (link === null) return res.status(400).json({ error: 'Firebase Admin is not configured' })
+    let emailed = false
+    if (emailEnabled) {
+      try {
+        await sendEmail({
+          to: email,
+          subject: 'Reset your Schedlytics password',
+          html: `<p>A password reset was requested for your Schedlytics account.</p><p><a href="${link}">Reset your password</a></p><p>If you did not request this, you can ignore this email.</p>`,
+        })
+        emailed = true
+      } catch (e) {
+        console.warn('[admin/reset-link] email failed:', e.message)
+      }
+    }
+    res.json({ link, emailed })
+  } catch (err) {
+    // e.g. auth/user-not-found
+    console.error('[admin/reset-link] failed:', err.message)
+    res.status(400).json({ error: err.message || 'Could not create reset link' })
+  }
+})
+
+// Enable or disable a user account.
+app.patch('/api/admin/users/:uid', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  const { disabled } = req.body || {}
+  if (typeof disabled !== 'boolean') return res.status(400).json({ error: 'disabled must be a boolean' })
+  try {
+    const ok = await setUserDisabled(req.params.uid, disabled)
+    if (ok === null) return res.status(400).json({ error: 'Firebase Admin is not configured' })
+    res.json({ ok: true, uid: req.params.uid, disabled })
+  } catch (err) {
+    console.error('[admin/users patch] failed:', err.message)
+    res.status(400).json({ error: err.message || 'Could not update user' })
+  }
 })
 
 /* -------------------------------------------------------------------------- */

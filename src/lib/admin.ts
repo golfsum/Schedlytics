@@ -91,6 +91,57 @@ export async function setTicketStatus(id: string, status: 'open' | 'resolved'): 
   }
 }
 
+export interface AdminUser {
+  uid: string
+  email: string
+  displayName: string
+  photoURL: string
+  disabled: boolean
+  emailVerified: boolean
+  providers: string[]
+  createdAt: number | null
+  lastSignInAt: number | null
+}
+export interface UsersResult {
+  configured: boolean
+  users: AdminUser[]
+}
+/** List Firebase Auth users (needs a service account on the server). */
+export async function fetchUsers(): Promise<UsersResult | null> {
+  try {
+    const r = await fetch(`${apiBase}/api/admin/users`, { headers: await authHeaders() })
+    return r.ok ? r.json() : null
+  } catch {
+    return null
+  }
+}
+/** Send a password-reset link to a user. Returns the link (and whether it was emailed). */
+export async function sendPasswordReset(email: string): Promise<{ link: string; emailed: boolean } | null> {
+  try {
+    const r = await fetch(`${apiBase}/api/admin/users/reset-link`, {
+      method: 'POST',
+      headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    return r.ok ? r.json() : null
+  } catch {
+    return null
+  }
+}
+/** Enable or disable a user account. */
+export async function setUserDisabled(uid: string, disabled: boolean): Promise<boolean> {
+  try {
+    const r = await fetch(`${apiBase}/api/admin/users/${uid}`, {
+      method: 'PATCH',
+      headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ disabled }),
+    })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
 /** Submit a support ticket (any signed-in user). */
 export async function submitSupport(email: string, subject: string, message: string): Promise<boolean> {
   if (!backendEnabled) return false
