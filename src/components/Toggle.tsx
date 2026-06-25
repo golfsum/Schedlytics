@@ -3,10 +3,11 @@ interface ToggleProps {
   onChange: (value: boolean) => void
   label?: string
   size?: 'sm' | 'md'
+  disabled?: boolean
 }
 
 /** On-brand cyan toggle switch used across the app. */
-export default function Toggle({ checked, onChange, label, size = 'md' }: ToggleProps) {
+export default function Toggle({ checked, onChange, label, size = 'md', disabled }: ToggleProps) {
   const dims =
     size === 'sm'
       ? { track: 'h-5 w-9', knob: 'h-3.5 w-3.5', shift: 'translate-x-4' }
@@ -18,8 +19,9 @@ export default function Toggle({ checked, onChange, label, size = 'md' }: Toggle
       role="switch"
       aria-checked={checked}
       aria-label={label}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex shrink-0 ${dims.track} items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-accent/40 ${
+      className={`relative inline-flex shrink-0 ${dims.track} items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-cyan-accent/40 disabled:cursor-not-allowed disabled:opacity-50 ${
         checked ? 'gradient-cyan' : 'bg-navy-700'
       }`}
     >

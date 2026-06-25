@@ -452,6 +452,23 @@ app.post('/api/:platform/publish', async (req, res) => {
   }
 })
 
+// Posting options for the connected creator (TikTok Content Posting API: the
+// allowed privacy levels + which interactions are available). The composer must
+// show these before a direct post per TikTok's UX guidelines.
+app.get('/api/:platform/creator-info', async (req, res) => {
+  const platform = getPlatform(req.params.platform)
+  if (!platform || typeof platform.getCreatorInfo !== 'function') {
+    return res.status(404).json({ error: 'Not available for this platform' })
+  }
+  try {
+    const { token } = await validAccessToken(platform)
+    res.json(await platform.getCreatorInfo(token))
+  } catch (err) {
+    console.error(`[${platform.id}] creator-info error:`, err.message)
+    res.status(err.status || 502).json({ error: err.message })
+  }
+})
+
 // Upload a media file straight to the platform. The raw bytes are the request
 // body; metadata (title/description/tags/etc.) rides along as base64 JSON in
 // the X-Upload-Meta header so we don't need a multipart parser.

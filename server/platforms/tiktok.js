@@ -31,6 +31,11 @@ const API = 'https://open.tiktokapis.com/v2'
 const SCOPES = ['user.info.basic', 'user.info.stats', 'video.list', 'video.publish']
 const MAX_SINGLE_CHUNK = 64 * 1024 * 1024 // TikTok single-chunk upload limit
 
+// Privacy levels TikTok accepts for a direct post. Unaudited apps may only use
+// SELF_ONLY; the creator_info query tells the UI which ones are allowed.
+const PRIVACY_LEVELS = ['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'FOLLOWER_OF_CREATOR', 'SELF_ONLY']
+const normalizePrivacy = (p) => (PRIVACY_LEVELS.includes(p) ? p : 'SELF_ONLY')
+
 export const tiktok = {
   id: 'tiktok',
   name: 'TikTok',
@@ -114,6 +119,35 @@ export const tiktok = {
     }
   },
 
+  /**
+   * Content Posting API - query the creator's posting options. Required by
+   * TikTok's UX guidelines so the composer can show the creator's real allowed
+   * privacy levels and which interactions (comment/duet/stitch) are available.
+   */
+  async getCreatorInfo(accessToken) {
+    const res = await fetch(`${API}/post/publish/creator_info/query/`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+    })
+    if (!res.ok) throw new Error(`TikTok creator_info failed: ${(await res.text()).slice(0, 220)}`)
+    const d = (await res.json()).data || {}
+    return {
+      creatorUsername: d.creator_username || '',
+      creatorNickname: d.creator_nickname || '',
+      avatarUrl: d.creator_avatar_url || '',
+      privacyOptions: Array.isArray(d.privacy_level_options) && d.privacy_level_options.length
+        ? d.privacy_level_options
+        : ['SELF_ONLY'],
+      commentDisabled: Boolean(d.comment_disabled),
+      duetDisabled: Boolean(d.duet_disabled),
+      stitchDisabled: Boolean(d.stitch_disabled),
+      maxDurationSec: Number(d.max_video_post_duration_sec || 0),
+    }
+  },
+
   /** Optional - recent videos with engagement stats. */
   async getRecentVideos(accessToken, max = 10) {
     const fields = 'id,title,view_count,like_count,comment_count,share_count,create_time'
@@ -134,14 +168,19 @@ export const tiktok = {
    * Single-chunk FILE_UPLOAD; lands as a private (SELF_ONLY) post until the app
    * is audited. Returns the publish_id for status polling.
    */
-  async publishMedia(accessToken, _record, { buffer, contentType, title } = {}) {
+  async publishMedia(
+    accessToken,
+    _record,
+    { buffer, contentType, title, privacyLevel, disableComment, disableDuet, disableStitch } = {},
+  ) {
     if (!buffer?.length) throw new Error('No video file received')
     const size = buffer.length
     if (size > MAX_SINGLE_CHUNK) {
       throw new Error('TikTok upload here supports videos up to 64MB')
     }
 
-    // 1. Initialize the direct post (private until audited).
+    // 1. Initialize the direct post with the creator's chosen privacy +
+    //    interaction settings (defaults to private, the only option until audit).
     const initRes = await fetch(`${API}/post/publish/video/init/`, {
       method: 'POST',
       headers: {
@@ -151,10 +190,10 @@ export const tiktok = {
       body: JSON.stringify({
         post_info: {
           title: title || '',
-          privacy_level: 'SELF_ONLY',
-          disable_comment: false,
-          disable_duet: false,
-          disable_stitch: false,
+          privacy_level: normalizePrivacy(privacyLevel),
+          disable_comment: Boolean(disableComment),
+          disable_duet: Boolean(disableDuet),
+          disable_stitch: Boolean(disableStitch),
         },
         source_info: {
           source: 'FILE_UPLOAD',
@@ -187,7 +226,7 @@ export const tiktok = {
    * Publish from a PUBLIC video URL (used by the scheduler so no bytes need to
    * be stored). The URL's domain must be verified in your TikTok app settings.
    */
-  async publishFromUrl(accessToken, { videoUrl, title } = {}) {
+  async publishFromUrl(accessToken, { videoUrl, title, privacyLevel, disableComment, disableDuet, disableStitch } = {}) {
     if (!videoUrl) throw new Error('videoUrl is required')
     const res = await fetch(`${API}/post/publish/video/init/`, {
       method: 'POST',
@@ -198,10 +237,10 @@ export const tiktok = {
       body: JSON.stringify({
         post_info: {
           title: title || '',
-          privacy_level: 'SELF_ONLY',
-          disable_comment: false,
-          disable_duet: false,
-          disable_stitch: false,
+          privacy_level: normalizePrivacy(privacyLevel),
+          disable_comment: Boolean(disableComment),
+          disable_duet: Boolean(disableDuet),
+          disable_stitch: Boolean(disableStitch),
         },
         source_info: { source: 'PULL_FROM_URL', video_url: videoUrl },
       }),

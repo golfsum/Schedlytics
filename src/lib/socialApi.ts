@@ -160,6 +160,24 @@ export async function publishMedia(
   return res.json()
 }
 
+/** TikTok Content Posting API: the connected creator's allowed posting options. */
+export interface TikTokCreatorInfo {
+  creatorUsername: string
+  creatorNickname: string
+  avatarUrl: string
+  privacyOptions: string[]
+  commentDisabled: boolean
+  duetDisabled: boolean
+  stitchDisabled: boolean
+  maxDurationSec: number
+}
+export async function fetchTikTokCreatorInfo(): Promise<TikTokCreatorInfo> {
+  if (!backendEnabled) throw new Error('backend disabled')
+  const res = await fetch(`${apiBase}/api/tiktok/creator-info`, { credentials: 'include' })
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `${res.status}`)
+  return res.json()
+}
+
 export interface ScheduledPost {
   id: string
   platform: PlatformId

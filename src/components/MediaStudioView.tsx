@@ -21,6 +21,7 @@ import Toggle from './Toggle'
 import ThumbnailPicker from './ThumbnailPicker'
 import DateTimePicker from './DateTimePicker'
 import PublishResultModal from './PublishResultModal'
+import TikTokPostModal, { type TikTokPostSettings } from './TikTokPostModal'
 import { useToast } from './Toast'
 import { useNotifications } from './Notifications'
 import { useConnections } from './Connections'
@@ -98,6 +99,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   const [uploadPct, setUploadPct] = useState(0)
   const [published, setPublished] = useState<{ platform: PlatformId; url?: string; note: string } | null>(null)
   const [scheduleAt, setScheduleAt] = useState<Date | null>(null)
+  const [tiktokOpen, setTiktokOpen] = useState(false)
   const [chapters, setChapters] = useState<Chapter[]>([{ time: '0:00', label: 'Intro' }])
   const [videoUrl, setVideoUrl] = useState('')
   const [privacy, setPrivacy] = useState<'public' | 'unlisted' | 'private'>('public')
@@ -267,9 +269,44 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     }
   }
 
+  // TikTok requires the creator to confirm the post (privacy + interaction
+  // settings) before it goes to the Content Posting API. For an immediate
+  // TikTok post we open that confirmation modal and finish in publishTikTok().
+  const publishTikTok = async (settings: TikTokPostSettings) => {
+    if (!mediaFile) return
+    setTiktokOpen(false)
+    setPublishing(true)
+    try {
+      const result = await publishMedia('tiktok', mediaFile, {
+        title: title.trim() || caption.trim(),
+        privacyLevel: settings.privacyLevel,
+        disableComment: settings.disableComment,
+        disableDuet: settings.disableDuet,
+        disableStitch: settings.disableStitch,
+      })
+      showPublished(
+        result.url,
+        settings.privacyLevel === 'SELF_ONLY'
+          ? 'Posted to TikTok as private - only you can see it.'
+          : 'Posted to your TikTok.',
+      )
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e)
+      addToast('Could not publish. See the bell for details.', 'info', 6000)
+      push({ type: 'error', title: 'Publish failed', message: 'Tap to see the full reason', detail })
+    } finally {
+      setPublishing(false)
+    }
+  }
+
   const publish = async () => {
     if (!title.trim() && !caption.trim()) {
       addToast('Add a title or caption first', 'info')
+      return
+    }
+    // Immediate TikTok post: confirm privacy + interaction settings first.
+    if (willActReal && platform === 'tiktok' && !scheduleAt && mediaFile) {
+      setTiktokOpen(true)
       return
     }
     setPublishing(true)
@@ -331,9 +368,6 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
           result.url,
           scheduleAt ? `Scheduled on Facebook for ${fmtWhen(scheduleAt)}.` : 'Posted to your Facebook Page.',
         )
-      } else if (willActReal && platform === 'tiktok' && mediaFile) {
-        const result = await publishMedia('tiktok', mediaFile, { title: title.trim() || caption.trim() })
-        showPublished(result.url, 'Uploaded to TikTok as private (until your app is audited).')
       } else if (willActReal && platform === 'instagram') {
         const igCaption = [title.trim(), composeDescription()].filter(Boolean).join('\n\n')
         const result = await publishPost('instagram', { mediaUrl: videoUrl.trim(), caption: igCaption })
@@ -772,6 +806,15 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
           </button>
         </section>
       </div>
+
+      {tiktokOpen && (
+        <TikTokPostModal
+          videoPreview={mediaPreview}
+          caption={title.trim() || caption.trim()}
+          onConfirm={publishTikTok}
+          onClose={() => setTiktokOpen(false)}
+        />
+      )}
 
       {published && (
         <PublishResultModal
