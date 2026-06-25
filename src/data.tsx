@@ -204,10 +204,9 @@ export interface GrowthMetric {
 export const GROWTH_METRICS: GrowthMetric[] = [
   { key: 'clicks', label: 'Total Clicks', value: '18,420', delta: '+12.4% this week', up: true },
   { key: 'visitors', label: 'Unique Visitors', value: '11,240', delta: '+8.1% this week', up: true },
-  { key: 'platform', label: 'Best Platform', value: 'Instagram', delta: '62% of tracked clicks' },
+  { key: 'ctr', label: 'Conversion Rate', value: '4.7%', delta: '+0.6% this week', up: true },
   { key: 'campaign', label: 'Top Campaign', value: 'Summer Sale', delta: '$4.2k attributed' },
   { key: 'revenue', label: 'Revenue Tracked', value: '$9,840', delta: '+18% this week', up: true },
-  { key: 'ctr', label: 'Avg Click Rate', value: '4.7%', delta: '+0.6% this week', up: true },
 ]
 
 export interface TopPost {
@@ -464,11 +463,14 @@ export interface Opportunity {
   nav?: 'links' | 'campaigns' | 'calendar' | 'settings'
 }
 
-/** Growth Opportunities roadmap (demo mode). */
+/** Growth Opportunities roadmap (demo mode), highest-impact first. */
 export const SAMPLE_OPPORTUNITIES: Opportunity[] = [
   { tier: 'Highest Impact', label: 'Add trackable links to Instagram', potential: 22, nav: 'links' },
+  { tier: 'Highest Impact', label: 'Add UTM tags to your top links', potential: 16, nav: 'links' },
   { tier: 'Easy Win', label: 'Create your first campaign', potential: 15, nav: 'campaigns' },
+  { tier: 'Easy Win', label: 'Schedule 3 posts for next week', potential: 12, nav: 'calendar' },
   { tier: 'Missing Data', label: 'Connect Facebook', potential: 8, nav: 'settings' },
+  { tier: 'Missing Data', label: 'Connect Pinterest', potential: 6, nav: 'settings' },
 ]
 
 /** The Monday "Weekly Growth Brief" (demo mode). */

@@ -42,7 +42,7 @@ import {
 import { listShortLinks, type ShortLink } from '../lib/shortLinks'
 import { realGrowthScore, realWeeklyBrief, topByClicks } from '../lib/growth'
 import { GROWTH_SCORE, WEEKLY_BRIEF, SAMPLE_OPPORTUNITIES, type Opportunity } from '../data'
-import { WinBanner, GrowthScoreCard, WeeklyBriefCard, OpportunitiesCard } from './GrowthCoach'
+import { GrowthScoreCard, ThisWeekCard, OpportunitiesCard } from './GrowthCoach'
 import type { CalendarPost, NavId, PlatformId } from '../types'
 
 /** Icon per growth-metric key (data lives in GROWTH_METRICS). */
@@ -55,7 +55,7 @@ const METRIC_ICONS: Record<string, LucideIcon> = {
   ctr: Percent,
 }
 
-/** Actionable growth opportunities derived from real connection + link state. */
+/** Actionable growth opportunities derived from real connection + link state, ranked by impact. */
 function realOpportunities(accounts: Record<string, { connected: boolean }>, links: ShortLink[]): Opportunity[] {
   const opps: Opportunity[] = []
   if (links.length < 3) {
@@ -66,11 +66,14 @@ function realOpportunities(accounts: Record<string, { connected: boolean }>, lin
   if (!links.some((l) => l.campaign)) {
     opps.push({ tier: 'Easy Win', label: 'Create your first campaign', potential: 15, nav: 'campaigns' })
   }
-  const notConnected = CONNECTABLE.filter((id) => !accounts[id]?.connected)
-  if (notConnected.length) {
-    opps.push({ tier: 'Missing Data', label: `Connect ${PLATFORMS[notConnected[0]].name}`, potential: 8, nav: 'settings' })
+  if (links.length >= 1 && links.length < 6) {
+    opps.push({ tier: 'Easy Win', label: 'Add a QR code to a printed touchpoint', potential: 9, nav: 'links' })
   }
-  return opps.slice(0, 3)
+  const notConnected = CONNECTABLE.filter((id) => !accounts[id]?.connected && !isComingSoon(id))
+  notConnected.slice(0, 3).forEach((id, i) => {
+    opps.push({ tier: 'Missing Data', label: `Connect ${PLATFORMS[id].name}`, potential: 8 - i, nav: 'settings' })
+  })
+  return opps.slice(0, 6)
 }
 
 /** Compact number formatting (12345 -> "12.3K"). */
@@ -166,9 +169,6 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
     visitors: realVisitors > 0
       ? { value: compact(realVisitors), delta: visitorsEstimated ? 'estimated unique' : 'unique, from your links' }
       : { value: '—', delta: 'No data yet' },
-    platform: bestLinkPlatform
-      ? { value: PLATFORMS[bestLinkPlatform].name, delta: 'most link clicks' }
-      : { value: '—', delta: 'No data yet' },
     campaign: topLinkCampaign
       ? { value: topLinkCampaign, delta: 'top campaign' }
       : { value: '—', delta: 'No campaigns yet' },
@@ -211,6 +211,14 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
   const realBrief = realWeeklyBrief(realClicks, realVisitors, bestLinkPlatform, topLinkCampaign, vids, links)
   const opportunities = sampleData ? SAMPLE_OPPORTUNITIES : realOpportunities(accounts, links)
 
+  // 30-day traffic sparkline for "This Week": a stable demo shape, or the real
+  // click total distributed across the range. Omitted when there is no traffic.
+  const weekTrend = sampleData
+    ? sampleSeries('clicks', '30D')
+    : hasRealClicks
+      ? scaleToTotal(sampleSeries('clicks', '30D'), realClicks)
+      : undefined
+
   return (
     <div className="space-y-6">
       {/* header */}
@@ -247,32 +255,22 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
         </div>
       </div>
 
-      {/* growth coach: win celebration + score + weekly brief */}
-      {sampleData ? (
-        WEEKLY_BRIEF.bestWeek && (
-          <WinBanner
-            headline="Best week yet 🎉"
-            detail={`Traffic ${WEEKLY_BRIEF.trafficDelta} this week. Your top post "${WEEKLY_BRIEF.topPost}" drove ${WEEKLY_BRIEF.topPostClicks} clicks.`}
+      {/* hero: Growth Level (enlarged) + This Week */}
+      <div className="grid gap-5 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <GrowthScoreCard data={sampleData ? GROWTH_SCORE : realScore} building={!sampleData && !realScore} hero />
+        </div>
+        <div className="lg:col-span-2">
+          <ThisWeekCard
+            brief={sampleData ? WEEKLY_BRIEF : realBrief}
+            building={!sampleData && !realBrief}
+            trend={weekTrend}
+            onNavigate={onNavigate}
           />
-        )
-      ) : (
-        realBrief?.bestWeek && (
-          <WinBanner
-            headline="Nice momentum 🎉"
-            detail={`Your tracked links have driven ${compact(realClicks)} clicks from ${compact(realVisitors)} unique visitors.`}
-          />
-        )
-      )}
-      <div className="grid gap-5 lg:grid-cols-2">
-        <GrowthScoreCard data={sampleData ? GROWTH_SCORE : realScore} building={!sampleData && !realScore} />
-        <WeeklyBriefCard
-          brief={sampleData ? WEEKLY_BRIEF : realBrief}
-          building={!sampleData && !realBrief}
-          onNavigate={onNavigate}
-        />
+        </div>
       </div>
 
-      {/* actionable roadmap */}
+      {/* actionable roadmap: top move + expandable list */}
       <OpportunitiesCard opportunities={opportunities} onNavigate={onNavigate} />
 
       {/* growth metric cards */}
