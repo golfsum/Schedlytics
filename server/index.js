@@ -12,6 +12,7 @@ import { scheduled } from './scheduled-store.js'
 import { weeklySubs } from './weekly-store.js'
 import { earlyAccess, EA_CAP } from './early-access-store.js'
 import { support } from './support-store.js'
+import { analytics } from './analytics-store.js'
 import { sendEmail, emailEnabled } from './email.js'
 import { isConfigured as fbAdminConfigured, listUsers, passwordResetLink, setUserDisabled } from './lib/firebaseAdmin.js'
 import { verifyIdToken } from './lib/firebaseAuth.js'
@@ -149,6 +150,38 @@ app.post('/api/early-access', async (req, res) => {
 })
 
 /* -------------------------------------------------------------------------- */
+/*  Site analytics. A tiny first-party beacon counts page loads + demo opens.   */
+/*  Privacy-friendly: we store only salted IP+UA hashes to de-dupe visitors.    */
+/* -------------------------------------------------------------------------- */
+
+// IPs to ignore (e.g. the owner's own address). Set ANALYTICS_EXCLUDE_IPS in
+// Vercel as a comma-separated list.
+const ANALYTICS_EXCLUDE_IPS = (process.env.ANALYTICS_EXCLUDE_IPS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
+
+const clientIp = (req) =>
+  String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim()
+
+// Public beacon. POST /api/track?type=demo when the demo is opened. Never errors
+// (a tracking failure must not affect the page); skips excluded IPs and bots.
+app.post('/api/track', async (req, res) => {
+  try {
+    const ip = clientIp(req)
+    const ua = req.get('user-agent') || ''
+    const isBot = /bot|crawl|spider|slurp|preview|monitor|lighthouse|headless|curl|wget/i.test(ua)
+    if (ip && ANALYTICS_EXCLUDE_IPS.includes(ip)) return res.json({ ok: true, skipped: 'excluded' })
+    if (isBot) return res.json({ ok: true, skipped: 'bot' })
+    const visitor = crypto.createHash('sha256').update(`${ip}|${ua}`).digest('hex').slice(0, 16)
+    await analytics.record({ visitor, demo: req.query.type === 'demo' })
+    res.json({ ok: true })
+  } catch {
+    res.json({ ok: false })
+  }
+})
+
+/* -------------------------------------------------------------------------- */
 /*  Admin (early access + support). Auth: ADMIN_SECRET, or a Firebase ID token  */
 /*  whose verified email is in ADMIN_EMAILS.                                    */
 /* -------------------------------------------------------------------------- */
@@ -178,6 +211,12 @@ async function adminOf(req) {
 // Lets the app decide whether to show the Admin nav for the signed-in user.
 app.get('/api/admin/me', async (req, res) => {
   res.json({ admin: Boolean(await adminOf(req)) })
+})
+
+// Site traffic: views + unique visitors (today / week / month) + demo opens.
+app.get('/api/admin/analytics', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  res.json(await analytics.summary())
 })
 
 // List early-access sign-ups (JSON or ?format=csv).

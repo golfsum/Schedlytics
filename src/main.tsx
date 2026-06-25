@@ -11,6 +11,7 @@ import { ProfileProvider } from './components/Profile.tsx'
 import { PlanProvider } from './components/Plan.tsx'
 import { SyncGate } from './components/SyncGate.tsx'
 import { resolveShortLinkRedirect } from './lib/shortLinks.ts'
+import { trackVisit } from './lib/track.ts'
 import './index.css'
 
 // If this load is a client-side short link ({origin}/#/s/<slug>), redirect to
@@ -18,6 +19,8 @@ import './index.css'
 if (!resolveShortLinkRedirect()) {
   // Vercel Web Analytics (page views). No-op outside Vercel.
   injectAnalytics()
+  // First-party visit beacon (powers the admin Traffic tab).
+  trackVisit()
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

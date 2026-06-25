@@ -28,6 +28,27 @@ export async function fetchAdminMe(): Promise<boolean> {
   }
 }
 
+export interface TrafficStat {
+  views: number
+  uniques: number
+  demo: number
+}
+export interface AnalyticsData {
+  today: TrafficStat
+  week: TrafficStat
+  month: TrafficStat
+  series: { day: string; views: number; uniques: number; demo: number }[]
+  driver: string
+}
+export async function fetchAnalytics(): Promise<AnalyticsData | null> {
+  try {
+    const r = await fetch(`${apiBase}/api/admin/analytics`, { headers: await authHeaders() })
+    return r.ok ? r.json() : null
+  } catch {
+    return null
+  }
+}
+
 export interface EASignup {
   email: string
   status: 'accepted' | 'waitlist'

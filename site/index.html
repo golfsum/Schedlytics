@@ -660,6 +660,16 @@
       })()
     </script>
 
+    <!-- First-party visit beacon (powers the admin Traffic tab) -->
+    <script>
+      (function () {
+        try {
+          if (navigator.sendBeacon) navigator.sendBeacon('/api/track')
+          else fetch('/api/track', { method: 'POST', keepalive: true })
+        } catch (e) {}
+      })()
+    </script>
+
     <!-- Vercel Web Analytics (page views for the marketing site) -->
     <script>
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments) }

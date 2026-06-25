@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FileText, Loader2, Check, Inbox as InboxIcon, KeyRound, Ban, ShieldCheck } from 'lucide-react'
+import { FileText, Loader2, Check, Inbox as InboxIcon, KeyRound, Ban, ShieldCheck, Users, Eye, PlayCircle } from 'lucide-react'
 import { useToast } from './Toast'
 import {
   fetchEarlyAccess,
@@ -9,29 +9,32 @@ import {
   fetchUsers,
   sendPasswordReset,
   setUserDisabled,
+  fetchAnalytics,
   type EAData,
   type Ticket,
   type AdminUser,
+  type AnalyticsData,
 } from '../lib/admin'
 
 const fmtDate = (ms: number) =>
   ms ? new Date(ms).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'
 
-type Tab = 'early' | 'support' | 'users'
+type Tab = 'traffic' | 'early' | 'support' | 'users'
 const TABS: { id: Tab; label: string }[] = [
+  { id: 'traffic', label: 'Traffic' },
   { id: 'early', label: 'Early Access' },
   { id: 'support', label: 'Support' },
   { id: 'users', label: 'Users' },
 ]
 
 export default function AdminView() {
-  const [tab, setTab] = useState<Tab>('early')
+  const [tab, setTab] = useState<Tab>('traffic')
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Admin</h1>
-        <p className="mt-1 text-sm text-slate-400">Sign-ups, support tickets, and user accounts.</p>
+        <p className="mt-1 text-sm text-slate-400">Traffic, sign-ups, support tickets, and user accounts.</p>
       </div>
 
       <div className="flex rounded-xl border border-white/5 bg-navy-800/70 p-1">
@@ -48,9 +51,92 @@ export default function AdminView() {
         ))}
       </div>
 
+      {tab === 'traffic' && <TrafficPanel />}
       {tab === 'early' && <EarlyAccessPanel />}
       {tab === 'support' && <SupportPanel />}
       {tab === 'users' && <UsersPanel />}
+    </div>
+  )
+}
+
+function TrafficPanel() {
+  const [data, setData] = useState<AnalyticsData | null | 'loading'>('loading')
+  useEffect(() => {
+    fetchAnalytics().then((d) => setData(d))
+  }, [])
+
+  if (data === 'loading') return <Loading />
+  if (!data) return <ErrorCard label="Could not load traffic." />
+
+  const periods: { label: string; s: AnalyticsData['today'] }[] = [
+    { label: 'Today', s: data.today },
+    { label: 'Last 7 days', s: data.week },
+    { label: 'Last 30 days', s: data.month },
+  ]
+  const maxViews = Math.max(1, ...data.series.map((d) => d.views))
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-4 md:grid-cols-3">
+        {periods.map((p) => (
+          <div key={p.label} className="card p-5">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{p.label}</div>
+            <div className="mt-3 flex items-end gap-2">
+              <span className="text-3xl font-bold text-white">{p.s.views.toLocaleString()}</span>
+              <span className="mb-1 text-sm text-slate-400">views</span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
+              <span className="flex items-center gap-1.5 text-slate-300">
+                <Users className="h-4 w-4 text-cyan-accent" />
+                <b className="text-white">{p.s.uniques.toLocaleString()}</b> unique
+              </span>
+              <span className="flex items-center gap-1.5 text-slate-300">
+                <PlayCircle className="h-4 w-4 text-emerald-400" />
+                <b className="text-white">{p.s.demo.toLocaleString()}</b> opened demo
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card p-5">
+        <div className="mb-1 flex items-center gap-2">
+          <Eye className="h-4 w-4 text-cyan-accent" />
+          <h2 className="text-lg font-bold text-white">Last 14 days</h2>
+          <div className="ml-auto flex items-center gap-4 text-[11px] text-slate-400">
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-cyan-accent/30" /> Views</span>
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-cyan-accent" /> Unique</span>
+          </div>
+        </div>
+        <div className="mt-4 flex h-40 items-end gap-1.5">
+          {data.series.map((d) => (
+            <div
+              key={d.day}
+              className="group relative flex flex-1 flex-col justify-end"
+              title={`${d.day}: ${d.views} views, ${d.uniques} unique${d.demo ? `, ${d.demo} demo` : ''}`}
+            >
+              <div
+                className="relative w-full rounded-t bg-cyan-accent/25"
+                style={{ height: `${Math.max(2, (d.views / maxViews) * 100)}%` }}
+              >
+                <div
+                  className="absolute bottom-0 w-full rounded-t bg-cyan-accent"
+                  style={{ height: `${d.views ? (d.uniques / d.views) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 flex justify-between text-[10px] text-slate-500">
+          <span>{data.series[0]?.day.slice(5)}</span>
+          <span>{data.series[data.series.length - 1]?.day.slice(5)}</span>
+        </div>
+      </div>
+
+      <p className="text-xs text-slate-500">
+        Counts page loads on the marketing site and app. "Unique" de-duplicates visitors per day; weekly and
+        monthly uniques merge across days. Bots and excluded IPs are filtered out.
+      </p>
     </div>
   )
 }
