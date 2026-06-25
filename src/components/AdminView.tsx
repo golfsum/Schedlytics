@@ -15,6 +15,7 @@ import {
   downloadErrorsCsv,
   ackError,
   fetchHealth,
+  sendTestEmail,
   fetchOverview,
   fetchBanner,
   setBanner,
@@ -418,8 +419,10 @@ function ErrorsPanel() {
 }
 
 function StatusPanel() {
+  const { addToast } = useToast()
   const [data, setData] = useState<HealthData | null | 'loading'>('loading')
   const [loading, setLoading] = useState(false)
+  const [emailing, setEmailing] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -431,6 +434,14 @@ function StatusPanel() {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const testEmail = async () => {
+    setEmailing(true)
+    const r = await sendTestEmail()
+    setEmailing(false)
+    if (r.ok) addToast(`Test email sent to ${r.to} ✅`)
+    else addToast(r.error || 'Could not send the test email', 'info', 6000)
+  }
 
   if (data === 'loading') return <Loading />
   if (!data) return <ErrorCard label="Could not run the health checks." />
@@ -449,14 +460,24 @@ function StatusPanel() {
           <div className="font-bold text-white">{allOk ? 'All systems operational' : `${downCount} service${downCount === 1 ? '' : 's'} need attention`}</div>
           <div className="text-xs text-slate-500">Checked {fmtDate(data.at)}</div>
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="ml-auto flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white disabled:opacity-60"
-        >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          Re-check
-        </button>
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={testEmail}
+            disabled={emailing}
+            className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white disabled:opacity-60"
+          >
+            {emailing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+            Send test email
+          </button>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white disabled:opacity-60"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Re-check
+          </button>
+        </div>
       </div>
 
       {categories.map((cat) => (

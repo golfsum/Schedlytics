@@ -349,6 +349,25 @@ app.get('/api/admin/health', async (req, res) => {
   }
 })
 
+// Send a real test email to confirm SMTP actually delivers (not just configured).
+app.post('/api/admin/send-test-email', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  if (!emailEnabled) return res.status(400).json({ error: 'Email is not configured. Set the SMTP_* env vars first.' })
+  const to = String(req.body?.to || process.env.ADMIN_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER || '').trim()
+  if (!to) return res.status(400).json({ error: 'No recipient. Set ADMIN_EMAIL.' })
+  try {
+    await sendEmail({
+      to,
+      subject: 'Schedlytics test email',
+      html: '<p>This is a test email from your Schedlytics admin dashboard.</p><p>If you can read this, SMTP is working and emails are delivering.</p>',
+    })
+    res.json({ ok: true, to })
+  } catch (err) {
+    console.error('[admin/send-test-email] failed:', err.message)
+    res.status(502).json({ ok: false, error: err.message })
+  }
+})
+
 // List early-access sign-ups (JSON or ?format=csv).
 app.get('/api/admin/early-access', async (req, res) => {
   if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })

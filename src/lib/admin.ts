@@ -130,6 +130,19 @@ export async function fetchHealth(): Promise<HealthData | null> {
     return null
   }
 }
+export async function sendTestEmail(): Promise<{ ok: boolean; to?: string; error?: string }> {
+  try {
+    const r = await fetch(`${apiBase}/api/admin/send-test-email`, {
+      method: 'POST',
+      headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+    const body = await r.json().catch(() => ({}))
+    return r.ok ? { ok: true, to: body.to } : { ok: false, error: body.error || `HTTP ${r.status}` }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'request failed' }
+  }
+}
 
 export interface ErrorGroup {
   context: string
