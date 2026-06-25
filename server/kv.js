@@ -30,6 +30,14 @@ async function redis(command) {
   return json.result
 }
 
+/** Health probe for the storage backend (Redis PING, or local file fallback). */
+export async function kvPing() {
+  if (!useKV) return { ok: true, backend: 'local file', latencyMs: 0 }
+  const start = Date.now()
+  const r = await redis(['PING'])
+  return { ok: r === 'PONG', backend: 'Vercel KV', latencyMs: Date.now() - start }
+}
+
 /* ----------------------- hash store (field -> object) --------------------- */
 
 /**

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FileText, Loader2, Check, Inbox as InboxIcon, KeyRound, Ban, ShieldCheck, Users, Eye, AlertTriangle, Trash2 } from 'lucide-react'
+import { FileText, Loader2, Check, Inbox as InboxIcon, KeyRound, Ban, ShieldCheck, Users, Eye, AlertTriangle, Trash2, RefreshCw } from 'lucide-react'
 import { useToast } from './Toast'
 import {
   fetchEarlyAccess,
@@ -14,7 +14,7 @@ import {
   clearErrors,
   downloadErrorsCsv,
   ackError,
-  fetchConnections,
+  fetchHealth,
   fetchOverview,
   fetchBanner,
   setBanner,
@@ -24,19 +24,19 @@ import {
   type AdminUser,
   type AnalyticsData,
   type ErrorsData,
-  type ConnectionHealth,
+  type HealthData,
   type OverviewData,
 } from '../lib/admin'
 
 const fmtDate = (ms: number) =>
   ms ? new Date(ms).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''
 
-type Tab = 'overview' | 'traffic' | 'errors' | 'connections' | 'early' | 'support' | 'users'
+type Tab = 'overview' | 'traffic' | 'errors' | 'status' | 'early' | 'support' | 'users'
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'traffic', label: 'Traffic' },
   { id: 'errors', label: 'Errors' },
-  { id: 'connections', label: 'Connections' },
+  { id: 'status', label: 'Status' },
   { id: 'early', label: 'Early Access' },
   { id: 'support', label: 'Support' },
   { id: 'users', label: 'Users' },
@@ -69,7 +69,7 @@ export default function AdminView() {
       {tab === 'overview' && <OverviewPanel onGo={setTab} />}
       {tab === 'traffic' && <TrafficPanel />}
       {tab === 'errors' && <ErrorsPanel />}
-      {tab === 'connections' && <ConnectionsPanel />}
+      {tab === 'status' && <StatusPanel />}
       {tab === 'early' && <EarlyAccessPanel />}
       {tab === 'support' && <SupportPanel />}
       {tab === 'users' && <UsersPanel />}
@@ -417,60 +417,78 @@ function ErrorsPanel() {
   )
 }
 
-function ConnectionsPanel() {
-  const [data, setData] = useState<ConnectionHealth[] | null | 'loading'>('loading')
+function StatusPanel() {
+  const [data, setData] = useState<HealthData | null | 'loading'>('loading')
+  const [loading, setLoading] = useState(false)
+
+  const load = () => {
+    setLoading(true)
+    fetchHealth()
+      .then((d) => setData(d))
+      .finally(() => setLoading(false))
+  }
   useEffect(() => {
-    fetchConnections().then((d) => setData(d))
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   if (data === 'loading') return <Loading />
-  if (!data) return <ErrorCard label="Could not load connections." />
+  if (!data) return <ErrorCard label="Could not run the health checks." />
 
-  const expiresIn = (ms: number | null) => {
-    if (!ms) return ''
-    const diff = ms - Date.now()
-    if (diff <= 0) return 'expired'
-    const h = Math.round(diff / 3_600_000)
-    if (h < 48) return `in ${h}h`
-    return `in ${Math.round(h / 24)}d`
-  }
+  const categories = [...new Set(data.checks.map((c) => c.category))]
+  const allOk = data.checks.every((c) => c.ok)
+  const downCount = data.checks.filter((c) => !c.ok).length
 
   return (
-    <div className="card overflow-x-auto p-0">
-      <div className="px-4 py-3">
-        <h2 className="text-lg font-bold text-white">Connected accounts</h2>
-        <p className="mt-0.5 text-xs text-slate-500">
-          Platform tokens are currently shared at the account level. Token values are never shown.
-        </p>
+    <div className="space-y-5">
+      <div className="card flex flex-wrap items-center gap-3 p-5">
+        <span className={`grid h-10 w-10 place-items-center rounded-xl ${allOk ? 'bg-emerald-400/10 text-emerald-400' : 'bg-rose-400/10 text-rose-300'}`}>
+          <span className={`h-2.5 w-2.5 rounded-full ${allOk ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+        </span>
+        <div>
+          <div className="font-bold text-white">{allOk ? 'All systems operational' : `${downCount} service${downCount === 1 ? '' : 's'} need attention`}</div>
+          <div className="text-xs text-slate-500">Checked {fmtDate(data.at)}</div>
+        </div>
+        <button
+          onClick={load}
+          disabled={loading}
+          className="ml-auto flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white disabled:opacity-60"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Re-check
+        </button>
       </div>
-      <table className="w-full min-w-[560px] text-left text-sm">
-        <thead>
-          <tr className="border-b border-white/5 text-[11px] uppercase tracking-wide text-slate-500">
-            <th className="px-4 py-2 font-semibold">Platform</th>
-            <th className="px-4 py-2 font-semibold">Status</th>
-            <th className="px-4 py-2 font-semibold">Token expires</th>
-            <th className="px-4 py-2 font-semibold">Last updated</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-white/5">
-          {data.map((c) => (
-            <tr key={c.id}>
-              <td className="px-4 py-2.5 font-medium text-white">{c.name}</td>
-              <td className="px-4 py-2.5">
-                {!c.connected ? (
-                  <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] font-semibold text-slate-400">Not connected</span>
-                ) : c.expired ? (
-                  <span className="rounded-full bg-rose-400/10 px-2 py-0.5 text-[11px] font-semibold text-rose-300">Token expired</span>
-                ) : (
-                  <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">Connected</span>
-                )}
-              </td>
-              <td className="px-4 py-2.5 text-slate-400">{c.connected ? expiresIn(c.expiresAt) || 'no expiry' : ''}</td>
-              <td className="px-4 py-2.5 text-slate-400">{c.updatedAt ? fmtDate(c.updatedAt) : ''}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+
+      {categories.map((cat) => (
+        <div key={cat} className="card overflow-x-auto p-0">
+          <h2 className="px-4 py-3 text-lg font-bold text-white">{cat}</h2>
+          <table className="w-full min-w-[480px] text-left text-sm">
+            <tbody className="divide-y divide-white/5">
+              {data.checks
+                .filter((c) => c.category === cat)
+                .map((c) => (
+                  <tr key={c.name}>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${c.ok ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                        <span className="font-medium text-white">{c.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-slate-400">{c.detail || (c.ok ? 'reachable' : 'unreachable')}</td>
+                    <td className="px-4 py-3 text-right text-slate-500">
+                      {c.status ? `HTTP ${c.status}` : ''}
+                      {c.latencyMs ? ` · ${c.latencyMs}ms` : ''}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+
+      <p className="text-xs text-slate-500">
+        Platform checks confirm each API is reachable and responding (an expected sign-in challenge still counts as up).
+      </p>
     </div>
   )
 }

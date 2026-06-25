@@ -110,20 +110,22 @@ export async function fetchOverview(): Promise<OverviewData | null> {
   }
 }
 
-export interface ConnectionHealth {
-  id: string
+export interface HealthCheck {
   name: string
-  connected: boolean
-  expiresAt: number | null
-  expired: boolean
-  scope: string | null
-  updatedAt: number | null
-  publish: string
+  category: string
+  ok: boolean
+  status: number
+  latencyMs?: number
+  detail?: string
 }
-export async function fetchConnections(): Promise<ConnectionHealth[] | null> {
+export interface HealthData {
+  checks: HealthCheck[]
+  at: number
+}
+export async function fetchHealth(): Promise<HealthData | null> {
   try {
-    const r = await fetch(`${apiBase}/api/admin/connections`, { headers: await authHeaders() })
-    return r.ok ? (await r.json()).connections : null
+    const r = await fetch(`${apiBase}/api/admin/health`, { headers: await authHeaders() })
+    return r.ok ? r.json() : null
   } catch {
     return null
   }

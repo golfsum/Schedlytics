@@ -15,6 +15,7 @@ import { support } from './support-store.js'
 import { analytics } from './analytics-store.js'
 import { errors as errorLog } from './error-store.js'
 import { banner } from './banner-store.js'
+import { checkHealth } from './health.js'
 import { sendEmail, emailEnabled } from './email.js'
 import { isConfigured as fbAdminConfigured, listUsers, passwordResetLink, setUserDisabled } from './lib/firebaseAdmin.js'
 import { verifyIdToken } from './lib/firebaseAuth.js'
@@ -337,25 +338,15 @@ app.delete('/api/admin/banner', async (req, res) => {
   res.json({ ok: true })
 })
 
-// Connected-accounts health: which platforms have a live token, expiry, scope.
-// Never returns the token values themselves.
-app.get('/api/admin/connections', async (req, res) => {
+// Live uptime checks for platform APIs, AI, storage, email, and the shortener.
+app.get('/api/admin/health', async (req, res) => {
   if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
-  const connections = []
-  for (const id of Object.keys(platforms)) {
-    const tok = await store.get(id)
-    connections.push({
-      id,
-      name: platforms[id].name || id,
-      connected: Boolean(tok && tok.accessToken),
-      expiresAt: tok?.expiresAt || null,
-      expired: tok?.expiresAt ? Date.now() > tok.expiresAt : false,
-      scope: tok?.scope || null,
-      updatedAt: tok?.updatedAt || null,
-      publish: PUBLISH_CAPABILITIES[id]?.mode || 'none',
-    })
+  try {
+    res.json({ checks: await checkHealth(), at: Date.now() })
+  } catch (err) {
+    console.error('[admin/health] failed:', err.message)
+    res.status(502).json({ error: err.message })
   }
-  res.json({ connections })
 })
 
 // List early-access sign-ups (JSON or ?format=csv).
