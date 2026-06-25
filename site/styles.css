@@ -922,6 +922,20 @@ a:hover {
   font-weight: 500;
   color: var(--faint);
 }
+/* early adopter: regular price struck through, locked-in note below */
+.price-was {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--faint);
+  text-decoration: line-through;
+  margin-bottom: 2px;
+}
+.price-note {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cyan);
+}
 /* monthly / annual toggle */
 .billing-check {
   position: absolute;
