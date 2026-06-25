@@ -12,6 +12,7 @@ import {
   fetchAnalytics,
   fetchErrors,
   clearErrors,
+  downloadErrorsCsv,
   fetchConnections,
   type EAData,
   type Ticket,
@@ -194,12 +195,20 @@ function ErrorsPanel() {
           <h2 className="flex items-center gap-2 text-lg font-bold text-white">
             <AlertTriangle className="h-4 w-4 text-amber-300" /> Most frequent
           </h2>
-          <button
-            onClick={onClear}
-            className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white"
-          >
-            <Trash2 className="h-3.5 w-3.5" /> Clear log
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => downloadErrorsCsv()}
+              className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white"
+            >
+              <FileText className="h-3.5 w-3.5" /> Export CSV
+            </button>
+            <button
+              onClick={onClear}
+              className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Clear log
+            </button>
+          </div>
         </div>
         <table className="w-full min-w-[560px] text-left text-sm">
           <thead>

@@ -265,8 +265,20 @@ app.get('/api/admin/analytics', async (req, res) => {
 })
 
 // Errors users hit: top by frequency, most-affected users, recent occurrences.
+// ?format=csv exports the full log.
 app.get('/api/admin/errors', async (req, res) => {
   if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  if (req.query.format === 'csv') {
+    const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+    const all = await errorLog.all()
+    const rows = [
+      'time,context,message,email,platform,url,source',
+      ...all.map((e) =>
+        [new Date(e.at).toISOString(), e.context, e.message, e.email, e.platform, e.url, e.source].map(cell).join(','),
+      ),
+    ]
+    return res.type('text/csv').send(rows.join('\n'))
+  }
   res.json(await errorLog.summary())
 })
 

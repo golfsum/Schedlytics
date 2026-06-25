@@ -113,6 +113,19 @@ export async function clearErrors(): Promise<boolean> {
     return false
   }
 }
+export async function downloadErrorsCsv(): Promise<void> {
+  const r = await fetch(`${apiBase}/api/admin/errors?format=csv`, { headers: await authHeaders() })
+  if (!r.ok) return
+  const blob = new Blob([await r.text()], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'errors.csv'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
 
 export interface EASignup {
   email: string
