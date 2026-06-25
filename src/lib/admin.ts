@@ -31,6 +31,9 @@ export async function fetchAdminMe(): Promise<boolean> {
 export interface TrafficStat {
   views: number
   uniques: number
+  /** View counts split by source. */
+  site: number
+  app: number
   demo: number
 }
 export interface AnalyticsData {

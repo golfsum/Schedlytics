@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FileText, Loader2, Check, Inbox as InboxIcon, KeyRound, Ban, ShieldCheck, Users, Eye, PlayCircle } from 'lucide-react'
+import { FileText, Loader2, Check, Inbox as InboxIcon, KeyRound, Ban, ShieldCheck, Users, Eye } from 'lucide-react'
 import { useToast } from './Toast'
 import {
   fetchEarlyAccess,
@@ -85,15 +85,15 @@ function TrafficPanel() {
               <span className="text-3xl font-bold text-white">{p.s.views.toLocaleString()}</span>
               <span className="mb-1 text-sm text-slate-400">views</span>
             </div>
-            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <Users className="h-4 w-4 text-cyan-accent" />
-                <b className="text-white">{p.s.uniques.toLocaleString()}</b> unique
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <PlayCircle className="h-4 w-4 text-emerald-400" />
-                <b className="text-white">{p.s.demo.toLocaleString()}</b> opened demo
-              </span>
+            <div className="mt-2 flex items-center gap-1.5 text-sm text-slate-300">
+              <Users className="h-4 w-4 text-cyan-accent" />
+              <b className="text-white">{p.s.uniques.toLocaleString()}</b> unique visitors
+            </div>
+            {/* source breakdown */}
+            <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/5 pt-3 text-center">
+              <Breakdown label="Marketing" value={p.s.site} />
+              <Breakdown label="App" value={p.s.app} />
+              <Breakdown label="Demo" value={p.s.demo} accent />
             </div>
           </div>
         ))}
@@ -414,6 +414,15 @@ function UsersPanel() {
 
 const providerLabel = (id: string) =>
   ({ 'google.com': 'Google', password: 'Email', 'facebook.com': 'Facebook', 'github.com': 'GitHub' }[id] || id)
+
+function Breakdown({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+  return (
+    <div>
+      <div className={`text-lg font-bold ${accent ? 'text-emerald-400' : 'text-white'}`}>{value.toLocaleString()}</div>
+      <div className="text-[10px] uppercase tracking-wide text-slate-500">{label}</div>
+    </div>
+  )
+}
 
 function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (

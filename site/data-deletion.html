@@ -161,5 +161,14 @@
         }
       })
     </script>
+    <!-- First-party visit beacon (powers the admin Traffic tab) -->
+    <script>
+      (function () {
+        try {
+          if (navigator.sendBeacon) navigator.sendBeacon('/api/track?type=site')
+          else fetch('/api/track?type=site', { method: 'POST', keepalive: true })
+        } catch (e) {}
+      })()
+    </script>
   </body>
 </html>

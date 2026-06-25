@@ -13,7 +13,7 @@ export function trackVisit(): void {
   const hasBackend = import.meta.env.PROD || apiBase !== ''
   if (!hasBackend) return
   sent = true
-  const url = `${apiBase}/api/track${demoMode ? '?type=demo' : ''}`
+  const url = `${apiBase}/api/track?type=${demoMode ? 'demo' : 'app'}`
   try {
     if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
       navigator.sendBeacon(url)

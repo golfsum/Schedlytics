@@ -174,7 +174,8 @@ app.post('/api/track', async (req, res) => {
     if (ip && ANALYTICS_EXCLUDE_IPS.includes(ip)) return res.json({ ok: true, skipped: 'excluded' })
     if (isBot) return res.json({ ok: true, skipped: 'bot' })
     const visitor = crypto.createHash('sha256').update(`${ip}|${ua}`).digest('hex').slice(0, 16)
-    await analytics.record({ visitor, demo: req.query.type === 'demo' })
+    const type = ['site', 'app', 'demo'].includes(req.query.type) ? req.query.type : 'site'
+    await analytics.record({ visitor, type })
     res.json({ ok: true })
   } catch {
     res.json({ ok: false })
