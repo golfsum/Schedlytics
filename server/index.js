@@ -312,6 +312,14 @@ app.delete('/api/admin/errors', async (req, res) => {
   res.json({ ok: true })
 })
 
+// Resolve / unresolve an error group. { context, message, acked }
+app.post('/api/admin/errors/ack', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  const { context, message, acked = true } = req.body || {}
+  await errorLog.ack(context, message, acked)
+  res.json({ ok: true })
+})
+
 // Connected-accounts health: which platforms have a live token, expiry, scope.
 // Never returns the token values themselves.
 app.get('/api/admin/connections', async (req, res) => {

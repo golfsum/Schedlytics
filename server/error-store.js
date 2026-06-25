@@ -67,11 +67,22 @@ export const errors = {
 
   async clear() {
     await h.put('events', [])
+    await h.put('acks', {})
+  },
+
+  /** Mark an error group resolved (or unresolve it). Re-surfaces if it recurs. */
+  async ack(context, message, acked = true) {
+    const fp = fingerprint({ context, message })
+    const acks = (await h.get('acks')) || {}
+    if (acked) acks[fp] = Date.now()
+    else delete acks[fp]
+    await h.put('acks', acks)
   },
 
   /** Aggregations for the admin Errors tab: top errors, top users, recent. */
   async summary() {
     const all = await this.all()
+    const acks = (await h.get('acks')) || {}
     const dayAgo = Date.now() - 86_400_000
     const groups = new Map()
     const byUser = new Map()
@@ -92,8 +103,13 @@ export const errors = {
     }
 
     const topGroups = [...groups.values()]
-      .map((g) => ({ context: g.context, message: g.message, count: g.count, lastAt: g.lastAt, users: g.users.size }))
-      .sort((a, b) => b.count - a.count)
+      .map((g) => {
+        const fp = `${g.context}|${g.message}`.slice(0, 240)
+        // Resolved only counts while no newer occurrence has come in since the ack.
+        const acked = Boolean(acks[fp] && acks[fp] >= g.lastAt)
+        return { context: g.context, message: g.message, count: g.count, lastAt: g.lastAt, users: g.users.size, acked }
+      })
+      .sort((a, b) => Number(a.acked) - Number(b.acked) || b.count - a.count)
       .slice(0, 40)
 
     const topUsers = [...byUser.entries()]

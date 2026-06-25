@@ -13,6 +13,7 @@ import {
   fetchErrors,
   clearErrors,
   downloadErrorsCsv,
+  ackError,
   fetchConnections,
   fetchOverview,
   type EAData,
@@ -255,18 +256,30 @@ function ErrorsPanel() {
               <th className="px-4 py-2 text-right font-semibold">Count</th>
               <th className="px-4 py-2 text-right font-semibold">Users</th>
               <th className="px-4 py-2 text-right font-semibold">Last seen</th>
+              <th className="px-4 py-2 text-right font-semibold"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
             {data.topGroups.map((g, i) => (
-              <tr key={i}>
+              <tr key={i} className={g.acked ? 'opacity-45' : ''}>
                 <td className="px-4 py-2.5">
                   <span className="mr-2 rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">{g.context}</span>
                   <span className="text-slate-200">{g.message || '(no message)'}</span>
+                  {g.acked && <span className="ml-2 text-[10px] font-semibold text-emerald-400">resolved</span>}
                 </td>
                 <td className="px-4 py-2.5 text-right font-bold text-white">{g.count}</td>
                 <td className="px-4 py-2.5 text-right text-slate-400">{g.users}</td>
                 <td className="px-4 py-2.5 text-right text-slate-400">{fmtDate(g.lastAt)}</td>
+                <td className="px-4 py-2.5 text-right">
+                  <button
+                    onClick={async () => {
+                      if (await ackError(g.context, g.message, !g.acked)) load()
+                    }}
+                    className="rounded-lg border border-white/10 px-2.5 py-1 text-[11px] font-semibold text-slate-300 hover:text-white"
+                  >
+                    {g.acked ? 'Reopen' : 'Resolve'}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

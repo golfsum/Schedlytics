@@ -98,6 +98,19 @@ export interface ErrorGroup {
   count: number
   lastAt: number
   users: number
+  acked: boolean
+}
+export async function ackError(context: string, message: string, acked: boolean): Promise<boolean> {
+  try {
+    const r = await fetch(`${apiBase}/api/admin/errors/ack`, {
+      method: 'POST',
+      headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context, message, acked }),
+    })
+    return r.ok
+  } catch {
+    return false
+  }
 }
 export interface ErrorEvent {
   id: string
