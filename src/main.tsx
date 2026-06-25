@@ -12,6 +12,7 @@ import { PlanProvider } from './components/Plan.tsx'
 import { SyncGate } from './components/SyncGate.tsx'
 import { resolveShortLinkRedirect } from './lib/shortLinks.ts'
 import { trackVisit } from './lib/track.ts'
+import { reportError } from './lib/reportError.ts'
 import './index.css'
 
 // If this load is a client-side short link ({origin}/#/s/<slug>), redirect to
@@ -21,6 +22,11 @@ if (!resolveShortLinkRedirect()) {
   injectAnalytics()
   // First-party visit beacon (powers the admin Traffic tab).
   trackVisit()
+  // Report uncaught errors so they show in the admin Errors tab.
+  window.addEventListener('error', (e) => reportError('Uncaught error', e.message || String(e.error)))
+  window.addEventListener('unhandledrejection', (e) =>
+    reportError('Unhandled promise rejection', String((e.reason && e.reason.message) || e.reason)),
+  )
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

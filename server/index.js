@@ -13,6 +13,7 @@ import { weeklySubs } from './weekly-store.js'
 import { earlyAccess, EA_CAP } from './early-access-store.js'
 import { support } from './support-store.js'
 import { analytics } from './analytics-store.js'
+import { errors as errorLog } from './error-store.js'
 import { sendEmail, emailEnabled } from './email.js'
 import { isConfigured as fbAdminConfigured, listUsers, passwordResetLink, setUserDisabled } from './lib/firebaseAdmin.js'
 import { verifyIdToken } from './lib/firebaseAuth.js'
@@ -182,6 +183,22 @@ app.post('/api/track', async (req, res) => {
   }
 })
 
+// Public beacon for errors a user hit in the app (powers the admin Errors tab).
+// Never errors; ignores bots.
+app.post('/api/track-error', async (req, res) => {
+  try {
+    const ua = req.get('user-agent') || ''
+    if (/bot|crawl|spider|lighthouse|headless/i.test(ua)) return res.json({ ok: true })
+    const { context, message, email, platform, url } = req.body || {}
+    if (message || context) {
+      await errorLog.add({ context, message, email, platform, url, source: 'client' })
+    }
+    res.json({ ok: true })
+  } catch {
+    res.json({ ok: false })
+  }
+})
+
 /* -------------------------------------------------------------------------- */
 /*  Admin (early access + support). Auth: ADMIN_SECRET, or a Firebase ID token  */
 /*  whose verified email is in ADMIN_EMAILS.                                    */
@@ -218,6 +235,19 @@ app.get('/api/admin/me', async (req, res) => {
 app.get('/api/admin/analytics', async (req, res) => {
   if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
   res.json(await analytics.summary())
+})
+
+// Errors users hit: top by frequency, most-affected users, recent occurrences.
+app.get('/api/admin/errors', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  res.json(await errorLog.summary())
+})
+
+// Clear the error log (housekeeping after a fix ships).
+app.delete('/api/admin/errors', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  await errorLog.clear()
+  res.json({ ok: true })
 })
 
 // List early-access sign-ups (JSON or ?format=csv).

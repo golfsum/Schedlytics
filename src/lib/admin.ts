@@ -52,6 +52,49 @@ export async function fetchAnalytics(): Promise<AnalyticsData | null> {
   }
 }
 
+export interface ErrorGroup {
+  context: string
+  message: string
+  count: number
+  lastAt: number
+  users: number
+}
+export interface ErrorEvent {
+  id: string
+  at: number
+  context: string
+  message: string
+  email: string | null
+  platform: string | null
+  url: string | null
+  source: string
+}
+export interface ErrorsData {
+  total: number
+  last24h: number
+  affectedUsers: number
+  topGroups: ErrorGroup[]
+  topUsers: { email: string; count: number }[]
+  recent: ErrorEvent[]
+  driver: string
+}
+export async function fetchErrors(): Promise<ErrorsData | null> {
+  try {
+    const r = await fetch(`${apiBase}/api/admin/errors`, { headers: await authHeaders() })
+    return r.ok ? r.json() : null
+  } catch {
+    return null
+  }
+}
+export async function clearErrors(): Promise<boolean> {
+  try {
+    const r = await fetch(`${apiBase}/api/admin/errors`, { method: 'DELETE', headers: await authHeaders() })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
 export interface EASignup {
   email: string
   status: 'accepted' | 'waitlist'

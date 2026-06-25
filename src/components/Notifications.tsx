@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import { sampleData } from '../lib/socialApi'
+import { reportError } from '../lib/reportError'
 
 export type NotificationType = 'success' | 'info' | 'error'
 
@@ -46,6 +47,8 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   const push = useCallback(
     ({ type = 'info', title, message = '', detail }: { type?: NotificationType; title: string; message?: string; detail?: string }) => {
+      // Every error shown to a user is logged for the admin Errors tab.
+      if (type === 'error') reportError(title, detail || message)
       setNotifications((list) => [
         { id: ++nid, type, title, message, detail, time: 'just now', unread: true },
         ...list,

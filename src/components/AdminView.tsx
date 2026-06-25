@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FileText, Loader2, Check, Inbox as InboxIcon, KeyRound, Ban, ShieldCheck, Users, Eye } from 'lucide-react'
+import { FileText, Loader2, Check, Inbox as InboxIcon, KeyRound, Ban, ShieldCheck, Users, Eye, AlertTriangle, Trash2 } from 'lucide-react'
 import { useToast } from './Toast'
 import {
   fetchEarlyAccess,
@@ -10,18 +10,22 @@ import {
   sendPasswordReset,
   setUserDisabled,
   fetchAnalytics,
+  fetchErrors,
+  clearErrors,
   type EAData,
   type Ticket,
   type AdminUser,
   type AnalyticsData,
+  type ErrorsData,
 } from '../lib/admin'
 
 const fmtDate = (ms: number) =>
   ms ? new Date(ms).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''
 
-type Tab = 'traffic' | 'early' | 'support' | 'users'
+type Tab = 'traffic' | 'errors' | 'early' | 'support' | 'users'
 const TABS: { id: Tab; label: string }[] = [
   { id: 'traffic', label: 'Traffic' },
+  { id: 'errors', label: 'Errors' },
   { id: 'early', label: 'Early Access' },
   { id: 'support', label: 'Support' },
   { id: 'users', label: 'Users' },
@@ -52,6 +56,7 @@ export default function AdminView() {
       </div>
 
       {tab === 'traffic' && <TrafficPanel />}
+      {tab === 'errors' && <ErrorsPanel />}
       {tab === 'early' && <EarlyAccessPanel />}
       {tab === 'support' && <SupportPanel />}
       {tab === 'users' && <UsersPanel />}
@@ -137,6 +142,122 @@ function TrafficPanel() {
         Counts page loads on the marketing site and app. "Unique" de-duplicates visitors per day; weekly and
         monthly uniques merge across days. Bots and excluded IPs are filtered out.
       </p>
+    </div>
+  )
+}
+
+function ErrorsPanel() {
+  const { addToast } = useToast()
+  const [data, setData] = useState<ErrorsData | null | 'loading'>('loading')
+
+  const load = () => fetchErrors().then((d) => setData(d))
+  useEffect(() => {
+    load()
+  }, [])
+
+  const onClear = async () => {
+    if (!window.confirm('Clear the whole error log? This cannot be undone.')) return
+    if (await clearErrors()) {
+      addToast('Error log cleared')
+      load()
+    } else {
+      addToast('Could not clear the log', 'info')
+    }
+  }
+
+  if (data === 'loading') return <Loading />
+  if (!data) return <ErrorCard label="Could not load errors." />
+
+  if (data.total === 0)
+    return (
+      <div className="card grid place-items-center gap-2 p-12 text-center">
+        <ShieldCheck className="h-8 w-8 text-emerald-400" />
+        <p className="text-sm text-slate-400">No errors logged. Everything looks healthy.</p>
+      </div>
+    )
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Stat label="Errors logged" value={data.total.toLocaleString()} />
+        <Stat label="Last 24 hours" value={data.last24h.toLocaleString()} accent />
+        <Stat label="Users affected" value={data.affectedUsers.toLocaleString()} />
+      </div>
+
+      {/* most frequent errors */}
+      <div className="card overflow-x-auto p-0">
+        <div className="flex items-center justify-between px-4 py-3">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+            <AlertTriangle className="h-4 w-4 text-amber-300" /> Most frequent
+          </h2>
+          <button
+            onClick={onClear}
+            className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Clear log
+          </button>
+        </div>
+        <table className="w-full min-w-[560px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-white/5 text-[11px] uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-2 font-semibold">Error</th>
+              <th className="px-4 py-2 text-right font-semibold">Count</th>
+              <th className="px-4 py-2 text-right font-semibold">Users</th>
+              <th className="px-4 py-2 text-right font-semibold">Last seen</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {data.topGroups.map((g, i) => (
+              <tr key={i}>
+                <td className="px-4 py-2.5">
+                  <span className="mr-2 rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">{g.context}</span>
+                  <span className="text-slate-200">{g.message || '(no message)'}</span>
+                </td>
+                <td className="px-4 py-2.5 text-right font-bold text-white">{g.count}</td>
+                <td className="px-4 py-2.5 text-right text-slate-400">{g.users}</td>
+                <td className="px-4 py-2.5 text-right text-slate-400">{fmtDate(g.lastAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        {/* most affected users */}
+        <div className="card p-5">
+          <h2 className="mb-3 text-lg font-bold text-white">Most affected users</h2>
+          <div className="space-y-2">
+            {data.topUsers.map((u) => (
+              <div key={u.email} className="flex items-center justify-between text-sm">
+                {u.email === 'anonymous' ? (
+                  <span className="text-slate-400">Signed-out / unknown</span>
+                ) : (
+                  <a href={`mailto:${u.email}`} className="font-medium text-cyan-accent hover:underline">{u.email}</a>
+                )}
+                <span className="font-semibold text-white">{u.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* recent occurrences */}
+        <div className="card p-5">
+          <h2 className="mb-3 text-lg font-bold text-white">Recent</h2>
+          <div className="max-h-80 space-y-3 overflow-y-auto">
+            {data.recent.map((e) => (
+              <div key={e.id} className="border-b border-white/5 pb-2 last:border-0">
+                <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                  <span className="rounded bg-white/5 px-1.5 py-0.5 font-semibold text-slate-400">{e.context}</span>
+                  {e.platform && <span className="text-cyan-accent">{e.platform}</span>}
+                  <span className="ml-auto">{fmtDate(e.at)}</span>
+                </div>
+                <p className="mt-1 text-sm text-slate-200">{e.message || '(no message)'}</p>
+                <p className="text-xs text-slate-500">{e.email || 'signed-out'}{e.url ? ` · ${e.url}` : ''}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
