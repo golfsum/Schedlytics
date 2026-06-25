@@ -20,12 +20,13 @@ export interface GrowthLevel {
 }
 
 export const GROWTH_LEVELS: GrowthLevel[] = [
-  { name: 'Starter', min: 0 },
-  { name: 'Explorer', min: 30 },
-  { name: 'Creator', min: 60 },
-  { name: 'Growth Builder', min: 75 },
-  { name: 'Influencer', min: 85 },
-  { name: 'Authority', min: 95 },
+  { name: 'Growth Scout', min: 0 },
+  { name: 'Growth Builder', min: 20 },
+  { name: 'Growth Creator', min: 40 },
+  { name: 'Growth Influencer', min: 60 },
+  { name: 'Growth Expert', min: 75 },
+  { name: 'Growth Authority', min: 88 },
+  { name: 'Growth Legend', min: 97 },
 ]
 
 /** Current level for a score and the next one up (null at the top). */

@@ -20,6 +20,7 @@ import { useEffect, useState } from 'react'
 import { AreaChart } from './charts'
 import { useConnections, CONNECTABLE } from './Connections'
 import { useAuth } from './Auth'
+import { useToast } from './Toast'
 import {
   backendEnabled,
   sampleData,
@@ -40,7 +41,7 @@ import {
   isComingSoon,
 } from '../data'
 import { listShortLinks, type ShortLink } from '../lib/shortLinks'
-import { realGrowthScore, realWeeklyBrief, topByClicks } from '../lib/growth'
+import { realGrowthScore, realWeeklyBrief, topByClicks, levelFor, GROWTH_LEVELS } from '../lib/growth'
 import { GROWTH_SCORE, WEEKLY_BRIEF, SAMPLE_OPPORTUNITIES, type Opportunity } from '../data'
 import { GrowthScoreCard, ThisWeekCard, OpportunitiesCard } from './GrowthCoach'
 import type { CalendarPost, NavId, PlatformId } from '../types'
@@ -81,6 +82,16 @@ function compact(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return String(n)
+}
+
+/** Deterministic 14-point sparkline series per metric key (demo cards). */
+function metricSpark(key: string): number[] {
+  let h = 0
+  for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) | 0
+  const seed = ((h % 100) / 100) * Math.PI * 2
+  return Array.from({ length: 14 }, (_, i) =>
+    Math.max(2, 10 + 6 * Math.sin(i * 0.7 + seed) + 2 * Math.sin(i * 1.9) + i * 0.7),
+  )
 }
 
 /** Relative time for activity rows ("3h ago", "2d ago"). */
@@ -146,6 +157,7 @@ const FOLLOWER_GROWTH = [120, 126, 131, 129, 138, 145, 151, 149, 158, 167, 175, 
 
 export default function DashboardView({ posts, onQuickCreate, onNavigate }: DashboardViewProps) {
   const { user } = useAuth()
+  const { addToast } = useToast()
   const firstName = (user?.name || '').trim().split(' ')[0] || 'there'
   const { followers, daily, videos, links } = useDashboardStats()
   const { accounts } = useConnections()
@@ -219,6 +231,30 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
       ? scaleToTotal(sampleSeries('clicks', '30D'), realClicks)
       : undefined
 
+  // One celebration: demo shows the level toast once per session so it's
+  // visible; real accounts celebrate a genuine level-up across sessions.
+  const score = sampleData ? GROWTH_SCORE.score : realScore?.score ?? null
+  useEffect(() => {
+    if (score == null) return
+    const { current } = levelFor(score)
+    const idx = GROWTH_LEVELS.findIndex((l) => l.name === current.name)
+    try {
+      if (sampleData) {
+        if (!sessionStorage.getItem('sl_demo_celebrated')) {
+          sessionStorage.setItem('sl_demo_celebrated', '1')
+          addToast(`🎉 You reached ${current.name}!`)
+        }
+        return
+      }
+      const prev = Number(localStorage.getItem('sl_growth_level') ?? '-1')
+      if (prev >= 0 && idx > prev) addToast(`🎉 New Growth Level: ${current.name}!`)
+      localStorage.setItem('sl_growth_level', String(idx))
+    } catch {
+      /* storage unavailable */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [score])
+
   return (
     <div className="space-y-6">
       {/* header */}
@@ -233,7 +269,7 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <button
             onClick={onQuickCreate}
-            className="flex items-center gap-2 rounded-xl gradient-cyan px-4 py-2.5 text-sm font-bold text-navy-900 shadow-glow transition-transform hover:scale-[1.03]"
+            className="flex items-center gap-2 rounded-xl gradient-cyan px-4 py-2.5 text-sm font-bold text-navy-900 shadow-glow-soft transition-transform hover:scale-[1.03]"
           >
             <Plus className="h-4 w-4" strokeWidth={2.6} />
             Create Post
@@ -273,6 +309,13 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
       {/* actionable roadmap: top move + expandable list */}
       <OpportunitiesCard opportunities={opportunities} onNavigate={onNavigate} />
 
+      {/* prominent trend chart, right under the growth cards */}
+      <ClicksOverTime
+        sample={sampleData}
+        onNavigate={onNavigate}
+        real={hasRealClicks ? { clicks: realClicks, visitors: realVisitors } : null}
+      />
+
       {/* growth metric cards */}
       {!sampleData && !hasRealClicks && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-cyan-accent/20 bg-cyan-accent/5 px-4 py-3 text-sm text-slate-300">
@@ -295,16 +338,10 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
             value={sampleData ? m.value : realMetric[m.key]?.value ?? '—'}
             delta={sampleData ? m.delta : realMetric[m.key]?.delta ?? 'No data yet'}
             up={sampleData ? m.up : undefined}
+            spark={sampleData ? metricSpark(m.key) : undefined}
           />
         ))}
       </div>
-
-      {/* clicks over time */}
-      <ClicksOverTime
-        sample={sampleData}
-        onNavigate={onNavigate}
-        real={hasRealClicks ? { clicks: realClicks, visitors: realVisitors } : null}
-      />
 
       {/* top posts + best platforms */}
       <div className="grid gap-5 xl:grid-cols-2">
@@ -453,18 +490,50 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
 
 /* ---------------------------------- bits ---------------------------------- */
 
+/** Tiny non-interactive sparkline (filled area + line), scales to its box. */
+function SparkLine({ data, color = '#22D3EE' }: { data: number[]; color?: string }) {
+  if (data.length < 2) return null
+  const w = 100
+  const h = 26
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const span = max - min || 1
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w
+    const y = h - ((v - min) / span) * (h - 4) - 2
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  })
+  const line = pts.join(' ')
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-7 w-full" aria-hidden="true">
+      <polygon points={`0,${h} ${line} ${w},${h}`} fill={color} fillOpacity="0.12" />
+      <polyline
+        points={line}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  )
+}
+
 function StatCard({
   Icon,
   label,
   value,
   delta,
   up,
+  spark,
 }: {
   Icon: LucideIcon
   label: string
   value: string
   delta: string
   up?: boolean
+  spark?: number[]
 }) {
   return (
     <div className="card p-5">
@@ -487,6 +556,11 @@ function StatCard({
       </div>
       <div className="mt-4 text-2xl font-bold text-white">{value}</div>
       <div className="text-sm text-slate-400">{label}</div>
+      {spark && (
+        <div className="mt-3">
+          <SparkLine data={spark} color={up === false ? '#F87171' : '#22D3EE'} />
+        </div>
+      )}
     </div>
   )
 }

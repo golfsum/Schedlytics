@@ -33,6 +33,9 @@ export default {
       boxShadow: {
         panel: '0 10px 40px -12px rgba(0, 0, 0, 0.55)',
         glow: '0 0 24px -4px rgba(34, 211, 238, 0.55)',
+        // ~20% softer than `glow`, so the Create Post button no longer
+        // out-shines the Growth Level hero.
+        'glow-soft': '0 0 18px -6px rgba(34, 211, 238, 0.42)',
       },
       keyframes: {
         'fade-in': {
@@ -47,11 +50,16 @@ export default {
           '0%': { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(0)' },
         },
+        'slide-in-up': {
+          '0%': { transform: 'translateY(8px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.25s ease-out',
         'slide-in-right': 'slide-in-right 0.3s ease-out',
         'slide-in-left': 'slide-in-left 0.25s ease-out',
+        'slide-in-up': 'slide-in-up 0.4s ease-out both',
       },
     },
   },

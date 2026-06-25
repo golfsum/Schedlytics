@@ -7,7 +7,7 @@ import {
   CheckCircle2,
   Loader2,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Zap, Target, Database, ArrowRight } from 'lucide-react'
 import { AreaChart } from './charts'
 import { PLATFORMS, type GrowthScore, type WeeklyBrief, type Opportunity } from '../data'
@@ -20,6 +20,34 @@ import type { NavId } from '../types'
 const scoreColor = (n: number) => (n >= 80 ? '#34D399' : n >= 60 ? '#22D3EE' : n >= 40 ? '#F59E0B' : '#F87171')
 const clampPct = (n: number) => Math.max(0, Math.min(100, n))
 
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
+/**
+ * Animate a number from 0 to `target` (easeOutCubic) on mount / when target
+ * changes. Uses an elapsed-time interval rather than requestAnimationFrame so it
+ * still completes when the tab is backgrounded (rAF is paused while hidden).
+ */
+function useCountUp(target: number, duration = 900) {
+  const [val, setVal] = useState(prefersReducedMotion() ? target : 0)
+  const startRef = useRef(0)
+  useEffect(() => {
+    if (prefersReducedMotion()) {
+      setVal(target)
+      return
+    }
+    setVal(0)
+    startRef.current = performance.now()
+    const id = window.setInterval(() => {
+      const p = Math.min(1, (performance.now() - startRef.current) / duration)
+      setVal(Math.round(target * (1 - Math.pow(1 - p, 3))))
+      if (p >= 1) window.clearInterval(id)
+    }, 32)
+    return () => window.clearInterval(id)
+  }, [target, duration])
+  return val
+}
+
 export function GrowthScoreCard({
   data,
   building,
@@ -30,6 +58,18 @@ export function GrowthScoreCard({
   /** Enlarged "hero" treatment for the top of the dashboard. */
   hero?: boolean
 }) {
+  // Hooks must run on every render (before any early return), so the count-up
+  // and ring-fill use a safe target when the score is still building.
+  const target = data?.score ?? 0
+  const count = useCountUp(target)
+  // Ring fills from empty on mount: start at full offset, then transition in.
+  const [filled, setFilled] = useState(prefersReducedMotion())
+  useEffect(() => {
+    setFilled(prefersReducedMotion())
+    const id = window.setTimeout(() => setFilled(true), 40)
+    return () => window.clearTimeout(id)
+  }, [target])
+
   if (building || !data) {
     return (
       <div className="card flex flex-col justify-center p-5">
@@ -54,11 +94,14 @@ export function GrowthScoreCard({
   const dash = (score / 100) * c
 
   return (
-    <div className="card p-5">
+    <div className={`card p-5 ${hero ? 'shadow-glow ring-1 ring-cyan-accent/20' : ''}`}>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-bold text-white">Growth Level</h2>
         {delta !== 0 && (
-          <span className={`flex items-center gap-1 text-sm font-semibold ${delta > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+          <span
+            className={`flex animate-slide-in-up items-center gap-1 text-sm font-semibold ${delta > 0 ? 'text-emerald-400' : 'text-rose-400'}`}
+            style={{ animationDelay: '0.75s' }}
+          >
             <ArrowUpRight className={`h-4 w-4 ${delta < 0 ? 'rotate-90' : ''}`} />
             {delta > 0 ? '+' : ''}
             {delta} pts this week
@@ -77,11 +120,13 @@ export function GrowthScoreCard({
               stroke={color}
               strokeWidth="10"
               strokeLinecap="round"
-              strokeDasharray={`${dash} ${c}`}
+              strokeDasharray={c}
+              strokeDashoffset={filled ? c - dash : c}
+              style={{ transition: 'stroke-dashoffset 1s ease-out' }}
             />
           </svg>
           <div className="absolute text-center">
-            <div className={`font-bold text-white ${hero ? 'text-5xl' : 'text-3xl'}`}>{score}</div>
+            <div className={`font-bold text-white ${hero ? 'text-5xl' : 'text-3xl'}`}>{count}</div>
             <div className="text-[10px] uppercase tracking-wide text-slate-500">/ 100</div>
           </div>
         </div>
