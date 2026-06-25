@@ -14,19 +14,22 @@ import {
   clearErrors,
   downloadErrorsCsv,
   fetchConnections,
+  fetchOverview,
   type EAData,
   type Ticket,
   type AdminUser,
   type AnalyticsData,
   type ErrorsData,
   type ConnectionHealth,
+  type OverviewData,
 } from '../lib/admin'
 
 const fmtDate = (ms: number) =>
   ms ? new Date(ms).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''
 
-type Tab = 'traffic' | 'errors' | 'connections' | 'early' | 'support' | 'users'
+type Tab = 'overview' | 'traffic' | 'errors' | 'connections' | 'early' | 'support' | 'users'
 const TABS: { id: Tab; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
   { id: 'traffic', label: 'Traffic' },
   { id: 'errors', label: 'Errors' },
   { id: 'connections', label: 'Connections' },
@@ -36,7 +39,7 @@ const TABS: { id: Tab; label: string }[] = [
 ]
 
 export default function AdminView() {
-  const [tab, setTab] = useState<Tab>('traffic')
+  const [tab, setTab] = useState<Tab>('overview')
 
   return (
     <div className="space-y-6">
@@ -59,12 +62,47 @@ export default function AdminView() {
         ))}
       </div>
 
+      {tab === 'overview' && <OverviewPanel onGo={setTab} />}
       {tab === 'traffic' && <TrafficPanel />}
       {tab === 'errors' && <ErrorsPanel />}
       {tab === 'connections' && <ConnectionsPanel />}
       {tab === 'early' && <EarlyAccessPanel />}
       {tab === 'support' && <SupportPanel />}
       {tab === 'users' && <UsersPanel />}
+    </div>
+  )
+}
+
+function OverviewPanel({ onGo }: { onGo: (t: Tab) => void }) {
+  const [data, setData] = useState<OverviewData | null | 'loading'>('loading')
+  useEffect(() => {
+    fetchOverview().then((d) => setData(d))
+  }, [])
+
+  if (data === 'loading') return <Loading />
+  if (!data) return <ErrorCard label="Could not load the overview." />
+
+  const cards: { label: string; value: string; sub: string; go: Tab; accent?: boolean }[] = [
+    { label: 'Views today', value: data.viewsToday.toLocaleString(), sub: `${data.uniquesToday.toLocaleString()} unique`, go: 'traffic' },
+    { label: 'Demo opens today', value: data.demoToday.toLocaleString(), sub: 'people trying the demo', go: 'traffic' },
+    { label: 'Sign-ups', value: data.signups.toLocaleString(), sub: `${data.accepted} accepted, ${data.waitlist} waitlist`, go: 'early' },
+    { label: 'Open tickets', value: data.openTickets.toLocaleString(), sub: `${data.totalTickets} total`, go: 'support', accent: data.openTickets > 0 },
+    { label: 'Errors (24h)', value: data.errors24h.toLocaleString(), sub: `${data.errorsTotal} logged`, go: 'errors', accent: data.errors24h > 0 },
+  ]
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {cards.map((c) => (
+        <button
+          key={c.label}
+          onClick={() => onGo(c.go)}
+          className="card p-5 text-left transition-colors hover:border-cyan-accent/30"
+        >
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{c.label}</div>
+          <div className={`mt-2 text-3xl font-bold ${c.accent ? 'text-amber-300' : 'text-white'}`}>{c.value}</div>
+          <div className="mt-1 text-sm text-slate-400">{c.sub}</div>
+        </button>
+      ))}
     </div>
   )
 }

@@ -52,6 +52,27 @@ export async function fetchAnalytics(): Promise<AnalyticsData | null> {
   }
 }
 
+export interface OverviewData {
+  viewsToday: number
+  uniquesToday: number
+  demoToday: number
+  signups: number
+  accepted: number
+  waitlist: number
+  openTickets: number
+  totalTickets: number
+  errors24h: number
+  errorsTotal: number
+}
+export async function fetchOverview(): Promise<OverviewData | null> {
+  try {
+    const r = await fetch(`${apiBase}/api/admin/overview`, { headers: await authHeaders() })
+    return r.ok ? r.json() : null
+  } catch {
+    return null
+  }
+}
+
 export interface ConnectionHealth {
   id: string
   name: string

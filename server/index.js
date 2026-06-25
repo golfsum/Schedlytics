@@ -258,6 +258,29 @@ app.get('/api/admin/me', async (req, res) => {
   res.json({ admin: Boolean(await adminOf(req)) })
 })
 
+// One-screen overview: the day's headline numbers across every admin area.
+app.get('/api/admin/overview', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  const [an, ea, tickets, errs] = await Promise.all([
+    analytics.summary(),
+    earlyAccess.all(),
+    support.all(),
+    errorLog.summary(),
+  ])
+  res.json({
+    viewsToday: an.today.views,
+    uniquesToday: an.today.uniques,
+    demoToday: an.today.demo,
+    signups: ea.length,
+    accepted: ea.filter((e) => e.status === 'accepted').length,
+    waitlist: ea.filter((e) => e.status === 'waitlist').length,
+    openTickets: tickets.filter((t) => t.status === 'open').length,
+    totalTickets: tickets.length,
+    errors24h: errs.last24h,
+    errorsTotal: errs.total,
+  })
+})
+
 // Site traffic: views + unique visitors (today / week / month) + demo opens.
 app.get('/api/admin/analytics', async (req, res) => {
   if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
