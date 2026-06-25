@@ -108,6 +108,25 @@ export const tiktok = {
     return normalizeTokens(await res.json())
   },
 
+  /**
+   * Revoke access so disconnecting really logs the account out. After this,
+   * reconnecting requires the creator to approve on TikTok's consent screen
+   * again instead of being signed in silently.
+   */
+  async revoke({ accessToken } = {}) {
+    if (!accessToken) return
+    const res = await fetch('https://open.tiktokapis.com/v2/oauth/revoke/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_key: creds.tiktok.clientKey,
+        client_secret: creds.tiktok.clientSecret,
+        token: accessToken,
+      }),
+    })
+    if (!res.ok) throw new Error(`TikTok revoke failed: ${(await res.text()).slice(0, 200)}`)
+  },
+
   /** Step 4 - user info + stats. */
   async getStats(accessToken) {
     const fields = [

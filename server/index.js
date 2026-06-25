@@ -695,6 +695,16 @@ app.get('/api/cron/weekly-brief', async (req, res) => {
 app.post('/api/:platform/disconnect', async (req, res) => {
   const platform = getPlatform(req.params.platform)
   if (!platform) return res.status(404).json({ error: 'Unknown platform' })
+  // Real logout: revoke the grant at the platform (best-effort) so reconnecting
+  // requires a fresh consent, then drop our stored token either way.
+  if (typeof platform.revoke === 'function') {
+    try {
+      const tokens = await store.get(platform.id)
+      if (tokens) await platform.revoke(tokens)
+    } catch (err) {
+      console.warn(`[${platform.id}] revoke failed (clearing locally anyway):`, err.message)
+    }
+  }
   await store.remove(platform.id)
   res.json({ ok: true })
 })

@@ -37,6 +37,9 @@ export const twitch = {
       redirect_uri: redirectUri('twitch'),
       response_type: 'code',
       scope: SCOPES.join(' '),
+      // Always show the consent screen, even if the user is still signed in to
+      // Twitch, so reconnecting after a disconnect asks for approval again.
+      force_verify: 'true',
       state,
     })
     return `${AUTH_ENDPOINT}?${params.toString()}`
@@ -71,6 +74,16 @@ export const twitch = {
     })
     if (!res.ok) throw new Error(`Twitch token refresh failed: ${await res.text()}`)
     return normalizeTokens(await res.json())
+  },
+
+  /** Revoke the Twitch grant so disconnecting fully logs the account out. */
+  async revoke({ accessToken } = {}) {
+    if (!accessToken) return
+    await fetch('https://id.twitch.tv/oauth2/revoke', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ client_id: creds.twitch.clientId, token: accessToken }),
+    })
   },
 
   async getStats(accessToken) {

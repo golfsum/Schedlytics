@@ -104,6 +104,16 @@ export const youtube = {
     return { ...normalizeTokens(await res.json()), refreshToken }
   },
 
+  /** Revoke the Google grant so disconnecting fully logs the account out. */
+  async revoke({ accessToken, refreshToken } = {}) {
+    const token = refreshToken || accessToken
+    if (!token) return
+    await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(token)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
+  },
+
   /* ====================================================================== */
   /*  1) DATA API v3 - lifetime stats + metadata                           */
   /* ====================================================================== */
