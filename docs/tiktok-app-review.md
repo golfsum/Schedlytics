@@ -150,3 +150,88 @@ Keep each interaction slow and clearly visible (cursor, clicks, resulting UI).
 > unaudited, the only privacy option returned is `SELF_ONLY`, so posts land
 > private. This matches TikTok's Content Posting UX guidelines — make sure the
 > demo video clearly shows this dialog.
+
+---
+
+## Part D — Word-for-word demo narration (production cut)
+
+A ready-to-read voiceover/caption script for the screen recording. Record on the
+**live production site** (`https://www.schedlytics.com`) with the URL bar visible,
+signed in with a TikTok account that you have added as a **target user in the
+TikTok sandbox** (see Production notes below). Read each line while performing the
+on-screen action. Target length about 2 minutes.
+
+**[0:00 — Intro]**
+> "This is Schedlytics, a content scheduling and analytics platform for creators,
+> live at schedlytics dot com. I'll show how it uses TikTok's Login Kit, Display
+> API, and Content Posting API, all on the creator's own account."
+
+*On screen: the app open at `www.schedlytics.com/app`, URL bar visible.*
+
+**[0:12 — Login Kit · `user.info.basic`]**
+> "First, connecting a TikTok account. In Settings, Connected Accounts, I click
+> Connect on TikTok, which opens TikTok's own login and consent screen."
+
+*On screen: Settings → Connected Accounts → click Connect on TikTok → TikTok's
+OAuth screen appears (pause so the requested permissions are readable) → approve.*
+
+> "After approving, Schedlytics shows my connected handle and avatar, so I can
+> confirm the right account is linked."
+
+*On screen: the TikTok row now shows the handle + avatar.*
+
+**[0:40 — Display API · `user.info.stats`]**
+> "On the Dashboard, the Display API shows this account's own stats: follower
+> count, total likes, and number of videos."
+
+*On screen: Dashboard / Connected Accounts card with the TikTok follower, likes,
+and video counts.*
+
+**[0:55 — Display API · `video.list`]**
+> "Under Insights, it lists my recent TikTok videos with their views, likes,
+> comments, and shares, so I can see what performed best."
+
+*On screen: Insights / Recent Activity list of recent TikTok videos with counts.*
+
+**[1:10 — Content Posting API · `video.publish`]**
+> "Now publishing. In Media Studio I upload a video, add a caption, and choose
+> TikTok. Before anything is sent, Schedlytics shows a confirmation step."
+
+*On screen: Media Studio → upload video → type caption → select TikTok → click
+Publish → the TikTok confirmation dialog opens.*
+
+> "This dialog comes from TikTok's creator-info endpoint. I have to choose who can
+> view the video, and I can allow or turn off comments, Duet, and Stitch. It also
+> links TikTok's Community Guidelines and Music Usage Confirmation. I'll set it to
+> Only Me, and post."
+
+*On screen: pick the privacy option (Only me / Private), show the comment/Duet/
+Stitch toggles and the disclosure text, then click Post to TikTok → success
+confirmation.*
+
+**[1:45 — Verify private on TikTok]**
+> "Here's the video on the TikTok account. Because the app isn't approved yet, it
+> posts privately, visible only to me."
+
+*On screen: open the TikTok app/profile and show the new video marked private.*
+
+**[1:55 — Wrap]**
+> "That's the full flow: connect with Login Kit, view stats and videos with the
+> Display API, and publish with the Content Posting API, always on the creator's
+> own account and with their explicit confirmation."
+
+---
+
+## Production notes (sandbox vs. live site)
+
+- **The website shown must be the live domain** you submit (`www.schedlytics.com`)
+  — record there, not on localhost or a preview URL.
+- **TikTok still requires sandbox for a first review.** Add your own TikTok
+  account as a **target user** in the app's sandbox on the TikTok Developer
+  Portal. That account can then complete the real OAuth + posting flow on the live
+  site, and posts come back **private (`SELF_ONLY`)** because the app is unaudited
+  — which is exactly what a reviewer expects to see.
+- **Do not say "sandbox," "test mode," or "API restriction"** in the narration —
+  just demonstrate the flow. The private-post behavior speaks for itself.
+- **Keep it real and unedited:** one continuous screen capture, slow clicks,
+  nothing sped up or cut mid-interaction.
