@@ -277,6 +277,27 @@ app.delete('/api/admin/errors', async (req, res) => {
   res.json({ ok: true })
 })
 
+// Connected-accounts health: which platforms have a live token, expiry, scope.
+// Never returns the token values themselves.
+app.get('/api/admin/connections', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  const connections = []
+  for (const id of Object.keys(platforms)) {
+    const tok = await store.get(id)
+    connections.push({
+      id,
+      name: platforms[id].name || id,
+      connected: Boolean(tok && tok.accessToken),
+      expiresAt: tok?.expiresAt || null,
+      expired: tok?.expiresAt ? Date.now() > tok.expiresAt : false,
+      scope: tok?.scope || null,
+      updatedAt: tok?.updatedAt || null,
+      publish: PUBLISH_CAPABILITIES[id]?.mode || 'none',
+    })
+  }
+  res.json({ connections })
+})
+
 // List early-access sign-ups (JSON or ?format=csv).
 app.get('/api/admin/early-access', async (req, res) => {
   if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })

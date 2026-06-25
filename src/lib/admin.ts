@@ -52,6 +52,25 @@ export async function fetchAnalytics(): Promise<AnalyticsData | null> {
   }
 }
 
+export interface ConnectionHealth {
+  id: string
+  name: string
+  connected: boolean
+  expiresAt: number | null
+  expired: boolean
+  scope: string | null
+  updatedAt: number | null
+  publish: string
+}
+export async function fetchConnections(): Promise<ConnectionHealth[] | null> {
+  try {
+    const r = await fetch(`${apiBase}/api/admin/connections`, { headers: await authHeaders() })
+    return r.ok ? (await r.json()).connections : null
+  } catch {
+    return null
+  }
+}
+
 export interface ErrorGroup {
   context: string
   message: string

@@ -12,20 +12,23 @@ import {
   fetchAnalytics,
   fetchErrors,
   clearErrors,
+  fetchConnections,
   type EAData,
   type Ticket,
   type AdminUser,
   type AnalyticsData,
   type ErrorsData,
+  type ConnectionHealth,
 } from '../lib/admin'
 
 const fmtDate = (ms: number) =>
   ms ? new Date(ms).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''
 
-type Tab = 'traffic' | 'errors' | 'early' | 'support' | 'users'
+type Tab = 'traffic' | 'errors' | 'connections' | 'early' | 'support' | 'users'
 const TABS: { id: Tab; label: string }[] = [
   { id: 'traffic', label: 'Traffic' },
   { id: 'errors', label: 'Errors' },
+  { id: 'connections', label: 'Connections' },
   { id: 'early', label: 'Early Access' },
   { id: 'support', label: 'Support' },
   { id: 'users', label: 'Users' },
@@ -57,6 +60,7 @@ export default function AdminView() {
 
       {tab === 'traffic' && <TrafficPanel />}
       {tab === 'errors' && <ErrorsPanel />}
+      {tab === 'connections' && <ConnectionsPanel />}
       {tab === 'early' && <EarlyAccessPanel />}
       {tab === 'support' && <SupportPanel />}
       {tab === 'users' && <UsersPanel />}
@@ -258,6 +262,64 @@ function ErrorsPanel() {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function ConnectionsPanel() {
+  const [data, setData] = useState<ConnectionHealth[] | null | 'loading'>('loading')
+  useEffect(() => {
+    fetchConnections().then((d) => setData(d))
+  }, [])
+
+  if (data === 'loading') return <Loading />
+  if (!data) return <ErrorCard label="Could not load connections." />
+
+  const expiresIn = (ms: number | null) => {
+    if (!ms) return ''
+    const diff = ms - Date.now()
+    if (diff <= 0) return 'expired'
+    const h = Math.round(diff / 3_600_000)
+    if (h < 48) return `in ${h}h`
+    return `in ${Math.round(h / 24)}d`
+  }
+
+  return (
+    <div className="card overflow-x-auto p-0">
+      <div className="px-4 py-3">
+        <h2 className="text-lg font-bold text-white">Connected accounts</h2>
+        <p className="mt-0.5 text-xs text-slate-500">
+          Platform tokens are currently shared at the account level. Token values are never shown.
+        </p>
+      </div>
+      <table className="w-full min-w-[560px] text-left text-sm">
+        <thead>
+          <tr className="border-b border-white/5 text-[11px] uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-2 font-semibold">Platform</th>
+            <th className="px-4 py-2 font-semibold">Status</th>
+            <th className="px-4 py-2 font-semibold">Token expires</th>
+            <th className="px-4 py-2 font-semibold">Last updated</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-white/5">
+          {data.map((c) => (
+            <tr key={c.id}>
+              <td className="px-4 py-2.5 font-medium text-white">{c.name}</td>
+              <td className="px-4 py-2.5">
+                {!c.connected ? (
+                  <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] font-semibold text-slate-400">Not connected</span>
+                ) : c.expired ? (
+                  <span className="rounded-full bg-rose-400/10 px-2 py-0.5 text-[11px] font-semibold text-rose-300">Token expired</span>
+                ) : (
+                  <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">Connected</span>
+                )}
+              </td>
+              <td className="px-4 py-2.5 text-slate-400">{c.connected ? expiresIn(c.expiresAt) || 'no expiry' : ''}</td>
+              <td className="px-4 py-2.5 text-slate-400">{c.updatedAt ? fmtDate(c.updatedAt) : ''}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
