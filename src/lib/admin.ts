@@ -105,12 +105,16 @@ export interface AdminUser {
 export interface UsersResult {
   configured: boolean
   users: AdminUser[]
+  /** Server-side failure detail (e.g. a bad service-account key), when present. */
+  error?: string
 }
 /** List Firebase Auth users (needs a service account on the server). */
 export async function fetchUsers(): Promise<UsersResult | null> {
   try {
     const r = await fetch(`${apiBase}/api/admin/users`, { headers: await authHeaders() })
-    return r.ok ? r.json() : null
+    if (r.ok) return r.json()
+    const body = await r.json().catch(() => ({}))
+    return { configured: true, users: [], error: body.detail || body.error || `HTTP ${r.status}` }
   } catch {
     return null
   }

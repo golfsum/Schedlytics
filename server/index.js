@@ -249,8 +249,10 @@ app.get('/api/admin/users', async (req, res) => {
     if (users === null) return res.json({ configured: false, users: [] })
     res.json({ configured: true, users })
   } catch (err) {
-    console.error('[admin/users] failed:', err.message)
-    res.status(500).json({ error: 'Could not list users' })
+    // Admin-only endpoint, so it's safe to surface the real cause (e.g. a bad
+    // private key or a missing IAM role) to help configure the service account.
+    console.error('[admin/users] failed:', err)
+    res.status(500).json({ error: 'Could not list users', detail: err.message, code: err.code || null })
   }
 })
 

@@ -182,11 +182,16 @@ function SupportPanel() {
 function UsersPanel() {
   const { addToast } = useToast()
   const [state, setState] = useState<'loading' | 'error' | 'unconfigured' | AdminUser[]>('loading')
+  const [errDetail, setErrDetail] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
 
   useEffect(() => {
     fetchUsers().then((r) => {
       if (!r) return setState('error')
+      if (r.error) {
+        setErrDetail(r.error)
+        return setState('error')
+      }
       if (!r.configured) return setState('unconfigured')
       setState(r.users)
     })
@@ -214,7 +219,20 @@ function UsersPanel() {
   }
 
   if (state === 'loading') return <Loading />
-  if (state === 'error') return <ErrorCard label="Could not load users." />
+  if (state === 'error')
+    return (
+      <div className="card space-y-2 p-6">
+        <p className="text-sm font-semibold text-rose-300">Could not load users.</p>
+        {errDetail && (
+          <p className="rounded-lg bg-navy-900 px-3 py-2 font-mono text-xs leading-relaxed text-slate-400">{errDetail}</p>
+        )}
+        <p className="text-xs text-slate-500">
+          This is usually a service-account problem: a malformed{' '}
+          <code className="text-cyan-accent">FIREBASE_SERVICE_ACCOUNT</code> key, or the account missing the Firebase
+          Authentication Admin role. Fix it in Vercel env and redeploy.
+        </p>
+      </div>
+    )
   if (state === 'unconfigured')
     return (
       <div className="card space-y-3 p-6">

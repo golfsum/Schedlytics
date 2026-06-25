@@ -18,7 +18,14 @@ let configured = null
 
 function parseServiceAccount(raw) {
   const text = raw.trim().startsWith('{') ? raw : Buffer.from(raw, 'base64').toString('utf8')
-  return JSON.parse(text)
+  const obj = JSON.parse(text)
+  // When the JSON is pasted into an env var the PEM newlines often survive as
+  // the literal two-character sequence "\n"; the crypto layer then rejects the
+  // key. Restore real newlines so cert() gets a valid PEM.
+  if (typeof obj.private_key === 'string' && obj.private_key.includes('\\n')) {
+    obj.private_key = obj.private_key.replace(/\\n/g, '\n')
+  }
+  return obj
 }
 
 /** Lazily initialise (or reuse) the Admin app. Returns the app, or null if unconfigured. */
