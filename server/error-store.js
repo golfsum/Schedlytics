@@ -10,13 +10,17 @@ import { hashStore } from './kv.js'
 
 const h = hashStore('sched:errors', '.errors.json')
 const MAX = 500
+const SPIKE_PER_HOUR = Number(process.env.ERROR_ALERT_THRESHOLD || 10)
+const ALERT_COOLDOWN = 60 * 60 * 1000 // at most one alert per error type per hour
+
+const fingerprint = (e) => `${e.context}|${e.message}`.slice(0, 240)
 
 export const errors = {
   driver: h.driver,
 
   async add(ev = {}) {
     const list = (await h.get('events')) || []
-    list.push({
+    const event = {
       id: crypto.randomBytes(5).toString('hex'),
       at: Date.now(),
       context: String(ev.context || 'app').slice(0, 200),
@@ -25,9 +29,35 @@ export const errors = {
       platform: ev.platform ? String(ev.platform).slice(0, 24) : null,
       url: ev.url ? String(ev.url).slice(0, 200) : null,
       source: ev.source === 'server' ? 'server' : 'client',
-    })
+    }
+    list.push(event)
     if (list.length > MAX) list.splice(0, list.length - MAX)
     await h.put('events', list)
+    return event
+  },
+
+  /**
+   * Decide whether an event warrants an admin alert: a brand-new error type, or
+   * a spike (>= ERROR_ALERT_THRESHOLD of the same error in the last hour).
+   * Throttled to one alert per error type per hour. Returns alert info or null.
+   */
+  async maybeAlert(event) {
+    const fp = fingerprint(event)
+    const all = await this.all()
+    const same = all.filter((e) => fingerprint(e) === fp)
+    const hourCount = same.filter((e) => e.at >= Date.now() - 3_600_000).length
+
+    let reason = null
+    if (same.length === 1) reason = 'new'
+    else if (hourCount >= SPIKE_PER_HOUR) reason = 'spike'
+    if (!reason) return null
+
+    const state = (await h.get('alertState')) || {}
+    if (state[fp] && Date.now() - state[fp] < ALERT_COOLDOWN) return null
+    state[fp] = Date.now()
+    await h.put('alertState', state)
+
+    return { reason, context: event.context, message: event.message, hourCount, total: same.length }
   },
 
   /** Newest-first list of every stored error event. */

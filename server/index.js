@@ -191,13 +191,40 @@ app.post('/api/track-error', async (req, res) => {
     if (/bot|crawl|spider|lighthouse|headless/i.test(ua)) return res.json({ ok: true })
     const { context, message, email, platform, url } = req.body || {}
     if (message || context) {
-      await errorLog.add({ context, message, email, platform, url, source: 'client' })
+      const event = await errorLog.add({ context, message, email, platform, url, source: 'client' })
+      // Alert the owner by email on a new error type or a spike (best-effort).
+      if (emailEnabled) {
+        errorLog
+          .maybeAlert(event)
+          .then((alert) => alert && notifyErrorAlert(alert))
+          .catch((e) => console.warn('[error-alert] failed:', e.message))
+      }
     }
     res.json({ ok: true })
   } catch {
     res.json({ ok: false })
   }
 })
+
+/** Email the owner when an error is new or spiking. */
+async function notifyErrorAlert(alert) {
+  const to = process.env.ADMIN_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER
+  if (!to) return
+  const subject =
+    alert.reason === 'new'
+      ? `New error in Schedlytics: ${alert.context}`
+      : `Error spike in Schedlytics: ${alert.context} (${alert.hourCount} in the last hour)`
+  const body =
+    alert.reason === 'new'
+      ? 'This error appeared for the first time.'
+      : `It happened ${alert.hourCount} times in the last hour (${alert.total} total).`
+  const safe = String(alert.message || '').replace(/</g, '&lt;')
+  await sendEmail({
+    to,
+    subject,
+    html: `<p><b>${alert.context}</b></p><p>${safe}</p><p>${body}</p><p>Open the admin Errors tab for details.</p>`,
+  })
+}
 
 /* -------------------------------------------------------------------------- */
 /*  Admin (early access + support). Auth: ADMIN_SECRET, or a Firebase ID token  */
