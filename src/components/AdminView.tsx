@@ -324,9 +324,20 @@ function EarlyAccessPanel() {
 function SupportPanel() {
   const { addToast } = useToast()
   const [tickets, setTickets] = useState<Ticket[] | 'loading'>('loading')
+  // Recent errors keyed by email, so a ticket shows what broke for that user.
+  const [errsByUser, setErrsByUser] = useState<Record<string, ErrorsData['recent']>>({})
 
   useEffect(() => {
     fetchSupport().then(setTickets)
+    fetchErrors().then((d) => {
+      if (!d) return
+      const map: Record<string, ErrorsData['recent']> = {}
+      for (const e of d.recent) {
+        if (!e.email) continue
+        ;(map[e.email] ||= []).push(e)
+      }
+      setErrsByUser(map)
+    })
   }, [])
 
   const toggle = async (t: Ticket) => {
@@ -366,6 +377,24 @@ function SupportPanel() {
             from <a href={`mailto:${t.email}`} className="text-cyan-accent hover:underline">{t.email}</a>
           </div>
           <p className="mt-3 whitespace-pre-wrap text-sm text-slate-200">{t.message}</p>
+
+          {/* recent errors from this user, to give support context */}
+          {(errsByUser[t.email]?.length ?? 0) > 0 && (
+            <details className="mt-3 rounded-lg border border-amber-400/15 bg-amber-400/5 p-3">
+              <summary className="cursor-pointer text-xs font-semibold text-amber-200">
+                {errsByUser[t.email].length} recent error{errsByUser[t.email].length === 1 ? '' : 's'} from this user
+              </summary>
+              <div className="mt-2 space-y-1.5">
+                {errsByUser[t.email].slice(0, 6).map((e) => (
+                  <div key={e.id} className="text-xs text-slate-400">
+                    <span className="rounded bg-white/5 px-1.5 py-0.5 font-semibold text-slate-300">{e.context}</span>{' '}
+                    {e.message} <span className="text-slate-600">({fmtDate(e.at)})</span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+
           <div className="mt-3 flex gap-2">
             <a
               href={`mailto:${t.email}?subject=${encodeURIComponent('Re: ' + (t.subject || 'your message'))}`}
