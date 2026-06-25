@@ -221,16 +221,23 @@ function UsersPanel() {
   if (state === 'loading') return <Loading />
   if (state === 'error')
     return (
-      <div className="card space-y-2 p-6">
-        <p className="text-sm font-semibold text-rose-300">Could not load users.</p>
-        {errDetail && (
-          <p className="rounded-lg bg-navy-900 px-3 py-2 font-mono text-xs leading-relaxed text-slate-400">{errDetail}</p>
-        )}
-        <p className="text-xs text-slate-500">
-          This is usually a service-account problem: a malformed{' '}
-          <code className="text-cyan-accent">FIREBASE_SERVICE_ACCOUNT</code> key, or the account missing the Firebase
-          Authentication Admin role. Fix it in Vercel env and redeploy.
+      <div className="card space-y-3 p-6">
+        <div className="flex items-center gap-2 text-white">
+          <KeyRound className="h-5 w-5 text-amber-300" />
+          <h2 className="text-base font-bold">We couldn't load users right now</h2>
+        </div>
+        <p className="text-sm leading-relaxed text-slate-400">
+          Your account is fine. This is a configuration issue on the server side, not something you did. Try again in a
+          moment. If it keeps happening, the Firebase connection needs a quick look in the server settings.
         </p>
+        {errDetail && (
+          <details className="text-xs text-slate-500">
+            <summary className="cursor-pointer select-none font-medium hover:text-slate-300">Technical details</summary>
+            <p className="mt-2 break-all rounded-lg bg-navy-900 px-3 py-2 font-mono leading-relaxed text-slate-400">
+              {errDetail}
+            </p>
+          </details>
+        )}
       </div>
     )
   if (state === 'unconfigured')
