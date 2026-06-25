@@ -190,19 +190,34 @@ export const tiktok = {
     }
   },
 
-  /** Optional - recent videos with engagement stats. */
+  /**
+   * Recent videos (Display API, video.list scope), normalized to the common
+   * video shape the UI uses. Note: TikTok's video/list returns the user's
+   * PUBLIC videos only, so SELF_ONLY/private posts will not appear here.
+   */
   async getRecentVideos(accessToken, max = 10) {
-    const fields = 'id,title,view_count,like_count,comment_count,share_count,create_time'
+    const fields = 'id,title,cover_image_url,share_url,view_count,like_count,comment_count,create_time'
     const res = await fetch(`${API}/video/list/?fields=${fields}`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ max_count: max }),
+      body: JSON.stringify({ max_count: Math.min(20, max) }),
     })
-    if (!res.ok) throw new Error(`TikTok video/list failed: ${await res.text()}`)
-    return (await res.json()).data?.videos || []
+    if (!res.ok) throw new Error(`TikTok video/list failed: ${(await res.text()).slice(0, 200)}`)
+    const videos = (await res.json()).data?.videos || []
+    return videos.map((v) => ({
+      id: String(v.id),
+      title: v.title || 'TikTok video',
+      thumbnail: v.cover_image_url || undefined,
+      publishedAt: v.create_time ? new Date(v.create_time * 1000).toISOString() : '',
+      views: Number(v.view_count || 0),
+      likes: Number(v.like_count || 0),
+      comments: Number(v.comment_count || 0),
+      url: v.share_url || '',
+      platform: 'tiktok',
+    }))
   },
 
   /**

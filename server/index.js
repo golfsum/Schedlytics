@@ -509,6 +509,22 @@ app.get('/api/:platform/creator-info', async (req, res) => {
   }
 })
 
+// Recent videos for a platform that supports it (TikTok video.list, etc.).
+// Note: TikTok only returns the user's public videos here.
+app.get('/api/:platform/recent-videos', async (req, res) => {
+  const platform = getPlatform(req.params.platform)
+  if (!platform || typeof platform.getRecentVideos !== 'function') {
+    return res.status(404).json({ error: 'Not available for this platform' })
+  }
+  try {
+    const { token } = await validAccessToken(platform)
+    res.json(await platform.getRecentVideos(token, Number(req.query.max) || 6))
+  } catch (err) {
+    console.error(`[${platform.id}] recent-videos error:`, err.message)
+    res.status(err.status || 502).json({ error: err.message })
+  }
+})
+
 // Upload a media file straight to the platform. The raw bytes are the request
 // body; metadata (title/description/tags/etc.) rides along as base64 JSON in
 // the X-Upload-Meta header so we don't need a multipart parser.

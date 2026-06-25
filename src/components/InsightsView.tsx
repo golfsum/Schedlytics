@@ -8,6 +8,7 @@ import {
   sampleData,
   fetchStats,
   fetchYouTubeRecentVideos,
+  fetchTikTokRecentVideos,
   type RemoteStats,
   type YouTubeVideo,
 } from '../lib/socialApi'
@@ -224,7 +225,8 @@ function timeSince(ms: number): string {
 function RecentVideos() {
   const { accounts } = useConnections()
   const ytConnected = Boolean(accounts.youtube?.connected)
-  const live = backendEnabled && ytConnected
+  const tkConnected = Boolean(accounts.tiktok?.connected)
+  const live = backendEnabled && (ytConnected || tkConnected)
   const [videos, setVideos] = useState<YouTubeVideo[] | 'error' | null>(sampleData ? SAMPLE_VIDEOS : null)
   const [refreshedAt, setRefreshedAt] = useState<number | null>(sampleData ? Date.now() : null)
   const [loading, setLoading] = useState(false)
@@ -232,9 +234,17 @@ function RecentVideos() {
   const load = () => {
     if (!live) return
     setLoading(true)
-    fetchYouTubeRecentVideos(6)
-      .then((v) => {
-        setVideos(v)
+    // Pull from each connected video platform, then merge newest-first. TikTok's
+    // Display API only lists public videos, so private posts will not appear.
+    Promise.all([
+      ytConnected ? fetchYouTubeRecentVideos(6).catch(() => []) : Promise.resolve([]),
+      tkConnected ? fetchTikTokRecentVideos(6).catch(() => []) : Promise.resolve([]),
+    ])
+      .then(([yt, tk]) => {
+        const merged = [...(Array.isArray(yt) ? yt : []), ...(Array.isArray(tk) ? tk : [])]
+          .sort((a, b) => Date.parse(b.publishedAt || '') - Date.parse(a.publishedAt || ''))
+          .slice(0, 6)
+        setVideos(merged)
         setRefreshedAt(Date.now())
       })
       .catch(() => setVideos('error'))
@@ -248,7 +258,7 @@ function RecentVideos() {
     const t = window.setInterval(() => document.visibilityState === 'visible' && load(), 60000)
     return () => window.clearInterval(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ytConnected])
+  }, [ytConnected, tkConnected])
 
   const list = Array.isArray(videos) ? videos : []
 
@@ -280,11 +290,11 @@ function RecentVideos() {
       {videos === null ? (
         <ChartLoading />
       ) : videos === 'error' ? (
-        <ChartNote>Could not load videos. Reconnect YouTube in Settings.</ChartNote>
+        <ChartNote>Could not load videos. Reconnect your account in Settings.</ChartNote>
       ) : !sampleData && !live ? (
-        <ChartNote>Connect YouTube to see your latest videos with live counts.</ChartNote>
+        <ChartNote>Connect YouTube or TikTok to see your latest videos.</ChartNote>
       ) : list.length === 0 ? (
-        <ChartNote>No uploads yet. Publish a video and it'll show here with live stats.</ChartNote>
+        <ChartNote>No public videos yet. Publish a video and it will show here.</ChartNote>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((v) => (
@@ -297,6 +307,9 @@ function RecentVideos() {
             >
               <div className="relative aspect-video bg-navy-950">
                 {v.thumbnail && <img src={v.thumbnail} alt="" className="h-full w-full object-cover" />}
+                <span className="absolute left-2 top-2 rounded-full bg-navy-950/80 px-2 py-0.5 text-[10px] font-semibold text-white">
+                  {v.platform === 'tiktok' ? 'TikTok' : 'YouTube'}
+                </span>
                 <span className="absolute inset-0 grid place-items-center bg-navy-950/20 opacity-0 transition-opacity group-hover:opacity-100">
                   <span className="grid h-9 w-9 place-items-center rounded-full bg-white/90 text-navy-900">
                     <Play className="h-4 w-4 translate-x-0.5 fill-navy-900" />

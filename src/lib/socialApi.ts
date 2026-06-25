@@ -300,11 +300,18 @@ export interface YouTubeVideo {
   likes: number
   comments: number
   url: string
+  /** Source platform (set for non-YouTube videos like TikTok). */
+  platform?: PlatformId
 }
 
 /** Data API v3 - recent uploads with LIVE view/like/comment counts (no lag). */
 export function fetchYouTubeRecentVideos(max = 6) {
   return getJson<YouTubeVideo[]>(`/api/youtube/recent-videos?max=${max}`)
+}
+
+/** TikTok recent videos (Display API video.list). Public videos only. */
+export function fetchTikTokRecentVideos(max = 6) {
+  return getJson<YouTubeVideo[]>(`/api/tiktok/recent-videos?max=${max}`)
 }
 
 /** Opt the user in/out of the weekly growth brief email. Best-effort, no-throw. */
