@@ -116,10 +116,35 @@ export function registerBillingRoutes(app) {
         metadata: { uid: req.auth.uid, plan: planId },
         subscription_data: { metadata: { uid: req.auth.uid } },
         allow_promotion_codes: true,
-        success_url: `${appUrl}?billing=success`,
+        // The session id lets the app confirm the purchase on return without
+        // waiting on the webhook (see /api/billing/confirm below).
+        success_url: `${appUrl}?billing=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${appUrl}?billing=cancel`,
       })
       res.json({ url: session.url })
+    } catch (err) {
+      res.status(500).json({ error: err.message })
+    }
+  })
+
+  // Confirm a finished Checkout Session on return, so the plan updates right
+  // away even if the webhook is delayed or not configured yet. The session must
+  // belong to this user (client_reference_id) before we trust it.
+  app.post('/api/billing/confirm', requireUser, async (req, res) => {
+    if (!billingEnabled) return res.status(501).json({ error: 'Billing is not configured' })
+    const sessionId = req.body?.sessionId
+    if (!sessionId) return res.status(400).json({ error: 'missing sessionId' })
+    try {
+      const session = await stripe().checkout.sessions.retrieve(sessionId)
+      if (session.client_reference_id !== req.auth.uid) {
+        return res.status(403).json({ error: 'session does not belong to this user' })
+      }
+      if (session.payment_status !== 'paid' || !session.subscription) {
+        return res.json({ ...(await planForUid(req.auth.uid)), pending: true })
+      }
+      const sub = await stripe().subscriptions.retrieve(session.subscription)
+      const record = await saveFromSubscription(req.auth.uid, sub, session.customer)
+      res.json({ ...record, billingEnabled: true })
     } catch (err) {
       res.status(500).json({ error: err.message })
     }

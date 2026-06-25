@@ -58,6 +58,24 @@ export async function startCheckout(plan: PlanId): Promise<string | null> {
   }
 }
 
+/**
+ * Confirm a finished Checkout Session on return from Stripe, so the plan
+ * updates immediately without waiting on the webhook. Returns the new plan
+ * status, or null if it could not be confirmed.
+ */
+export async function confirmCheckout(sessionId: string): Promise<PlanStatus | null> {
+  try {
+    const r = await fetch(`${apiBase}/api/billing/confirm`, {
+      method: 'POST',
+      headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    })
+    return r.ok ? r.json() : null
+  } catch {
+    return null
+  }
+}
+
 /** Open the Stripe Billing Portal to manage or cancel. Returns an error or null. */
 export async function openBillingPortal(): Promise<string | null> {
   try {

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import { useSeededState } from '../lib/usePersisted'
 import { sampleData, backendEnabled } from '../lib/socialApi'
 import { auth } from '../lib/firebase'
-import { fetchPlanStatus } from '../lib/billing'
+import { fetchPlanStatus, confirmCheckout } from '../lib/billing'
 
 export type PlanId = 'free' | 'pro' | 'business'
 
@@ -40,9 +40,33 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (sampleData || !backendEnabled || !auth) return
     let cancelled = false
+
+    // When Stripe sends us back with ?billing=success&session_id=..., confirm
+    // the purchase directly so the plan updates immediately (the webhook may be
+    // delayed or not set up). Strip the params afterwards either way.
+    const params = new URLSearchParams(window.location.search)
+    const justPaid = params.get('billing') === 'success'
+    const sessionId = params.get('session_id')
+    const cleanUrl = () => {
+      if (!params.has('billing') && !params.has('session_id')) return
+      params.delete('billing')
+      params.delete('session_id')
+      const qs = params.toString()
+      window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''))
+    }
+
     const sync = async () => {
+      if (justPaid && sessionId) {
+        const confirmed = await confirmCheckout(sessionId)
+        if (!cancelled && confirmed && confirmed.plan) {
+          setPlan(confirmed.plan)
+          cleanUrl()
+          return
+        }
+      }
       const status = await fetchPlanStatus()
       if (!cancelled && status && status.plan) setPlan(status.plan)
+      cleanUrl()
     }
     const unsub = auth.onAuthStateChanged((user) => {
       if (user) sync()
