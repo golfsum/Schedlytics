@@ -155,7 +155,7 @@ export const CHANNEL_STATS: ChannelStat[] = [
 /* -------------------------------------------------------------------------- */
 
 /** Correlation matrix - Post Frequency (rows) vs Revenue cohorts (cols). */
-export const CORRELATION_ROWS = ['1', '2', '4', '6', '1-24']
+export const CORRELATION_ROWS = ['1', '2', '4', '6', '24+']
 export const CORRELATION_COLS = ['1', '4', '8', '12', '26']
 export const CORRELATION_MATRIX: number[][] = [
   [1.0, 0.75, 0.24, 0.47, 0.39],
@@ -314,7 +314,7 @@ export const CAMPAIGNS: Campaign[] = [
     id: 'summer-sale',
     name: 'Summer Sale',
     status: 'Active',
-    range: 'June 1 - June 30',
+    range: 'June 1 to June 30',
     posts: 8,
     clicks: 6240,
     visitors: 4810,
@@ -340,7 +340,7 @@ export const CAMPAIGNS: Campaign[] = [
     id: 'planner-launch',
     name: 'Digital Planner Launch',
     status: 'Active',
-    range: 'June 10 - July 10',
+    range: 'June 10 to July 10',
     posts: 6,
     clicks: 4120,
     visitors: 3180,
@@ -366,12 +366,12 @@ export const CAMPAIGNS: Campaign[] = [
     id: 'black-friday',
     name: 'Black Friday',
     status: 'Scheduled',
-    range: 'Nov 24 - Nov 30',
+    range: 'Nov 24 to Nov 30',
     posts: 0,
     clicks: 0,
     visitors: 0,
     revenue: '$0',
-    ctr: '-',
+    ctr: '0%',
     bestPlatform: 'instagram',
     insight: 'This campaign has not started yet. Schedule posts and trackable links to start measuring.',
     goalClicks: 10000,
@@ -384,7 +384,7 @@ export const CAMPAIGNS: Campaign[] = [
     id: 'newsletter-growth',
     name: 'Newsletter Growth',
     status: 'Active',
-    range: 'May 1 - ongoing',
+    range: 'May 1 to ongoing',
     posts: 11,
     clicks: 2980,
     visitors: 2540,

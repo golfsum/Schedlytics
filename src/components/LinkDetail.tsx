@@ -56,10 +56,10 @@ export default function LinkDetail({ link, onBack }: { link: ShortLink; onBack: 
   const cards: { Icon: LucideIcon; label: string; value: string }[] = [
     { Icon: MousePointerClick, label: 'Clicks', value: compact(clicks) },
     { Icon: Users, label: 'Unique Visitors', value: compact(visitors) },
-    { Icon: ExternalLink, label: 'Top Referrer', value: referrers[0]?.label || '—' },
-    { Icon: Globe, label: 'Top Country', value: countries[0]?.label || '—' },
-    { Icon: Smartphone, label: 'Top Device', value: devices[0]?.label || '—' },
-    { Icon: Target, label: 'Conversions', value: rich ? compact(conversions) : '—' },
+    { Icon: ExternalLink, label: 'Top Referrer', value: referrers[0]?.label || 'None' },
+    { Icon: Globe, label: 'Top Country', value: countries[0]?.label || 'None' },
+    { Icon: Smartphone, label: 'Top Device', value: devices[0]?.label || 'None' },
+    { Icon: Target, label: 'Conversions', value: rich ? compact(conversions) : '0' },
   ]
 
   return (
@@ -112,14 +112,14 @@ export default function LinkDetail({ link, onBack }: { link: ShortLink; onBack: 
         <h2 className="mb-4 text-lg font-bold text-white">Related</h2>
         <div className="grid gap-5 sm:grid-cols-[1fr_auto]">
           <div className="space-y-3 text-sm">
-            <Related label="Source post" value={link.sourcePost || '—'} />
-            <Related label="Campaign" value={link.campaign || '—'} />
+            <Related label="Source post" value={link.sourcePost || 'None'} />
+            <Related label="Campaign" value={link.campaign || 'None'} />
             <Related
               label="UTM parameters"
               value={
                 [link.utmSource && `source=${link.utmSource}`, link.utmMedium && `medium=${link.utmMedium}`, link.utmCampaign && `campaign=${link.utmCampaign}`]
                   .filter(Boolean)
-                  .join(' · ') || '—'
+                  .join(' · ') || 'None'
               }
             />
           </div>

@@ -122,7 +122,7 @@ export default function NewPostPanel({ onClose, onSchedule }: NewPostPanelProps)
                     key={p.id}
                     onClick={() => !soon && connected && togglePlatform(p.id)}
                     disabled={!connected || soon}
-                    title={soon ? `${p.name} - coming soon` : connected ? p.name : `${p.name} - not connected (connect in Settings)`}
+                    title={soon ? `${p.name} (coming soon)` : connected ? p.name : `${p.name} (not connected, connect in Settings)`}
                     className={`relative grid h-11 w-11 place-items-center rounded-xl border transition-all ${
                       isOn
                         ? `border-transparent bg-gradient-to-br ${p.gradient} text-white shadow-md`

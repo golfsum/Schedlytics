@@ -151,7 +151,7 @@ export const instagram = {
         if (code === 'FINISHED') ready = true
         else if (code === 'ERROR') throw new Error('Instagram could not process the video')
       }
-      if (!ready) throw new Error('Instagram video still processing - try again shortly')
+      if (!ready) throw new Error('Instagram is still processing the video. Please try again shortly.')
     }
 
     // 3. Publish the container.

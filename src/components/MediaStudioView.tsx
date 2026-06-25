@@ -256,7 +256,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   // unverified apps regardless of the chosen visibility).
   const youtubePrivacyNote = (actual?: string) => {
     if (actual === 'public') return 'Live on YouTube now.'
-    if (actual === 'unlisted') return 'Uploaded as unlisted - anyone with the link can watch.'
+    if (actual === 'unlisted') return 'Uploaded as unlisted. Anyone with the link can watch.'
     if (privacy === 'private') return 'Uploaded as a private video.'
     return `You chose ${privacy}, but YouTube keeps uploads private until your Google app is verified for public posting.`
   }
@@ -287,7 +287,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
       showPublished(
         result.url,
         settings.privacyLevel === 'SELF_ONLY'
-          ? 'Posted to TikTok as private - only you can see it.'
+          ? 'Posted to TikTok as private. Only you can see it.'
           : 'Posted to your TikTok.',
       )
     } catch (e) {
@@ -324,7 +324,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
         })
         showPublished(
           videoUrl.trim(),
-          `Scheduled on ${plat.name} for ${fmtWhen(scheduleAt)} - we'll publish it automatically.`,
+          `Scheduled on ${plat.name} for ${fmtWhen(scheduleAt)}. We'll publish it automatically.`,
         )
       } else if (willActReal && platform === 'youtube') {
         if (hasVideoFile && mediaFile) {
@@ -337,7 +337,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
           showPublished(
             result.url,
             scheduleAt
-              ? `Uploaded privately - YouTube will make it public on ${fmtWhen(scheduleAt)}.`
+              ? `Uploaded privately. YouTube will make it public on ${fmtWhen(scheduleAt)}.`
               : youtubePrivacyNote(result.privacyStatus),
           )
         } else {
@@ -354,7 +354,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
           showPublished(
             watchUrl,
             scheduleAt
-              ? `Uploaded privately - YouTube will make it public on ${fmtWhen(scheduleAt)}.`
+              ? `Uploaded privately. YouTube will make it public on ${fmtWhen(scheduleAt)}.`
               : youtubePrivacyNote(r.status?.privacyStatus),
           )
           setVideoUrl('')
@@ -411,7 +411,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
                 key={p.id}
                 onClick={() => !soon && setPlatform(p.id)}
                 disabled={soon}
-                title={soon ? `${p.name} - coming soon` : p.name}
+                title={soon ? `${p.name} (coming soon)` : p.name}
                 className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-all ${
                   on
                     ? `border-transparent bg-gradient-to-r ${p.gradient} text-white shadow-md`
@@ -778,7 +778,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
                 {platform === 'youtube'
                   ? 'Upload a video above to publish it directly, or paste a public URL for large files.'
                   : platform === 'tiktok'
-                    ? 'TikTok scheduling pulls from a public URL - host your video and paste the link.'
+                    ? 'TikTok scheduling pulls from a public URL, so host your video and paste the link.'
                     : 'Instagram publishes from a public URL, so host your photo/video and paste the link.'}
               </p>
             </div>

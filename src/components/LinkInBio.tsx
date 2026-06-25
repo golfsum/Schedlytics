@@ -201,9 +201,9 @@ export default function LinkInBio() {
                     </div>
                     <input value={b.url} onChange={(e) => setButton(b.id, { url: e.target.value })} placeholder="https://destination.com" className={`${inputCls} mt-2`} />
                     <div className="mt-2 flex items-center gap-4 text-xs text-slate-400">
-                      <span><span className="font-bold text-white">{sampleData ? compact(st.clicks) : '—'}</span> clicks</span>
-                      <span>CTR <span className="font-bold text-white">{sampleData ? st.ctr : '—'}</span></span>
-                      <span>Top source <span className="font-bold text-white">{sampleData ? st.topSource : '—'}</span></span>
+                      <span><span className="font-bold text-white">{sampleData ? compact(st.clicks) : '0'}</span> clicks</span>
+                      <span>CTR <span className="font-bold text-white">{sampleData ? st.ctr : '0%'}</span></span>
+                      <span>Top source <span className="font-bold text-white">{sampleData ? st.topSource : 'None'}</span></span>
                     </div>
                   </div>
                 )

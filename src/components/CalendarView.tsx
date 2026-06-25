@@ -35,7 +35,7 @@ function weekLabel(offset: number): string {
   const fri = new Date(mon)
   fri.setDate(fri.getDate() + 4)
   const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  return `${fmt(mon)} – ${fmt(fri)}, ${fri.getFullYear()}`
+  return `${fmt(mon)} to ${fmt(fri)}, ${fri.getFullYear()}`
 }
 
 export default function CalendarView({

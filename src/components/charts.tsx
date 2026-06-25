@@ -73,7 +73,7 @@ export function CorrelationMatrix({
                   }`}
                   style={{ backgroundColor: heat(val) }}
                 >
-                  {undef ? '—' : val.toFixed(2)}
+                  {undef ? '' : val.toFixed(2)}
                 </div>
               )
             }),

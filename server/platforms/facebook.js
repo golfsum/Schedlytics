@@ -34,7 +34,7 @@ export const facebook = {
     // Resolve a Page + its long-lived Page token now and cache it on the record.
     const pages = await getManagedPages(tokens.accessToken)
     const page = pages[0]
-    if (!page) throw new Error('No Facebook Page found - the user must manage at least one Page')
+    if (!page) throw new Error('No Facebook Page found. You need to manage at least one Page.')
     return {
       ...tokens,
       pageId: page.id,

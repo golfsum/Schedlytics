@@ -17,7 +17,7 @@ import {
 } from '../lib/admin'
 
 const fmtDate = (ms: number) =>
-  ms ? new Date(ms).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'
+  ms ? new Date(ms).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''
 
 type Tab = 'traffic' | 'early' | 'support' | 'users'
 const TABS: { id: Tab; label: string }[] = [
@@ -368,7 +368,7 @@ function UsersPanel() {
                 <div className="font-medium text-white">{u.email || '(no email)'}</div>
                 {u.displayName && <div className="text-xs text-slate-500">{u.displayName}</div>}
               </td>
-              <td className="px-4 py-2.5 text-slate-400">{u.providers.map(providerLabel).join(', ') || '—'}</td>
+              <td className="px-4 py-2.5 text-slate-400">{u.providers.map(providerLabel).join(', ') || 'None'}</td>
               <td className="px-4 py-2.5 text-slate-400">{fmtDate(u.createdAt || 0)}</td>
               <td className="px-4 py-2.5 text-slate-400">{fmtDate(u.lastSignInAt || 0)}</td>
               <td className="px-4 py-2.5">

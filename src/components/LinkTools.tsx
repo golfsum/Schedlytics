@@ -219,7 +219,7 @@ export function LinkEngagementTools() {
 const ALL = 'All'
 const linkStatus = (l: ShortLink) => (l.expiresAt && l.expiresAt < Date.now() ? 'Expired' : 'Active')
 const fmtDate = (ms?: number) =>
-  ms ? new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—'
+  ms ? new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''
 const qrSrc = (url: string) =>
   `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(url)}`
 
@@ -403,11 +403,11 @@ export default function LinkToolsView() {
                 <td className="max-w-[180px] truncate px-4 py-3 text-slate-400" title={l.url}>
                   {l.url.replace(/^https?:\/\//, '')}
                 </td>
-                <td className="px-4 py-3 text-slate-300">{l.campaign || '—'}</td>
-                <td className="px-4 py-3 text-slate-300">{l.sourcePost || '—'}</td>
+                <td className="px-4 py-3 text-slate-300">{l.campaign || 'None'}</td>
+                <td className="px-4 py-3 text-slate-300">{l.sourcePost || 'None'}</td>
                 <td className="px-4 py-3 text-right font-semibold text-white">{(l.clicks || 0).toLocaleString()}</td>
                 <td className="px-4 py-3 text-right text-slate-300">
-                  {l.uniqueVisitors != null ? l.uniqueVisitors.toLocaleString() : '—'}
+                  {l.uniqueVisitors != null ? l.uniqueVisitors.toLocaleString() : '0'}
                 </td>
                 <td className="px-4 py-3 text-slate-400">{fmtDate(l.createdAt)}</td>
                 <td className="px-4 py-3">

@@ -381,7 +381,7 @@ function CreateCampaignModal({ onClose, onCreate }: { onClose: () => void; onCre
       clicks: 0,
       visitors: 0,
       revenue: '$0',
-      ctr: '-',
+      ctr: '0%',
       bestPlatform: 'instagram',
       insight: 'This campaign is new. Add posts and trackable links to start measuring performance.',
       postRows: [],
@@ -408,7 +408,7 @@ function CreateCampaignModal({ onClose, onCreate }: { onClose: () => void; onCre
           </label>
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-slate-400">Date range (optional)</span>
-            <input value={range} onChange={(e) => setRange(e.target.value)} placeholder="Dec 1 - Dec 24" className={inputCls} />
+            <input value={range} onChange={(e) => setRange(e.target.value)} placeholder="Dec 1 to Dec 24" className={inputCls} />
           </label>
         </div>
         <div className="mt-5 flex justify-end gap-2">

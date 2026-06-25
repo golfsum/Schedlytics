@@ -289,7 +289,7 @@ export function ThisWeekCard({
         <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-emerald-400/25 bg-gradient-to-r from-emerald-400/10 to-cyan-accent/10 px-3 py-2.5">
           <PartyPopper className="h-4 w-4 shrink-0 text-emerald-300" />
           <span className="text-sm font-semibold text-white">
-            Best week yet — traffic {brief.trafficDelta} this week
+            Best week yet. Traffic {brief.trafficDelta} this week
           </span>
         </div>
       )}

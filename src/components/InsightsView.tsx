@@ -635,7 +635,7 @@ function UnifiedCorrelation() {
           </div>
           <p className="mb-2 text-xs text-slate-500">
             {sampleData
-              ? 'Oct 20 – 26'
+              ? 'Oct 20 to 26'
               : liveYouTube
                 ? 'Views per recent video · live counts, no delay'
                 : 'Last 7 days'}
@@ -667,7 +667,7 @@ function UnifiedCorrelation() {
             </h3>
             <MoreHorizontal className="h-4 w-4 text-slate-500" />
           </div>
-          <p className="mb-2 text-xs text-slate-500">{sampleData ? 'Oct 20 – 26' : 'Followers per channel'}</p>
+          <p className="mb-2 text-xs text-slate-500">{sampleData ? 'Oct 20 to 26' : 'Followers per channel'}</p>
           {sampleData ? (
             <ConversionBars />
           ) : !backendEnabled ? (

@@ -177,15 +177,15 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
   const realMetric: Record<string, { value: string; delta: string }> = {
     clicks: hasRealClicks
       ? { value: compact(realClicks), delta: `across ${links.length} link${links.length === 1 ? '' : 's'}` }
-      : { value: '—', delta: 'No clicks yet' },
+      : { value: '0', delta: 'No clicks yet' },
     visitors: realVisitors > 0
       ? { value: compact(realVisitors), delta: visitorsEstimated ? 'estimated unique' : 'unique, from your links' }
-      : { value: '—', delta: 'No data yet' },
+      : { value: '0', delta: 'No data yet' },
     campaign: topLinkCampaign
       ? { value: topLinkCampaign, delta: 'top campaign' }
-      : { value: '—', delta: 'No campaigns yet' },
-    revenue: { value: '—', delta: 'Revenue tracking soon' },
-    ctr: { value: '—', delta: 'Needs impression data' },
+      : { value: 'None', delta: 'No campaigns yet' },
+    revenue: { value: '0', delta: 'Revenue tracking soon' },
+    ctr: { value: 'No data', delta: 'Needs impression data' },
   }
 
   // Upcoming posts derived from the live calendar state.
@@ -335,7 +335,7 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
             key={m.key}
             Icon={METRIC_ICONS[m.key] || MousePointerClick}
             label={m.label}
-            value={sampleData ? m.value : realMetric[m.key]?.value ?? '—'}
+            value={sampleData ? m.value : realMetric[m.key]?.value ?? '0'}
             delta={sampleData ? m.delta : realMetric[m.key]?.delta ?? 'No data yet'}
             up={sampleData ? m.up : undefined}
             spark={sampleData ? metricSpark(m.key) : undefined}
