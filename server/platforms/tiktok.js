@@ -36,6 +36,29 @@ const MAX_SINGLE_CHUNK = 64 * 1024 * 1024 // TikTok single-chunk upload limit
 const PRIVACY_LEVELS = ['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'FOLLOWER_OF_CREATOR', 'SELF_ONLY']
 const normalizePrivacy = (p) => (PRIVACY_LEVELS.includes(p) ? p : 'SELF_ONLY')
 
+// Turn a TikTok post/init error body into a clear, actionable message.
+function tiktokInitError(text) {
+  let code = ''
+  try {
+    code = JSON.parse(text)?.error?.code || ''
+  } catch {
+    /* not JSON */
+  }
+  const FRIENDLY = {
+    unaudited_client_can_only_post_to_private_accounts:
+      'While our TikTok app is in review, TikTok only allows posting to a TikTok account set to Private. In the TikTok app open Settings and privacy, then Privacy, and turn on "Private account", then try again.',
+    spam_risk_too_many_pending_share:
+      'TikTok has too many pending uploads for this account right now. Wait a few minutes and try again.',
+    spam_risk_user_banned_from_posting:
+      'TikTok has temporarily blocked posting for this account. Try again later.',
+    url_ownership_unverified:
+      'The video URL\'s domain must be verified in your TikTok app settings before TikTok will pull from it.',
+    privacy_level_option_mismatch:
+      'That privacy option is not available for this account right now. Pick another and try again.',
+  }
+  return new Error(FRIENDLY[code] || `TikTok could not start the upload: ${text.slice(0, 200)}`)
+}
+
 export const tiktok = {
   id: 'tiktok',
   name: 'TikTok',
@@ -203,7 +226,7 @@ export const tiktok = {
         },
       }),
     })
-    if (!initRes.ok) throw new Error(`TikTok init failed: ${(await initRes.text()).slice(0, 220)}`)
+    if (!initRes.ok) throw tiktokInitError(await initRes.text())
     const init = (await initRes.json()).data || {}
     if (!init.upload_url) throw new Error('TikTok did not return an upload URL')
 
@@ -245,7 +268,7 @@ export const tiktok = {
         source_info: { source: 'PULL_FROM_URL', video_url: videoUrl },
       }),
     })
-    if (!res.ok) throw new Error(`TikTok init failed: ${(await res.text()).slice(0, 220)}`)
+    if (!res.ok) throw tiktokInitError(await res.text())
     const data = (await res.json()).data || {}
     return { id: data.publish_id, status: 'processing' }
   },
