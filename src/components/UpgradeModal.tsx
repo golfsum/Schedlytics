@@ -1,6 +1,9 @@
-import { X, Check, Sparkles } from 'lucide-react'
+import { useState } from 'react'
+import { X, Check, Sparkles, Loader2 } from 'lucide-react'
 import { useToast } from './Toast'
 import { usePlan, type PlanId } from './Plan'
+import { sampleData } from '../lib/socialApi'
+import { startCheckout, openBillingPortal } from '../lib/billing'
 
 interface UpgradeModalProps {
   onClose: () => void
@@ -19,7 +22,7 @@ const PLANS: Plan[] = [
   {
     id: 'pro',
     name: 'Creator',
-    price: '$15',
+    price: '$9',
     blurb: 'Early adopter pricing, locked in',
     features: ['Unlimited tracked links', 'Unlimited campaigns', 'QR codes', 'Link in bio', '90 day analytics'],
     recommended: true,
@@ -27,7 +30,7 @@ const PLANS: Plan[] = [
   {
     id: 'business',
     name: 'Business',
-    price: '$39',
+    price: '$24',
     blurb: 'Early adopter pricing, locked in',
     features: ['Everything in Creator', 'Custom branded domains', 'Team collaboration', 'Revenue attribution (coming soon)', 'White-label reports', 'Advanced CSV exports'],
   },
@@ -37,12 +40,35 @@ const PLANS: Plan[] = [
 export default function UpgradeModal({ onClose }: UpgradeModalProps) {
   const { addToast } = useToast()
   const { plan: current, setPlan } = usePlan()
+  const [busy, setBusy] = useState<string | null>(null)
 
-  const choose = (plan: Plan) => {
-    setPlan(plan.id as PlanId)
-    addToast(`🎉 You're on the Schedlytics ${plan.name} plan!`)
-    onClose()
+  const choose = async (plan: Plan) => {
+    // Demo / no-backend mode has no real checkout: just switch the local plan.
+    if (sampleData) {
+      setPlan(plan.id as PlanId)
+      addToast(`🎉 You're on the Schedlytics ${plan.name} plan!`)
+      onClose()
+      return
+    }
+    // Real accounts go to Stripe Checkout (this redirects away on success).
+    setBusy(plan.id)
+    const err = await startCheckout(plan.id as PlanId)
+    if (err) {
+      setBusy(null)
+      addToast(`Could not start checkout: ${err}`)
+    }
   }
+
+  const manage = async () => {
+    setBusy('portal')
+    const err = await openBillingPortal()
+    if (err) {
+      setBusy(null)
+      addToast(err)
+    }
+  }
+
+  const onPaidPlan = !sampleData && (current === 'pro' || current === 'business')
 
   return (
     <div
@@ -103,23 +129,36 @@ export default function UpgradeModal({ onClose }: UpgradeModalProps) {
               </ul>
               <button
                 onClick={() => choose(plan)}
-                disabled={current === plan.id}
-                className={`mt-5 rounded-lg py-2.5 text-sm font-bold transition-transform hover:scale-[1.02] disabled:cursor-default disabled:opacity-60 disabled:hover:scale-100 ${
+                disabled={current === plan.id || busy !== null}
+                className={`mt-5 flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-transform hover:scale-[1.02] disabled:cursor-default disabled:opacity-60 disabled:hover:scale-100 ${
                   plan.recommended
                     ? 'gradient-cyan text-navy-900 shadow-glow'
                     : 'border border-white/15 bg-navy-800 text-white hover:bg-navy-700'
                 }`}
               >
+                {busy === plan.id && <Loader2 className="h-4 w-4 animate-spin" />}
                 {current === plan.id ? 'Current plan' : `Choose ${plan.name}`}
               </button>
             </div>
           ))}
         </div>
 
-        <p className="border-t border-white/5 px-6 py-4 text-center text-xs text-slate-500">
-          Prices in USD. Payment checkout is not connected yet, so your plan changes here without a
-          charge.
-        </p>
+        <div className="border-t border-white/5 px-6 py-4 text-center text-xs text-slate-500">
+          {onPaidPlan ? (
+            <>
+              Manage your subscription, update your card, or cancel any time.{' '}
+              <button
+                onClick={manage}
+                disabled={busy !== null}
+                className="font-semibold text-cyan-accent hover:underline disabled:opacity-60"
+              >
+                {busy === 'portal' ? 'Opening…' : 'Manage billing'}
+              </button>
+            </>
+          ) : (
+            'Prices in USD. Secure checkout and billing are handled by Stripe.'
+          )}
+        </div>
       </div>
     </div>
   )

@@ -1,5 +1,8 @@
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import { useSeededState } from '../lib/usePersisted'
+import { sampleData, backendEnabled } from '../lib/socialApi'
+import { auth } from '../lib/firebase'
+import { fetchPlanStatus } from '../lib/billing'
 
 export type PlanId = 'free' | 'pro' | 'business'
 
@@ -13,8 +16,8 @@ export interface PlanInfo {
 
 export const PLAN_INFO: Record<PlanId, PlanInfo> = {
   free: { id: 'free', name: 'Free', price: '$0' },
-  pro: { id: 'pro', name: 'Creator', price: '$15', priceAnnual: '$99' },
-  business: { id: 'business', name: 'Business', price: '$39', priceAnnual: '$299' },
+  pro: { id: 'pro', name: 'Creator', price: '$9' },
+  business: { id: 'business', name: 'Business', price: '$24' },
 }
 
 interface PlanContextValue {
@@ -25,11 +28,31 @@ interface PlanContextValue {
 const PlanContext = createContext<PlanContextValue | null>(null)
 
 /**
- * The account's current plan. Demo mode shows Pro; real accounts start on Free
- * and persist any change. (Payment checkout is not wired in this project.)
+ * The account's current plan. Demo mode shows Creator; real accounts read their
+ * live plan from Stripe (and fall back to the locally stored value while that
+ * loads or when billing is not configured on the server).
  */
 export function PlanProvider({ children }: { children: ReactNode }) {
   const [plan, setPlan] = useSeededState<PlanId>('sl_plan', 'pro', 'free')
+
+  // Reconcile with the real subscription once the user is signed in. Runs on
+  // load and whenever auth state changes (e.g. returning from Stripe Checkout).
+  useEffect(() => {
+    if (sampleData || !backendEnabled || !auth) return
+    let cancelled = false
+    const sync = async () => {
+      const status = await fetchPlanStatus()
+      if (!cancelled && status && status.plan) setPlan(status.plan)
+    }
+    const unsub = auth.onAuthStateChanged((user) => {
+      if (user) sync()
+    })
+    return () => {
+      cancelled = true
+      unsub()
+    }
+  }, [setPlan])
+
   return <PlanContext.Provider value={{ plan, setPlan }}>{children}</PlanContext.Provider>
 }
 

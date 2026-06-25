@@ -16,6 +16,7 @@ import { analytics } from './analytics-store.js'
 import { errors as errorLog } from './error-store.js'
 import { banner } from './banner-store.js'
 import { checkHealth } from './health.js'
+import { registerBillingRoutes, stripeWebhook } from './billing.js'
 import { sendEmail, emailEnabled } from './email.js'
 import { isConfigured as fbAdminConfigured, listUsers, passwordResetLink, setUserDisabled } from './lib/firebaseAdmin.js'
 import { verifyIdToken } from './lib/firebaseAuth.js'
@@ -29,6 +30,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const SITE_DIR = join(__dirname, '..', 'site')
 
 const app = express()
+// The Stripe webhook needs the raw request body to verify its signature, so it
+// must be registered BEFORE the global JSON parser below.
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), stripeWebhook)
 app.use(express.json())
 // Allow the configured frontend origin plus any localhost port (the dev server
 // port can vary), so requests are not blocked by CORS during local development.
@@ -51,6 +55,9 @@ app.use('/api/youtube', youtubeRoutes)
 app.use('/api/ai', aiRoutes)
 // Per-user settings sync (requires FIREBASE_PROJECT_ID).
 app.use('/api/settings', settingsRoutes)
+// Stripe subscriptions: checkout, billing portal, plan status (no-op until
+// STRIPE_SECRET_KEY is set). The webhook is registered above (raw body).
+registerBillingRoutes(app)
 
 /* -------------------------------------------------------------------------- */
 /*  Marketing + legal site (landing, privacy, terms, data deletion)            */

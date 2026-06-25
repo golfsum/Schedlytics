@@ -23,6 +23,8 @@ import { useProfile, initialsOf } from './Profile'
 import { useAuth } from './Auth'
 import { usePlan, PLAN_INFO } from './Plan'
 import UpgradeModal from './UpgradeModal'
+import { openBillingPortal } from '../lib/billing'
+import { sampleData } from '../lib/socialApi'
 import { subscribeWeeklyBrief, backendEnabled } from '../lib/socialApi'
 import { submitSupport } from '../lib/admin'
 import { useSeededState } from '../lib/usePersisted'
@@ -529,9 +531,20 @@ function NotificationsSection() {
 
 function BillingSection() {
   const { plan } = usePlan()
+  const { addToast } = useToast()
   const [upgradeOpen, setUpgradeOpen] = useState(false)
+  const [managing, setManaging] = useState(false)
   const info = PLAN_INFO[plan]
   const isFree = plan === 'free'
+
+  const manageBilling = async () => {
+    setManaging(true)
+    const err = await openBillingPortal()
+    if (err) {
+      setManaging(false)
+      addToast(err)
+    }
+  }
 
   // Per-plan limits shown in the summary strip.
   const limits: [string, string][] = isFree
@@ -596,10 +609,24 @@ function BillingSection() {
               No payment method on file. You only need one when you upgrade to a paid plan.
             </div>
           </div>
-        ) : (
+        ) : sampleData ? (
           <div className="rounded-xl border border-white/5 bg-navy-900/50 p-4 text-sm text-slate-300">
-            Payment checkout is not connected in this build, so no card is stored. Your{' '}
-            <span className="font-semibold text-white">{info.name}</span> plan is active for preview.
+            This is a preview account, so no card is stored. Your{' '}
+            <span className="font-semibold text-white">{info.name}</span> plan is active for the demo.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-navy-900/50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-slate-300">
+              Your <span className="font-semibold text-white">{info.name}</span> plan is billed
+              securely through Stripe. Update your card, see invoices, or cancel any time.
+            </div>
+            <button
+              onClick={manageBilling}
+              disabled={managing}
+              className="shrink-0 rounded-lg border border-white/15 bg-navy-900/60 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-900/90 disabled:opacity-60"
+            >
+              {managing ? 'Opening…' : 'Manage billing'}
+            </button>
           </div>
         )}
       </div>
