@@ -86,16 +86,21 @@ export const pinterest = {
     if (!res.ok) throw new Error(`Pinterest user_account failed: ${await res.text()}`)
     const acct = await res.json()
 
+    // Pinterest reports monthly_views as -1 when it cannot be calculated (for
+    // example a personal account, or one without enough recent activity). Clamp
+    // any negative count to 0 so the UI never shows "-1 monthly views".
+    const count = (v) => Math.max(0, Number(v || 0))
+
     return {
       platform: 'pinterest',
       handle: acct.username,
       name: acct.username,
       avatar: acct.profile_image,
-      followers: Number(acct.follower_count || 0),
+      followers: count(acct.follower_count),
       metrics: [
-        { label: 'followers', value: Number(acct.follower_count || 0) },
-        { label: 'monthly views', value: Number(acct.monthly_views || 0) },
-        { label: 'pins', value: Number(acct.pin_count || 0) },
+        { label: 'followers', value: count(acct.follower_count) },
+        { label: 'monthly views', value: count(acct.monthly_views) },
+        { label: 'pins', value: count(acct.pin_count) },
       ],
       raw: acct,
     }
