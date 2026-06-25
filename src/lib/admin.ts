@@ -52,6 +52,43 @@ export async function fetchAnalytics(): Promise<AnalyticsData | null> {
   }
 }
 
+export interface Banner {
+  message: string
+  type: 'info' | 'warning'
+  active: boolean
+  at: number
+}
+/** Public: the active broadcast banner (no auth). */
+export async function fetchBanner(): Promise<Banner | null> {
+  if (!backendEnabled) return null
+  try {
+    const r = await fetch(`${apiBase}/api/banner`)
+    return r.ok ? r.json() : null
+  } catch {
+    return null
+  }
+}
+export async function setBanner(message: string, type: 'info' | 'warning'): Promise<boolean> {
+  try {
+    const r = await fetch(`${apiBase}/api/admin/banner`, {
+      method: 'POST',
+      headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, type }),
+    })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+export async function clearBanner(): Promise<boolean> {
+  try {
+    const r = await fetch(`${apiBase}/api/admin/banner`, { method: 'DELETE', headers: await authHeaders() })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
 export interface OverviewData {
   viewsToday: number
   uniquesToday: number

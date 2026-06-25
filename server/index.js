@@ -14,6 +14,7 @@ import { earlyAccess, EA_CAP } from './early-access-store.js'
 import { support } from './support-store.js'
 import { analytics } from './analytics-store.js'
 import { errors as errorLog } from './error-store.js'
+import { banner } from './banner-store.js'
 import { sendEmail, emailEnabled } from './email.js'
 import { isConfigured as fbAdminConfigured, listUsers, passwordResetLink, setUserDisabled } from './lib/firebaseAdmin.js'
 import { verifyIdToken } from './lib/firebaseAuth.js'
@@ -317,6 +318,22 @@ app.post('/api/admin/errors/ack', async (req, res) => {
   if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
   const { context, message, acked = true } = req.body || {}
   await errorLog.ack(context, message, acked)
+  res.json({ ok: true })
+})
+
+/* -- Broadcast banner: public read, admin write. ------------------------- */
+app.get('/api/banner', async (_req, res) => res.json(await banner.get()))
+
+app.post('/api/admin/banner', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  const { message, type } = req.body || {}
+  if (!message || !String(message).trim()) return res.status(400).json({ error: 'A message is required' })
+  res.json(await banner.set({ message, type }))
+})
+
+app.delete('/api/admin/banner', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  await banner.clear()
   res.json({ ok: true })
 })
 

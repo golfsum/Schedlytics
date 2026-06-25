@@ -16,6 +16,9 @@ import {
   ackError,
   fetchConnections,
   fetchOverview,
+  fetchBanner,
+  setBanner,
+  clearBanner,
   type EAData,
   type Ticket,
   type AdminUser,
@@ -92,18 +95,106 @@ function OverviewPanel({ onGo }: { onGo: (t: Tab) => void }) {
   ]
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {cards.map((c) => (
-        <button
-          key={c.label}
-          onClick={() => onGo(c.go)}
-          className="card p-5 text-left transition-colors hover:border-cyan-accent/30"
+    <div className="space-y-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {cards.map((c) => (
+          <button
+            key={c.label}
+            onClick={() => onGo(c.go)}
+            className="card p-5 text-left transition-colors hover:border-cyan-accent/30"
+          >
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{c.label}</div>
+            <div className={`mt-2 text-3xl font-bold ${c.accent ? 'text-amber-300' : 'text-white'}`}>{c.value}</div>
+            <div className="mt-1 text-sm text-slate-400">{c.sub}</div>
+          </button>
+        ))}
+      </div>
+      <BroadcastComposer />
+    </div>
+  )
+}
+
+function BroadcastComposer() {
+  const { addToast } = useToast()
+  const [message, setMessage] = useState('')
+  const [type, setType] = useState<'info' | 'warning'>('info')
+  const [hasActive, setHasActive] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    fetchBanner().then((b) => {
+      if (b?.active) {
+        setMessage(b.message)
+        setType(b.type)
+        setHasActive(true)
+      }
+    })
+  }, [])
+
+  const publish = async () => {
+    if (!message.trim()) return
+    setBusy(true)
+    const ok = await setBanner(message.trim(), type)
+    setBusy(false)
+    if (ok) {
+      setHasActive(true)
+      addToast('Banner published to all users')
+    } else {
+      addToast('Could not publish the banner', 'info')
+    }
+  }
+
+  const clear = async () => {
+    setBusy(true)
+    const ok = await clearBanner()
+    setBusy(false)
+    if (ok) {
+      setHasActive(false)
+      setMessage('')
+      addToast('Banner cleared')
+    }
+  }
+
+  return (
+    <div className="card p-5">
+      <h2 className="text-lg font-bold text-white">Broadcast banner</h2>
+      <p className="mt-0.5 text-xs text-slate-500">
+        Show a message to everyone in the app. {hasActive ? 'A banner is live now.' : 'No banner is live.'}
+      </p>
+      <textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        rows={2}
+        maxLength={300}
+        placeholder="e.g. Scheduled maintenance tonight from 10pm. Some features may be briefly unavailable."
+        className="mt-3 w-full resize-none rounded-lg border border-white/10 bg-navy-900 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none"
+      />
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <select
+          value={type}
+          onChange={(e) => setType(e.target.value as 'info' | 'warning')}
+          className="rounded-lg border border-white/10 bg-navy-900 px-2.5 py-1.5 text-sm text-slate-200 focus:border-cyan-accent/40 focus:outline-none"
         >
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{c.label}</div>
-          <div className={`mt-2 text-3xl font-bold ${c.accent ? 'text-amber-300' : 'text-white'}`}>{c.value}</div>
-          <div className="mt-1 text-sm text-slate-400">{c.sub}</div>
+          <option value="info">Info (cyan)</option>
+          <option value="warning">Warning (amber)</option>
+        </select>
+        <button
+          onClick={publish}
+          disabled={busy || !message.trim()}
+          className="rounded-lg gradient-cyan px-4 py-1.5 text-sm font-bold text-navy-900 disabled:opacity-50"
+        >
+          {hasActive ? 'Update banner' : 'Publish banner'}
         </button>
-      ))}
+        {hasActive && (
+          <button
+            onClick={clear}
+            disabled={busy}
+            className="rounded-lg border border-white/10 px-4 py-1.5 text-sm font-semibold text-slate-300 hover:text-white"
+          >
+            Clear
+          </button>
+        )}
+      </div>
     </div>
   )
 }

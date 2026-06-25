@@ -14,6 +14,7 @@ import UpgradeModal from './components/UpgradeModal'
 import LinkToolsView from './components/LinkTools'
 import InboxView from './components/InboxView'
 import AdminView from './components/AdminView'
+import BroadcastBanner from './components/BroadcastBanner'
 import { useToast } from './components/Toast'
 import { useAuth } from './components/Auth'
 import { useSeededState } from './lib/usePersisted'
@@ -113,6 +114,8 @@ export default function App() {
           posts={posts}
           onMenu={() => setMobileNav(true)}
         />
+
+        <BroadcastBanner />
 
         {demoMode && (
           <div className="flex items-center gap-2 border-b border-cyan-accent/20 bg-cyan-accent/10 px-4 py-2 text-xs text-cyan-accent sm:px-6">
