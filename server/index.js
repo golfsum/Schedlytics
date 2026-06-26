@@ -4,7 +4,7 @@ import crypto from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { PORT, BASE_URL, FRONTEND_URL, creds, ashrt } from './config.js'
+import { PORT, BASE_URL, BASE_URL_SOURCE, FRONTEND_URL, creds, ashrt, redirectUri, PLATFORM_IDS } from './config.js'
 import { getPlatform, platforms, PUBLISH_CAPABILITIES } from './platforms/index.js'
 import { store, userTokens } from './store.js'
 import { links, linkOwners } from './links-store.js'
@@ -545,6 +545,24 @@ app.patch('/api/admin/users/:uid', async (req, res) => {
     console.error('[admin/users patch] failed:', err.message)
     res.status(400).json({ error: err.message || 'Could not update user' })
   }
+})
+
+/* -------------------------------------------------------------------------- */
+/*  OAuth diagnostics                                                          */
+/*    GET /auth/config  → the exact redirect URIs we send to each provider.    */
+/*    Redirect URIs are not secret (they are sent to providers in the clear),  */
+/*    so this is safe and makes "redirect_uri_mismatch" debugging trivial:     */
+/*    register the listed URI verbatim in the provider's console.              */
+/* -------------------------------------------------------------------------- */
+app.get('/auth/config', (req, res) => {
+  const proto = (req.get('x-forwarded-proto') || 'https').split(',')[0].trim()
+  const host = (req.get('x-forwarded-host') || req.get('host') || '').split(',')[0].trim()
+  res.json({
+    baseUrl: BASE_URL,
+    baseUrlSource: BASE_URL_SOURCE,
+    requestOrigin: host ? `${proto}://${host}` : null,
+    redirectUris: Object.fromEntries(PLATFORM_IDS.map((p) => [p, redirectUri(p)])),
+  })
 })
 
 /* -------------------------------------------------------------------------- */

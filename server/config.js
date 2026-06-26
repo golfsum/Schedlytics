@@ -20,6 +20,13 @@ export const BASE_URL = (
 // backend's own origin (same-origin single deployment); override for split dev.
 export const FRONTEND_URL = process.env.FRONTEND_URL || BASE_URL
 
+// Which env produced BASE_URL (for diagnostics only).
+export const BASE_URL_SOURCE = process.env.BASE_URL
+  ? 'BASE_URL'
+  : process.env.VERCEL_URL
+    ? 'VERCEL_URL (per-deploy - set BASE_URL to your domain!)'
+    : 'localhost'
+
 /** The OAuth redirect/callback URL for a given platform. */
 export const redirectUri = (platform) => `${BASE_URL}/auth/${platform}/callback`
 
