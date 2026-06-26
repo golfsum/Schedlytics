@@ -23,6 +23,7 @@ import { sendEmail, emailEnabled } from './email.js'
 import { isConfigured as fbAdminConfigured, listUsers, passwordResetLink, setUserDisabled } from './lib/firebaseAdmin.js'
 import { verifyIdToken } from './lib/firebaseAuth.js'
 import { uidFromReq } from './lib/reqUser.js'
+import { isUrlSafe } from './lib/safeBrowsing.js'
 import { stateStore, rateLimit } from './kv.js'
 import { validAccessToken } from './tokens.js'
 import youtubeRoutes from './routes/youtube.js'
@@ -1170,12 +1171,21 @@ app.post('/api/links', limit('links', 40, 3600), async (req, res) => {
   // Only allow http(s) destinations (blocks javascript:, data:, file:, etc.).
   if (!isSafeHttpUrl(url)) return res.status(400).json({ error: 'Enter a valid http(s) link.' })
 
+  let clean = String(url).trim()
+  if (!/^https?:\/\//i.test(clean)) clean = `https://${clean}`
+
+  // Block known malware / phishing destinations (no-op until a Safe Browsing
+  // key is configured). Checked before both the ashrt and built-in paths.
+  if (!(await isUrlSafe(clean))) {
+    return res.status(400).json({ error: 'That destination was flagged as unsafe and cannot be shortened.' })
+  }
+
   // Prefer ashrt.link when configured; fall back to the built-in shortener.
   if (ashrtEnabled) {
     try {
       const r = await ashrtFetch('/api/links', {
         method: 'POST',
-        body: JSON.stringify({ url, source: 'schedlytics' }),
+        body: JSON.stringify({ url: clean, source: 'schedlytics' }),
       })
       const data = await r.json()
       // The link lives in ashrt.link, but we record who created it so the Links
@@ -1187,8 +1197,6 @@ app.post('/api/links', limit('links', 40, 3600), async (req, res) => {
     }
   }
 
-  let clean = String(url).trim()
-  if (!/^https?:\/\//i.test(clean)) clean = `https://${clean}`
   const slug = crypto.randomBytes(3).toString('hex')
   const link = await links.add({ slug, uid, url: clean, clicks: 0, uniqueVisitors: 0, createdAt: Date.now() })
   res.json(withShort(link))
