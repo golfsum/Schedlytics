@@ -37,6 +37,7 @@ import { usePersistedState } from '../lib/usePersisted'
 import { backendEnabled, publishYouTubeVideo, publishYouTubeFile, publishPost, publishMedia, schedulePost } from '../lib/socialApi'
 import { aiTitles, aiCaptions, aiHashtags, aiAnalyze, aiStatus, type Suggestion } from '../lib/aiSuggest'
 import { createShortLink, displayShort, normalizeUrl, type ShortLink } from '../lib/shortLinks'
+import { reportError } from '../lib/reportError'
 import { PLATFORM_LIST, PLATFORMS, isComingSoon } from '../data'
 import TikTokSandboxNotice from './TikTokSandboxNotice'
 import type { CalendarPost, PlatformId } from '../types'
@@ -228,6 +229,9 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   const connected = Boolean(accounts[platform]?.connected)
   const canUploadYouTube = platform === 'youtube' && backendEnabled && ytConnected
   const hasVideoFile = Boolean(mediaFile && mediaFile.type.startsWith('video/'))
+  // Large uploads (10-20 min videos) need a heads-up: they take longer and the
+  // tab must stay open while the bytes upload. 250 MB is the warning threshold.
+  const largeFile = Boolean(mediaFile && mediaFile.size > 250 * 1024 * 1024)
 
   // Clear the per-post fields for a fresh post (keeps the saved default description).
   const resetComposer = () => {
@@ -511,6 +515,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     } catch (e) {
       const detail = e instanceof Error ? e.message : String(e)
       addToast('Could not publish. See the bell for details.', 'info', 6000)
+      reportError(`media-studio:publish:${platform}`, detail, platform)
       push({ type: 'error', title: 'Publish failed', message: 'Tap to see the full reason', detail })
     } finally {
       setPublishing(false)
@@ -602,6 +607,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     } catch (e) {
       const detail = e instanceof Error ? e.message : String(e)
       addToast('Could not publish. See the bell for details.', 'info', 6000)
+      reportError(`media-studio:publish:${platform}`, detail, platform)
       push({ type: 'error', title: 'Publish failed', message: 'Tap to see the full reason', detail })
     } finally {
       setPublishing(false)
@@ -812,6 +818,16 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
               </button>
             )}
             {mediaFile && <p className="mt-2 truncate text-[11px] text-slate-500">{mediaFile.name}</p>}
+            {largeFile && (
+              <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-[11px] text-amber-200">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  Large video detected ({(mediaFile!.size / 1_000_000).toFixed(0)} MB). It uploads directly and
+                  securely to {plat.name}; keep this tab open until it finishes. Progress is shown on the publish
+                  button, and your title and description are kept if anything fails.
+                </span>
+              </div>
+            )}
             <input
               ref={fileRef}
               type="file"
