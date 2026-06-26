@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UTM Best Practices: A Naming System That Scales | Schedlytics</title>
+    <meta
+      name="description"
+      content="A simple, consistent UTM naming system you can reuse across every campaign. Learn the five parameters, a clean convention, and the mistakes to avoid."
+    />
+    <link rel="canonical" href="https://schedlytics.com/utm-best-practices" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="UTM Best Practices: A Naming System That Scales" />
+    <meta property="og:description" content="A simple, consistent UTM naming system you can reuse across every campaign so your reports stay clean." />
+    <meta property="og:url" content="https://schedlytics.com/utm-best-practices" />
+    <meta property="og:image" content="https://schedlytics.com/site-media/dashboard.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Article",
+            "headline": "UTM Best Practices: A Naming System That Scales",
+            "description": "A simple, consistent UTM naming system you can reuse across every campaign so your reports stay clean.",
+            "image": "https://schedlytics.com/site-media/dashboard.png",
+            "author": { "@type": "Organization", "name": "Schedlytics" },
+            "publisher": { "@type": "Organization", "name": "Schedlytics" }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://schedlytics.com/" },
+              { "@type": "ListItem", "position": 2, "name": "Guides", "item": "https://schedlytics.com/guides" },
+              { "@type": "ListItem", "position": 3, "name": "UTM Best Practices", "item": "https://schedlytics.com/utm-best-practices" }
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is a UTM parameter?",
+                "acceptedAnswer": { "@type": "Answer", "text": "A UTM parameter is a small tag added to the end of a link, like utm_source or utm_campaign, that tells your analytics where a visitor came from. When someone clicks the link, the tag travels with them, so your reports can group traffic by source, medium, and campaign." }
+              },
+              {
+                "@type": "Question",
+                "name": "Should UTMs always be lowercase?",
+                "acceptedAnswer": { "@type": "Answer", "text": "Yes. Analytics tools treat utm_source=YouTube and utm_source=youtube as two separate sources, which splits your numbers in half. Pick lowercase, use it everywhere, and your reports stay clean." }
+              },
+              {
+                "@type": "Question",
+                "name": "Do I need utm_term and utm_content?",
+                "acceptedAnswer": { "@type": "Answer", "text": "Most of the time, no. Source, medium, and campaign cover almost every report you will run. Add utm_content only when you have two links in the same place that you want to tell apart, and use utm_term mainly for paid search keywords." }
+              },
+              {
+                "@type": "Question",
+                "name": "Will UTMs slow my links down or look spammy?",
+                "acceptedAnswer": { "@type": "Answer", "text": "No. UTM parameters are just text added to the end of a URL, so they have no effect on load speed. If a long link looks cluttered, shorten it so the UTMs stay attached while the visible link stays tidy." }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <header class="nav">
+      <div class="container nav-inner">
+        <a class="brand" href="/">
+          <svg viewBox="0 0 64 64" width="32" height="32" aria-hidden="true">
+            <rect x="2" y="2" width="60" height="60" rx="14" fill="#1b2a44" />
+            <rect x="15" y="18" width="34" height="31" rx="4" fill="#b6cdec" />
+            <path d="M13 48 L25 40 L32 44 L50 22 M50 22 L42 23 M50 22 L49 31" fill="none" stroke="#e2b94d" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span>Sched<span class="accent">lytics</span></span>
+        </a>
+        <nav class="nav-links">
+          <a href="/#features">Features</a>
+          <a href="/#pricing">Pricing</a>
+          <a href="/tools">Tools</a>
+          <a href="/guides">Guides</a>
+          <a href="/app/?demo=1">Try demo</a>
+        </nav>
+        <a class="btn btn-primary" href="/#early-access" data-app-href="/app/" data-app-text="Start tracking free">Get early access</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="seo-hero">
+        <div class="container">
+          <span class="eyebrow">Guide</span>
+          <h1>UTM Best Practices: A Naming System <span class="grad">That Scales</span></h1>
+          <p class="lead">
+            UTMs only help you if they stay consistent. Here is a simple, repeatable naming system you
+            can use across every post and campaign, so your reports stay clean as you grow.
+          </p>
+          <div class="hero-cta">
+            <a class="btn btn-primary btn-lg" href="/#early-access" data-app-href="/app/" data-app-text="Start tracking free">Get early access</a>
+            <a class="btn btn-ghost btn-lg" href="/app/?demo=1">Try the demo</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" style="padding-top: 8px">
+        <div class="container seo-prose">
+          <h2>What UTM parameters actually do</h2>
+          <p>
+            A UTM parameter is a small tag you add to the end of a link, like
+            <code>utm_source=youtube</code>. When someone clicks that link, the tag travels with them,
+            and your analytics records exactly where they came from. Without UTMs, a lot of your traffic
+            gets lumped into vague buckets like direct or referral. With them, you can see that a
+            specific video sent 420 visitors and 12 sales. That is the whole point. UTMs turn fuzzy
+            traffic into something you can actually measure and compare.
+          </p>
+          <p>
+            The catch is that UTMs are only as good as the names you put in them. Analytics tools do not
+            clean up your labels. They report whatever you typed, exactly as you typed it. So a tidy
+            naming system is not a nice extra. It is the difference between a report you trust and a pile
+            of near duplicate rows you have to untangle every month.
+          </p>
+
+          <h2>The five parameters and what each is for</h2>
+          <p>
+            There are five UTM parameters. You will use three of them constantly and the other two
+            rarely. Here is what each one is meant to hold.
+          </p>
+          <ul>
+            <li><strong>utm_source</strong> is the platform or place the click came from, such as youtube, instagram, or newsletter. Think of it as the where.</li>
+            <li><strong>utm_medium</strong> is the type of traffic, such as social, email, or cpc for paid search. Think of it as the how.</li>
+            <li><strong>utm_campaign</strong> is the specific push that the link belongs to, such as summer_launch or black_friday. Think of it as the why.</li>
+            <li><strong>utm_term</strong> is optional and usually holds a keyword for paid search. Most creators never touch it.</li>
+            <li><strong>utm_content</strong> is optional and tells apart two links that point to the same page from the same place, like a header button and a footer button.</li>
+          </ul>
+          <p>
+            If you only ever fill in source, medium, and campaign, you will be ahead of most people.
+            Those three answer where the click came from, what kind of traffic it was, and which effort
+            it belonged to. That covers almost every report you will ever run.
+          </p>
+
+          <h2>A naming convention you can stick to</h2>
+          <p>
+            The exact words you choose matter less than choosing them once and never drifting. Here is a
+            convention that holds up well.
+          </p>
+          <ul>
+            <li><strong>Lowercase everything.</strong> Analytics counts <code>Email</code> and <code>email</code> as two different mediums. Pick lowercase and use it everywhere so your numbers never get split.</li>
+            <li><strong>Use underscores, not spaces.</strong> Spaces get encoded into messy <code>%20</code> sequences and can break links when they are copied. Write <code>summer_launch</code>, not <code>summer launch</code>.</li>
+            <li><strong>Keep a small, fixed vocabulary.</strong> Decide that your social medium is always <code>social</code>, never <code>Social</code>, <code>socials</code>, or <code>sm</code>. A short list of approved values stops the slow creep of synonyms that wrecks reports.</li>
+            <li><strong>Write it down.</strong> Keep your sources, mediums, and campaign naming pattern in one document. The goal is that a teammate can read a link cold and know exactly what it points to without asking you.</li>
+          </ul>
+          <p>
+            A good test is the read aloud test. If you can read a finished link out loud and immediately
+            say "that is the Instagram social link for the summer launch," your system is working. If you
+            have to guess, tighten the vocabulary.
+          </p>
+
+          <h2>The mistakes that quietly ruin reports</h2>
+          <p>
+            Most UTM problems are not dramatic. They are small inconsistencies that pile up until your
+            data is hard to trust. These are the four that cause the most pain.
+          </p>
+          <ul>
+            <li><strong>Inconsistent casing.</strong> <code>YouTube</code>, <code>youtube</code>, and <code>Youtube</code> become three separate sources, and your traffic gets divided across all of them. This is the single most common UTM mistake.</li>
+            <li><strong>Spaces in values.</strong> A space can encode oddly or break the link entirely when a reader copies it. Underscores keep everything clean and clickable.</li>
+            <li><strong>Tagging internal links.</strong> Never put UTMs on links between pages of your own site. When a visitor clicks one, your analytics starts a brand new session and credits your own site as the source, which erases where they truly came from.</li>
+            <li><strong>Over tagging.</strong> You do not need all five parameters on every link. Stuffing in <code>utm_term</code> and <code>utm_content</code> when you have no plan to read them just makes links longer and harder to scan. Add the optional ones only when you will actually use them.</li>
+          </ul>
+
+          <h2>A simple system you can reuse</h2>
+          <p>
+            Put the pieces together and you have a system that scales from your first link to your
+            thousandth. Settle on lowercase with underscores. Keep a short approved list of sources and
+            mediums. Name campaigns with a consistent pattern, like the effort plus the month, so
+            <code>summer_launch</code> and <code>holiday_sale</code> sort cleanly. Skip the optional
+            parameters unless you have a real reason to use them. Then document the whole thing in one
+            place so it survives new teammates and busy weeks.
+          </p>
+          <p>
+            When you are ready to make links, build them with the free
+            <a href="/utm-builder">UTM builder</a> so the formatting is correct every time, then shorten
+            and track them so you can actually see what they drive. Pair that with
+            <a href="/campaign-tracking">campaign tracking</a> to roll related links up into one
+            measurable push, and use <a href="/link-tracking">link tracking</a> to watch clicks, unique
+            visitors, and sources per link. A clean naming system plus tracking is what turns UTMs from
+            busywork into real answers about what your content is worth.
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="section-head">
+            <h2>Related</h2>
+          </div>
+          <div class="related-grid">
+            <a class="related-card" href="/utm-builder">
+              <h3>UTM Builder</h3>
+              <p>Build clean, consistent campaign links in seconds, free and no signup.</p>
+            </a>
+            <a class="related-card" href="/campaign-tracking">
+              <h3>Campaign Tracking</h3>
+              <p>Roll related UTM links up into one campaign you can measure end to end.</p>
+            </a>
+            <a class="related-card" href="/link-tracking">
+              <h3>Link Tracking</h3>
+              <p>Shorten any UTM link and record clicks, unique visitors, and sources.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="section-head">
+            <h2>Frequently asked questions</h2>
+          </div>
+          <div class="faq">
+            <details class="faq-item">
+              <summary>What is a UTM parameter?</summary>
+              <p>A UTM parameter is a small tag added to the end of a link, like utm_source or utm_campaign, that tells your analytics where a visitor came from. When someone clicks the link, the tag travels with them, so your reports can group traffic by source, medium, and campaign.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Should UTMs always be lowercase?</summary>
+              <p>Yes. Analytics tools treat utm_source=YouTube and utm_source=youtube as two separate sources, which splits your numbers in half. Pick lowercase, use it everywhere, and your reports stay clean.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Do I need utm_term and utm_content?</summary>
+              <p>Most of the time, no. Source, medium, and campaign cover almost every report you will run. Add utm_content only when you have two links in the same place that you want to tell apart, and use utm_term mainly for paid search keywords.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Will UTMs slow my links down or look spammy?</summary>
+              <p>No. UTM parameters are just text added to the end of a URL, so they have no effect on load speed. If a long link looks cluttered, shorten it so the UTMs stay attached while the visible link stays tidy.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="early-access">
+        <div class="container">
+          <div class="cta-band">
+            <h2>Put your naming system to work</h2>
+            <p>Join early access to build, shorten, and measure every UTM link in one place.</p>
+            <div class="hero-cta" style="justify-content:center">
+              <a class="btn btn-primary btn-lg" href="/#early-access" data-app-href="/app/" data-app-text="Start tracking free">Get early access</a>
+              <a class="btn btn-ghost btn-lg" href="/app/?demo=1">Try the demo</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer-inner">
+        <a class="brand" href="/" style="font-size:17px">
+          <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true">
+            <rect x="2" y="2" width="60" height="60" rx="14" fill="#1b2a44" />
+            <rect x="15" y="18" width="34" height="31" rx="4" fill="#b6cdec" />
+            <path d="M13 48 L25 40 L32 44 L50 22 M50 22 L42 23 M50 22 L49 31" fill="none" stroke="#e2b94d" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span>Sched<span class="accent">lytics</span></span>
+        </a>
+        <nav class="footer-links">
+          <a href="/social-media-analytics">Social Media Analytics</a>
+          <a href="/youtube-analytics">YouTube Analytics</a>
+          <a href="/campaign-tracking">Campaign Tracking</a>
+          <a href="/link-tracking">Link Tracking</a>
+          <a href="/utm-builder">UTM Builder</a>
+          <a href="/guides">Guides</a>
+        </nav>
+        <nav class="footer-links">
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Service</a>
+          <a href="/data-deletion">Data Deletion</a>
+          <a href="mailto:support@schedlytics.com">Contact</a>
+        </nav>
+        <p class="copy">&copy; 2026 Schedlytics. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        function applyProduction() {
+          var els = document.querySelectorAll('[data-app-href]')
+          for (var i = 0; i < els.length; i++) {
+            var a = els[i], href = a.getAttribute('data-app-href'), text = a.getAttribute('data-app-text')
+            if (href) a.setAttribute('href', href)
+            if (text) a.textContent = text
+          }
+        }
+        try {
+          fetch('/api/config').then(function (r) { return r.json() }).then(function (c) {
+            if (c.earlyAccess === false) applyProduction()
+          }).catch(function () {})
+        } catch (e) {}
+      })()
+    </script>
+    <script>
+      (function () {
+        try {
+          if (navigator.sendBeacon) navigator.sendBeacon('/api/track?type=site')
+          else fetch('/api/track?type=site', { method: 'POST', keepalive: true })
+        } catch (e) {}
+      })()
+    </script>
+    <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments) }</script>
+    <script defer src="/_vercel/insights/script.js"></script>
+  </body>
+</html>

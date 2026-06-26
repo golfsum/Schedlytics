@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>How to Track Which Content Actually Drives Sales | Schedlytics</title>
+    <meta
+      name="description"
+      content="Learn how to connect your posts to real sales and signups, not just likes. A practical, step-by-step guide to content attribution for creators and marketers."
+    />
+    <link rel="canonical" href="https://schedlytics.com/track-content-that-drives-sales" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="How to Track Which Content Actually Drives Sales" />
+    <meta property="og:description" content="Connect your posts to real sales and signups, not just likes. A practical guide to content attribution." />
+    <meta property="og:url" content="https://schedlytics.com/track-content-that-drives-sales" />
+    <meta property="og:image" content="https://schedlytics.com/site-media/dashboard.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Article",
+            "headline": "How to Track Which Content Actually Drives Sales",
+            "description": "Connect your posts to real sales and signups, not just likes. A practical, step-by-step guide to content attribution for creators and marketers.",
+            "author": { "@type": "Organization", "name": "Schedlytics" },
+            "publisher": { "@type": "Organization", "name": "Schedlytics" }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://schedlytics.com/" },
+              { "@type": "ListItem", "position": 2, "name": "Guides", "item": "https://schedlytics.com/guides" },
+              { "@type": "ListItem", "position": 3, "name": "Track Content That Drives Sales", "item": "https://schedlytics.com/track-content-that-drives-sales" }
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How do I know which post drove a sale?",
+                "acceptedAnswer": { "@type": "Answer", "text": "Give each post its own tracked link. When someone clicks, a click id follows them to your site. If they buy or sign up, that action is stamped with the same click id, so the sale traces back to the exact post that earned the click." }
+              },
+              {
+                "@type": "Question",
+                "name": "Do I need code on my website?",
+                "acceptedAnswer": { "@type": "Answer", "text": "You add one small tracking snippet to your site, similar to any analytics tag. It reads the click id from the visitor and reports goal pages or sale values back. If you sell on a hosted platform, you can usually paste the snippet into the header settings without touching code." }
+              },
+              {
+                "@type": "Question",
+                "name": "What is the difference between a click and a conversion?",
+                "acceptedAnswer": { "@type": "Answer", "text": "A click is someone tapping your link. A conversion is that person doing something valuable once they arrive, like signing up, joining a list, or buying. Clicks measure interest. Conversions measure outcomes. Attribution connects the two." }
+              },
+              {
+                "@type": "Question",
+                "name": "How long does attribution last?",
+                "acceptedAnswer": { "@type": "Answer", "text": "Most people do not buy the moment they click. A tracking window keeps the click id stored for a set period, often a week to thirty days, so a sale that happens days later still credits the post that started it." }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <header class="nav">
+      <div class="container nav-inner">
+        <a class="brand" href="/">
+          <svg viewBox="0 0 64 64" width="32" height="32" aria-hidden="true">
+            <rect x="2" y="2" width="60" height="60" rx="14" fill="#1b2a44" />
+            <rect x="15" y="18" width="34" height="31" rx="4" fill="#b6cdec" />
+            <path d="M13 48 L25 40 L32 44 L50 22 M50 22 L42 23 M50 22 L49 31" fill="none" stroke="#e2b94d" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span>Sched<span class="accent">lytics</span></span>
+        </a>
+        <nav class="nav-links">
+          <a href="/#features">Features</a>
+          <a href="/#pricing">Pricing</a>
+          <a href="/tools">Tools</a>
+          <a href="/guides">Guides</a>
+          <a href="/app/?demo=1">Try demo</a>
+        </nav>
+        <a class="btn btn-primary" href="/#early-access" data-app-href="/app/" data-app-text="Start tracking free">Get early access</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="seo-hero">
+        <div class="container">
+          <span class="eyebrow">Guide</span>
+          <h1>How to Track Which Content <span class="grad">Actually Drives Sales</span></h1>
+          <p class="lead">
+            Likes and views feel good, but they do not pay invoices. This guide shows you how to
+            connect a specific post to the signups and dollars it produced, so you can finally say
+            which content earns its keep and which only earns applause.
+          </p>
+          <div class="hero-cta">
+            <a class="btn btn-primary btn-lg" href="/#early-access" data-app-href="/app/" data-app-text="Start tracking free">Get early access</a>
+            <a class="btn btn-ghost btn-lg" href="/app/?demo=1">Try the demo</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" style="padding-top: 8px">
+        <div class="container seo-prose">
+          <h2>The attribution gap, and why your dashboards cannot close it</h2>
+          <p>
+            Every platform gives you a dashboard, and every dashboard stops at the edge of that
+            platform. YouTube can tell you a video got views and a click on the description link.
+            Instagram can tell you a reel reached people and earned profile taps. What none of them
+            can tell you is what happened next. Did that viewer land on your site? Did they sign up?
+            Did they buy? The moment a person leaves the platform, the platform stops watching, and
+            the trail goes cold.
+          </p>
+          <p>
+            That blind spot is the attribution gap. It is why two creators with identical view counts
+            can have wildly different revenue, and why a quiet post with a thousand views can out earn
+            a viral one with a hundred thousand. The post that drives sales is rarely the post that
+            drives the biggest numbers. Without attribution you are guessing, and you tend to make more
+            of whatever got the most likes, which is not the same as whatever made the most money.
+          </p>
+
+          <h2>How tracked links bridge the gap to your own site</h2>
+          <p>
+            The fix is to carry a small piece of identity across the gap. When you point a post at a
+            <a href="/link-tracking">tracked link</a> instead of a bare URL, the link does two jobs at
+            once. It redirects the visitor to your destination, and it attaches a click id to that
+            visit. Think of the click id as a wristband. The platform handed the person off at the
+            door, and now your own site can see the wristband and know which post sent them.
+          </p>
+          <p>
+            Because the click id lives on your site rather than inside the platform, you own the rest
+            of the story. You decide what counts as a win, you measure it on your own pages, and you
+            trace it straight back to the post that started it. That is the whole idea behind content
+            attribution. The platform measures attention. Your tracked links and your site measure the
+            outcome.
+          </p>
+
+          <h2>A concrete setup you can finish today</h2>
+          <p>
+            You do not need a data team for this. Three steps get you a working attribution loop, and
+            you can do them in an afternoon.
+          </p>
+          <ul>
+            <li>
+              <strong>Create a tracked link per post.</strong> For each video, reel, or post that
+              points to your site, generate a unique tracked link. One link per post is the important
+              part. If five videos share the same link you can never tell them apart. Tag each link
+              with the platform and, if you run themed pushes, the campaign, so it rolls up cleanly in
+              your <a href="/campaign-tracking">campaign tracking</a>. If you prefer UTM parameters for
+              deeper labeling, build them quickly with the <a href="/utm-builder">UTM builder</a>.
+            </li>
+            <li>
+              <strong>Add a small tracking snippet to your site.</strong> Paste one lightweight script
+              into your site header, the same way you would add any analytics tag. It reads the click
+              id from the incoming visitor and keeps it on hand while they browse. On most hosted store
+              and website builders this is a copy and paste into a settings field, no developer
+              required.
+            </li>
+            <li>
+              <strong>Mark your goal pages or report a sale value.</strong> Tell the snippet what
+              success looks like. That might be a thank you page after a signup, a checkout confirmation,
+              or a sale value passed at the moment of purchase. When a visitor reaches that goal, the
+              snippet stamps the action with their click id and reports it back.
+            </li>
+          </ul>
+          <p>
+            That is the full loop. A post earns a click, the click carries an id to your site, and a
+            signup or sale on your site reports back with the same id. Now every outcome has a return
+            address.
+          </p>
+
+          <h2>How to read per content results</h2>
+          <p>
+            Once the loop is running, your reporting changes shape. Instead of a wall of views you get
+            a list of posts, each with the clicks it earned, the signups it produced, and the revenue
+            it carried. The sentence you could never finish before becomes easy. This specific video
+            drove forty seven signups and one thousand two hundred dollars. That Tuesday reel drove
+            three sales. The carousel everyone loved drove zero.
+          </p>
+          <p>
+            Read it as a funnel for each post. Clicks tell you the hook landed and people wanted more.
+            The drop from clicks to conversions tells you whether your destination delivered on the
+            promise. A post with many clicks and few signups usually has a great hook and a weak
+            landing page. A post with few clicks but a high conversion rate found exactly the right
+            people, and is worth making more of. Pairing this with your
+            <a href="/social-media-analytics">social media analytics</a> and your
+            <a href="/youtube-analytics">YouTube analytics</a> shows you not just which platforms get
+            attention, but which ones get attention that pays.
+          </p>
+
+          <h2>Common pitfalls that quietly break attribution</h2>
+          <p>
+            Most attribution failures are not technical. They are small habits that erase the signal
+            before it ever reaches you. Watch for these.
+          </p>
+          <ul>
+            <li>
+              <strong>Untracked links.</strong> The single most common mistake. A bare link in a bio or
+              description redirects fine but carries no click id, so every sale it drives shows up as
+              traffic from nowhere. If a link points at your site and you care about results, it should
+              be a tracked link.
+            </li>
+            <li>
+              <strong>No call to action.</strong> A post can be brilliant and still drive nothing if it
+              never asks. People do not hunt for your link. Tell them where to go and why, in the
+              caption and out loud, every time.
+            </li>
+            <li>
+              <strong>Judging a post by views alone.</strong> Views are the easiest number to see and
+              the easiest to overvalue. A post can reach the moon and sell nothing, while a modest post
+              quietly funds your month. Once you can see clicks and conversions per post, let those
+              numbers, not the vanity metrics, decide what you make next.
+            </li>
+          </ul>
+          <p>
+            Fix those three and your attribution stays honest. From there it compounds. Every week you
+            learn which content earns and which only entertains, you do more of the first kind, and the
+            gap between what looks successful and what is actually successful closes for good.
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="section-head">
+            <h2>Related reading</h2>
+          </div>
+          <div class="related-grid">
+            <a class="related-card" href="/link-tracking">
+              <h3>Link Tracking</h3>
+              <p>Create a tracked link for every post and carry the click id to your site.</p>
+            </a>
+            <a class="related-card" href="/campaign-tracking">
+              <h3>Campaign Tracking</h3>
+              <p>Group posts and links into campaigns and measure each push end to end.</p>
+            </a>
+            <a class="related-card" href="/social-media-analytics">
+              <h3>Social Media Analytics</h3>
+              <p>See which posts and platforms drive traffic that actually converts.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="section-head">
+            <h2>Frequently asked questions</h2>
+          </div>
+          <div class="faq">
+            <details class="faq-item">
+              <summary>How do I know which post drove a sale?</summary>
+              <p>Give each post its own tracked link. When someone clicks, a click id follows them to your site. If they buy or sign up, that action is stamped with the same click id, so the sale traces back to the exact post that earned the click.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Do I need code on my website?</summary>
+              <p>You add one small tracking snippet to your site, similar to any analytics tag. It reads the click id from the visitor and reports goal pages or sale values back. If you sell on a hosted platform, you can usually paste the snippet into the header settings without touching code.</p>
+            </details>
+            <details class="faq-item">
+              <summary>What is the difference between a click and a conversion?</summary>
+              <p>A click is someone tapping your link. A conversion is that person doing something valuable once they arrive, like signing up, joining a list, or buying. Clicks measure interest. Conversions measure outcomes. Attribution connects the two.</p>
+            </details>
+            <details class="faq-item">
+              <summary>How long does attribution last?</summary>
+              <p>Most people do not buy the moment they click. A tracking window keeps the click id stored for a set period, often a week to thirty days, so a sale that happens days later still credits the post that started it.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="early-access">
+        <div class="container">
+          <div class="cta-band">
+            <h2>See which content actually pays</h2>
+            <p>Join early access and connect every post to the signups and revenue it drives.</p>
+            <div class="hero-cta" style="justify-content:center">
+              <a class="btn btn-primary btn-lg" href="/#early-access" data-app-href="/app/" data-app-text="Start tracking free">Get early access</a>
+              <a class="btn btn-ghost btn-lg" href="/app/?demo=1">Try the demo</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer-inner">
+        <a class="brand" href="/" style="font-size:17px">
+          <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true">
+            <rect x="2" y="2" width="60" height="60" rx="14" fill="#1b2a44" />
+            <rect x="15" y="18" width="34" height="31" rx="4" fill="#b6cdec" />
+            <path d="M13 48 L25 40 L32 44 L50 22 M50 22 L42 23 M50 22 L49 31" fill="none" stroke="#e2b94d" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span>Sched<span class="accent">lytics</span></span>
+        </a>
+        <nav class="footer-links">
+          <a href="/social-media-analytics">Social Media Analytics</a>
+          <a href="/youtube-analytics">YouTube Analytics</a>
+          <a href="/campaign-tracking">Campaign Tracking</a>
+          <a href="/link-tracking">Link Tracking</a>
+          <a href="/tools">Tools</a>
+          <a href="/guides">Guides</a>
+        </nav>
+        <nav class="footer-links">
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Service</a>
+          <a href="/data-deletion">Data Deletion</a>
+          <a href="mailto:support@schedlytics.com">Contact</a>
+        </nav>
+        <p class="copy">&copy; 2026 Schedlytics. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        function applyProduction() {
+          var els = document.querySelectorAll('[data-app-href]')
+          for (var i = 0; i < els.length; i++) {
+            var a = els[i], href = a.getAttribute('data-app-href'), text = a.getAttribute('data-app-text')
+            if (href) a.setAttribute('href', href)
+            if (text) a.textContent = text
+          }
+        }
+        try {
+          fetch('/api/config').then(function (r) { return r.json() }).then(function (c) {
+            if (c.earlyAccess === false) applyProduction()
+          }).catch(function () {})
+        } catch (e) {}
+      })()
+    </script>
+    <script>
+      (function () {
+        try {
+          if (navigator.sendBeacon) navigator.sendBeacon('/api/track?type=site')
+          else fetch('/api/track?type=site', { method: 'POST', keepalive: true })
+        } catch (e) {}
+      })()
+    </script>
+    <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments) }</script>
+    <script defer src="/_vercel/insights/script.js"></script>
+  </body>
+</html>

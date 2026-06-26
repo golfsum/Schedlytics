@@ -31,8 +31,28 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://schedlytics.com/tools</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://schedlytics.com/guides</loc>
     <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://schedlytics.com/track-content-that-drives-sales</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://schedlytics.com/find-your-best-performing-platform</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://schedlytics.com/utm-best-practices</loc>
+    <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
