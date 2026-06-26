@@ -129,9 +129,20 @@ export function InboxProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  // Auto-load live YouTube comments when connected (backend mode only).
+  // Auto-load live YouTube comments when connected (backend mode only). When a
+  // channel is disconnected, remove ONLY that channel's messages from the inbox
+  // (others stay) instead of leaving its stale comments showing.
   useEffect(() => {
-    if (backendEnabled && ytConnected) loadYouTube()
+    if (!backendEnabled) return
+    if (ytConnected) {
+      loadYouTube()
+      return
+    }
+    setMessages((prev) => {
+      const next = prev.filter((m) => m.platform !== 'youtube')
+      return next.length === prev.length ? prev : next
+    })
+    setSelectedId((cur) => (cur && messages.some((m) => m.id === cur && m.platform !== 'youtube') ? cur : null))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ytConnected])
 
