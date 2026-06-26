@@ -16,6 +16,13 @@ import {
   ListOrdered,
   X,
   Repeat,
+  Megaphone,
+  Link2,
+  Copy,
+  Clock,
+  Gauge,
+  AlertTriangle,
+  Star,
 } from 'lucide-react'
 import Toggle from './Toggle'
 import ThumbnailPicker from './ThumbnailPicker'
@@ -25,9 +32,11 @@ import TikTokPostModal, { type TikTokPostSettings } from './TikTokPostModal'
 import { useToast } from './Toast'
 import { useNotifications } from './Notifications'
 import { useConnections } from './Connections'
+import { useCampaigns } from './Campaigns'
 import { usePersistedState } from '../lib/usePersisted'
 import { backendEnabled, publishYouTubeVideo, publishYouTubeFile, publishPost, publishMedia, schedulePost } from '../lib/socialApi'
 import { aiTitles, aiCaptions, aiHashtags, type Suggestion } from '../lib/aiSuggest'
+import { createShortLink, displayShort, normalizeUrl, type ShortLink } from '../lib/shortLinks'
 import { PLATFORM_LIST, PLATFORMS, isComingSoon } from '../data'
 import TikTokSandboxNotice from './TikTokSandboxNotice'
 import type { CalendarPost, PlatformId } from '../types'
@@ -41,11 +50,11 @@ interface MediaStudioViewProps {
 
 /** Per-platform thumbnail capabilities. */
 const THUMB_CAPS: Record<string, { custom: boolean; frame: boolean; note: string }> = {
-  youtube: { custom: true, frame: true, note: 'Upload a custom thumbnail or pick a frame.' },
+  youtube: { custom: true, frame: true, note: 'Auto-generated from your video, or upload a custom one.' },
   reels: { custom: true, frame: true, note: 'Pick a cover frame or upload a custom cover.' },
   instagram: { custom: false, frame: true, note: 'Instagram uses a cover frame from the video.' },
   tiktok: { custom: false, frame: true, note: 'TikTok uses a cover frame from the video.' },
-  facebook: { custom: true, frame: true, note: 'Upload a custom thumbnail or pick a frame.' },
+  facebook: { custom: true, frame: true, note: 'Auto-generated from your video, or upload a custom one.' },
   pinterest: { custom: true, frame: false, note: 'Pinterest pins use a still image.' },
   twitch: { custom: true, frame: false, note: 'Upload a custom thumbnail for the VOD.' },
   patreon: { custom: true, frame: false, note: 'Upload a cover image for the post.' },
@@ -67,6 +76,12 @@ interface RecurringSlot {
   time: string // "HH:MM"
 }
 
+interface MediaMeta {
+  duration?: number
+  width?: number
+  height?: number
+}
+
 const WEEK_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 /** Next date/time matching a weekly slot (e.g. next Friday 20:00). */
@@ -81,14 +96,70 @@ function nextWeeklyOccurrence({ weekday, time }: RecurringSlot): Date {
   return d
 }
 
+/** The "best time" suggestion: next Tuesday at 9:15 AM (your best click window). */
+function nextBestTime(): Date {
+  const now = new Date()
+  const d = new Date()
+  d.setHours(9, 15, 0, 0)
+  let add = (2 - now.getDay() + 7) % 7 // 2 = Tuesday
+  if (add === 0 && d.getTime() <= now.getTime()) add = 7
+  d.setDate(d.getDate() + add)
+  return d
+}
+
+/** Format a video duration as m:ss. */
+function fmtDuration(sec?: number): string {
+  if (!sec || !isFinite(sec)) return '—'
+  const m = Math.floor(sec / 60)
+  const s = Math.round(sec % 60)
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+/** Friendly resolution label (1080p, 4K, …) from a pixel height. */
+function fmtResolution(meta: MediaMeta): string {
+  const h = meta.height || 0
+  if (!h) return '—'
+  if (h >= 2160) return '4K'
+  if (h >= 1440) return '1440p'
+  if (h >= 1080) return '1080p'
+  if (h >= 720) return '720p'
+  return `${h}p`
+}
+
+/** One-click title variations (instant, local). Keeps "no typing" snappy. */
+function rewriteTitle(t: string, style: 'better' | 'shorter' | 'clicks' | 'seo'): string {
+  const base = t.trim()
+  if (!base) return base
+  const titleCase = base.replace(/\b\w/g, (c) => c.toUpperCase())
+  switch (style) {
+    case 'shorter':
+      return base.split(/\s+/).slice(0, 6).join(' ')
+    case 'better':
+      return titleCase
+    case 'clicks':
+      return `${titleCase}: What Nobody Tells You`
+    case 'seo':
+      return `${titleCase} (2026 Guide)`
+  }
+}
+
+const REWRITES: { key: 'better' | 'shorter' | 'clicks' | 'seo'; label: string }[] = [
+  { key: 'better', label: 'Better' },
+  { key: 'shorter', label: 'Shorter' },
+  { key: 'clicks', label: 'More clicks' },
+  { key: 'seo', label: 'SEO' },
+]
+
 export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudioViewProps) {
   const { addToast } = useToast()
   const { push } = useNotifications()
   const { accounts } = useConnections()
+  const { campaigns } = useCampaigns()
   const [platform, setPlatform] = useState<PlatformId>('youtube')
   const [mediaMode, setMediaMode] = useState<'video' | 'image'>('video')
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaPreview, setMediaPreview] = useState<string | undefined>()
+  const [mediaMeta, setMediaMeta] = useState<MediaMeta>({})
   const fileRef = useRef<HTMLInputElement>(null)
   const [thumbnail, setThumbnail] = useState<string | undefined>()
   const [title, setTitle] = useState('')
@@ -104,6 +175,12 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   const [chapters, setChapters] = useState<Chapter[]>([{ time: '0:00', label: 'Intro' }])
   const [videoUrl, setVideoUrl] = useState('')
   const [privacy, setPrivacy] = useState<'public' | 'unlisted' | 'private'>('public')
+  // Campaign + automatic tracked link.
+  const [campaign, setCampaign] = useState('')
+  const [destinationUrl, setDestinationUrl] = useState('')
+  const [trackedLink, setTrackedLink] = useState<ShortLink | null>(null)
+  const [creatingLink, setCreatingLink] = useState(false)
+  const [generatingAll, setGeneratingAll] = useState(false)
   // Persisted weekly upload slot (e.g. "every Friday 8 PM").
   const [recurring, setRecurring] = usePersistedState<RecurringSlot | null>('sl_recurring_slot', null)
 
@@ -130,18 +207,41 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     setTagInput('')
     setMediaFile(null)
     setMediaPreview(undefined)
+    setMediaMeta({})
     setThumbnail(undefined)
     setVideoUrl('')
     setChapters([{ time: '0:00', label: 'Intro' }])
     setScheduleAt(null)
+    setCampaign('')
+    setDestinationUrl('')
+    setTrackedLink(null)
   }
 
   const openFilePicker = () => fileRef.current?.click()
+  const removeMedia = () => {
+    setMediaFile(null)
+    setMediaPreview(undefined)
+    setMediaMeta({})
+    setThumbnail(undefined)
+  }
   const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setMediaFile(file)
     setMediaPreview(URL.createObjectURL(file))
+    setMediaMeta({})
+    setThumbnail(undefined)
+    // Read duration + resolution off a throwaway video element.
+    if (file.type.startsWith('video/')) {
+      const v = document.createElement('video')
+      v.preload = 'metadata'
+      const url = URL.createObjectURL(file)
+      v.onloadedmetadata = () => {
+        setMediaMeta({ duration: v.duration, width: v.videoWidth, height: v.videoHeight })
+        URL.revokeObjectURL(url)
+      }
+      v.src = url
+    }
     addToast(`${file.type.startsWith('video/') ? 'Video' : 'Image'} added`)
     e.target.value = '' // allow re-picking the same file
   }
@@ -168,6 +268,23 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     }
   }
 
+  /** Fill Title + Description + Hashtags in one click. */
+  const generateEverything = async () => {
+    setGeneratingAll(true)
+    try {
+      const [t, c, h] = await Promise.all([aiTitles(title), aiCaptions(title), aiHashtags(title)])
+      if (t[0]) setTitle(t[0].text)
+      if (c[0]) setCaption(c[0].text)
+      if (h.length) setTags((prev) => Array.from(new Set([...prev, ...h.slice(0, 6).map((s) => s.text)])))
+      setTitleSugs(t)
+      setCaptionSugs(c)
+      setTagSugs(h)
+      addToast('AI filled your title, description, and hashtags ✨')
+    } finally {
+      setGeneratingAll(false)
+    }
+  }
+
   const toggleTag = (t: string) =>
     setTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]))
 
@@ -190,13 +307,44 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     }
   }
 
-  // Chapter helpers (item 5).
+  // Chapter helpers.
   const setChapter = (i: number, patch: Partial<Chapter>) =>
     setChapters((c) => c.map((ch, idx) => (idx === i ? { ...ch, ...patch } : ch)))
   const addChapter = () => setChapters((c) => [...c, { time: '', label: '' }])
   const removeChapter = (i: number) => setChapters((c) => c.filter((_, idx) => idx !== i))
 
-  /** Assemble the full description: video caption + chapters + saved default. */
+  /** Create a tracked short link from the destination URL (auto-attributed). */
+  const createTrackedLink = async () => {
+    const url = normalizeUrl(destinationUrl)
+    if (!url) return
+    setCreatingLink(true)
+    try {
+      const link = await createShortLink(url, {
+        campaign: campaign || undefined,
+        platform,
+        sourcePost: title.trim() || undefined,
+        utmSource: platform,
+        utmMedium: 'social',
+        utmCampaign: campaign ? campaign.toLowerCase().replace(/[^a-z0-9]+/g, '_') : undefined,
+      })
+      setTrackedLink(link)
+      addToast('Tracked link created automatically 🔗')
+    } catch {
+      addToast('Could not create a tracked link right now', 'info')
+    } finally {
+      setCreatingLink(false)
+    }
+  }
+
+  const copyTracked = () => {
+    if (!trackedLink) return
+    navigator.clipboard?.writeText(trackedLink.shortUrl).then(
+      () => addToast('Tracked link copied'),
+      () => undefined,
+    )
+  }
+
+  /** Assemble the full description: caption + chapters + tags + tracked link + default. */
   const composeDescription = () => {
     const blocks: string[] = []
     if (caption.trim()) blocks.push(caption.trim())
@@ -206,6 +354,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
         .map((c) => `${c.time.trim()} ${c.label.trim()}`)
       if (lines.length) blocks.push(['Chapters:', ...lines].join('\n'))
     }
+    if (trackedLink) blocks.push(trackedLink.shortUrl)
     if (tags.length) blocks.push(tags.join(' '))
     if (defaultDescription.trim()) blocks.push(defaultDescription.trim())
     return blocks.join('\n\n')
@@ -224,6 +373,9 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
       day,
       slot,
       span: 1,
+      campaign: campaign || undefined,
+      destinationUrl: destinationUrl.trim() || undefined,
+      trackClicks: Boolean(trackedLink),
     }
   }
 
@@ -305,6 +457,8 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
       addToast('Add a title or caption first', 'info')
       return
     }
+    // Auto-create the tracked link if a destination was entered but not yet made.
+    if (destinationUrl.trim() && !trackedLink) await createTrackedLink()
     // Immediate TikTok post: confirm privacy + interaction settings first.
     if (willActReal && platform === 'tiktok' && !scheduleAt && mediaFile) {
       setTiktokOpen(true)
@@ -316,10 +470,10 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     try {
       if (willActReal && scheduleAt && (platform === 'instagram' || platform === 'tiktok')) {
         // No native scheduling - queue it for the cron worker (publishes from URL).
-        const caption = [title.trim(), composeDescription()].filter(Boolean).join('\n\n')
+        const cap = [title.trim(), composeDescription()].filter(Boolean).join('\n\n')
         await schedulePost({
           platform,
-          caption,
+          caption: cap,
           mediaUrl: videoUrl.trim(),
           publishAt: scheduleAt.getTime(),
         })
@@ -390,6 +544,30 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     }
   }
 
+  /* ---------------------- live publishing checklist + score ---------------- */
+  const descLen = composeDescription().length
+  const thumbnailRelevant = caps.frame || caps.custom
+  const checklist = [
+    { label: 'Media uploaded', done: Boolean(mediaFile || videoUrl.trim()), weight: 20, hint: 'Add a video or image' },
+    {
+      label: 'Thumbnail selected',
+      done: !thumbnailRelevant || Boolean(thumbnail),
+      weight: 15,
+      hint: 'Pick a cover frame or upload one',
+    },
+    { label: 'Title written', done: title.trim().length >= 10, weight: 15, hint: 'Aim for 10+ characters' },
+    { label: 'Description (100+ chars)', done: descLen >= 100, weight: 15, hint: 'Add more detail and a CTA' },
+    { label: '3+ hashtags', done: tags.length >= 3, weight: 10, hint: 'Add a few relevant hashtags' },
+    { label: 'Campaign selected', done: Boolean(campaign), weight: 10, hint: 'Group this post into a campaign' },
+    { label: 'Tracked link', done: Boolean(trackedLink), weight: 10, hint: 'Add a destination URL to track clicks' },
+    { label: 'Scheduled time', done: Boolean(scheduleAt), weight: 5, hint: 'Pick a publish time or best time' },
+  ]
+  const score = checklist.reduce((s, c) => s + (c.done ? c.weight : 0), 0)
+  const reach = score >= 80 ? 'High' : score >= 50 ? 'Medium' : 'Low'
+  const scoreColor = score >= 80 ? 'text-emerald-400' : score >= 50 ? 'text-cyan-accent' : 'text-amber-400'
+
+  const bestTime = nextBestTime()
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
@@ -431,7 +609,72 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
         {platform === 'tiktok' && <TikTokSandboxNotice className="mt-3" />}
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-2">
+      {/* campaign + automatic tracked link (the attribution backbone) */}
+      <div className="card grid gap-4 p-4 sm:grid-cols-2">
+        <div>
+          <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
+            <Megaphone className="h-4 w-4 text-cyan-accent" /> Campaign
+          </span>
+          <select
+            value={campaign}
+            onChange={(e) => setCampaign(e.target.value)}
+            className="w-full rounded-lg border border-white/5 bg-navy-900/60 px-3 py-2.5 text-sm text-slate-200 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+          >
+            <option value="">No campaign</option>
+            {campaigns.map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1.5 text-[11px] text-slate-500">
+            {campaigns.length
+              ? 'Everything you create here is tracked under this campaign.'
+              : 'No campaigns yet. Create one on the Campaigns page to group posts.'}
+          </p>
+        </div>
+        <div>
+          <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
+            <Link2 className="h-4 w-4 text-cyan-accent" /> Destination URL
+          </span>
+          <div className="flex gap-2">
+            <input
+              value={destinationUrl}
+              onChange={(e) => {
+                setDestinationUrl(e.target.value)
+                setTrackedLink(null)
+              }}
+              onBlur={() => destinationUrl.trim() && !trackedLink && createTrackedLink()}
+              placeholder="https://yoursite.com/landing"
+              className="min-w-0 flex-1 rounded-lg border border-white/5 bg-navy-900/60 px-3 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+            />
+            <button
+              onClick={createTrackedLink}
+              disabled={!destinationUrl.trim() || creatingLink}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-cyan-accent/30 px-3 py-2 text-xs font-semibold text-cyan-accent transition-colors hover:bg-cyan-accent/10 disabled:opacity-50"
+            >
+              {creatingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
+              Track
+            </button>
+          </div>
+          {trackedLink ? (
+            <div className="mt-2 flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs">
+              <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+              <span className="truncate font-medium text-emerald-300">{displayShort(trackedLink.shortUrl)}</span>
+              <span className="shrink-0 text-[10px] text-slate-500">Auto generated</span>
+              <button onClick={copyTracked} className="ml-auto shrink-0 text-slate-400 hover:text-white" title="Copy">
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <p className="mt-1.5 text-[11px] text-slate-500">
+              Add a link and we create a trackable short link automatically.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_320px]">
         {/* LEFT: media + thumbnail */}
         <section className="card flex flex-col gap-5 p-5">
           <div>
@@ -453,28 +696,48 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
               </div>
             </div>
 
-            <button
-              onClick={openFilePicker}
-              className="grid aspect-video w-full place-items-center overflow-hidden rounded-xl border border-dashed border-white/15 bg-navy-900/50 text-slate-400 transition-colors hover:border-cyan-accent/40 hover:text-cyan-accent"
-            >
-              {mediaPreview && mediaMode === 'image' ? (
-                <img src={mediaPreview} alt="Post" className="h-full w-full object-cover" />
-              ) : mediaPreview && mediaMode === 'video' ? (
-                <video src={mediaPreview} className="h-full w-full object-cover" muted />
-              ) : (
+            {mediaPreview ? (
+              /* Preview card: instantly confirms the uploaded file. */
+              <div className="overflow-hidden rounded-xl border border-white/10 bg-navy-900/50">
+                {mediaMode === 'image' ? (
+                  <img src={mediaPreview} alt="Post" className="aspect-video w-full object-contain" />
+                ) : (
+                  <video src={mediaPreview} controls playsInline className="aspect-video w-full bg-black object-contain" />
+                )}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-white/5 px-3 py-2 text-[11px] text-slate-400">
+                  {hasVideoFile && (
+                    <>
+                      <span className="flex items-center gap-1 text-slate-300">
+                        <Clock className="h-3 w-3" /> {fmtDuration(mediaMeta.duration)}
+                      </span>
+                      <span>{fmtResolution(mediaMeta)}</span>
+                    </>
+                  )}
+                  {mediaFile && <span>{(mediaFile.size / 1_000_000).toFixed(1)} MB</span>}
+                  <div className="ml-auto flex items-center gap-2">
+                    <button onClick={openFilePicker} className="font-semibold text-cyan-accent hover:underline">
+                      Replace
+                    </button>
+                    <button onClick={removeMedia} className="font-semibold text-slate-400 hover:text-rose-300">
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={openFilePicker}
+                className="grid aspect-video w-full place-items-center overflow-hidden rounded-xl border border-dashed border-white/15 bg-navy-900/50 text-slate-400 transition-colors hover:border-cyan-accent/40 hover:text-cyan-accent"
+              >
                 <span className="flex flex-col items-center gap-2">
                   <UploadCloud className="h-7 w-7" />
                   <span className="text-xs font-medium">
                     Upload {mediaMode === 'video' ? 'a video' : 'an image'}
                   </span>
                 </span>
-              )}
-            </button>
-            {mediaFile && (
-              <p className="mt-2 truncate text-[11px] text-slate-500">
-                {mediaFile.name} · {(mediaFile.size / 1_000_000).toFixed(1)} MB
-              </p>
+              </button>
             )}
+            {mediaFile && <p className="mt-2 truncate text-[11px] text-slate-500">{mediaFile.name}</p>}
             <input
               ref={fileRef}
               type="file"
@@ -484,11 +747,12 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             />
           </div>
 
-          {/* thumbnail (relevant for video; for image platforms still allow custom cover) */}
+          {/* thumbnail: frames auto-generated from the video uploaded above */}
           <ThumbnailPicker
             allowCustom={caps.custom}
             allowFrames={caps.frame && mediaMode === 'video'}
             note={caps.note}
+            videoSrc={hasVideoFile ? mediaPreview : undefined}
             onSelect={(url) => {
               setThumbnail(url)
               addToast('Thumbnail set')
@@ -501,8 +765,18 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
           )}
         </section>
 
-        {/* RIGHT: AI title, caption, hashtags + publish */}
+        {/* MIDDLE: AI title, caption, hashtags + schedule + publish */}
         <section className="card flex flex-col gap-5 p-5">
+          {/* Generate Everything */}
+          <button
+            onClick={generateEverything}
+            disabled={generatingAll}
+            className="flex items-center justify-center gap-2 rounded-lg border border-cyan-accent/30 bg-cyan-accent/5 py-2.5 text-sm font-bold text-cyan-accent transition-colors hover:bg-cyan-accent/10 disabled:opacity-60"
+          >
+            {generatingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {generatingAll ? 'Generating…' : 'Generate everything'}
+          </button>
+
           {/* Title */}
           <Field
             label="Title"
@@ -515,6 +789,19 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
               placeholder="Type a topic, then let AI optimize it"
               className="w-full rounded-lg border border-white/5 bg-navy-900/60 px-3.5 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
             />
+            {/* One-click rewrite variations */}
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {REWRITES.map((r) => (
+                <button
+                  key={r.key}
+                  onClick={() => setTitle((t) => rewriteTitle(t, r.key))}
+                  disabled={!title.trim()}
+                  className="flex items-center gap-1 rounded-full border border-white/10 bg-navy-900/60 px-2.5 py-1 text-[11px] font-medium text-slate-300 transition-colors hover:border-cyan-accent/30 hover:text-white disabled:opacity-40"
+                >
+                  <Wand2 className="h-3 w-3 text-cyan-accent" /> {r.label}
+                </button>
+              ))}
+            </div>
             <Suggestions items={titleSugs} onPick={(s) => setTitle(s)} />
           </Field>
 
@@ -617,7 +904,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             </div>
           )}
 
-          {/* Default description that persists per platform (item 4) */}
+          {/* Default description that persists per platform */}
           <Field
             label="Default description (saved)"
             loading={false}
@@ -664,7 +951,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             </details>
           )}
 
-          {/* A/B + schedule + publish */}
+          {/* A/B test */}
           <div className="flex items-center justify-between rounded-lg border border-white/5 bg-navy-900/50 px-3.5 py-2.5">
             <span className="flex items-center gap-2 text-sm font-medium text-slate-200">
               <FlaskConical className="h-4 w-4 text-cyan-accent" /> A/B test variants
@@ -694,8 +981,22 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             </div>
           )}
 
-          {/* Recurring weekly slot - e.g. "every Friday 8 PM". Set it once, then
-              one tap drops this week's upload on the next slot. */}
+          {/* Best time suggestion (ties into Growth Coach windows) */}
+          <button
+            onClick={() => setScheduleAt(bestTime)}
+            className="flex items-center justify-between rounded-lg border border-cyan-accent/20 bg-cyan-accent/5 px-3.5 py-2.5 text-left transition-colors hover:bg-cyan-accent/10"
+          >
+            <span className="flex items-center gap-2 text-sm font-medium text-slate-200">
+              <Star className="h-4 w-4 text-cyan-accent" />
+              Best time
+              <span className="text-xs text-slate-400">{fmtWhen(bestTime)}</span>
+            </span>
+            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-300">
+              +18% est.
+            </span>
+          </button>
+
+          {/* Recurring weekly slot - e.g. "every Friday 8 PM". */}
           <div className="rounded-lg border border-white/5 bg-navy-900/50 p-3.5">
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-2 text-sm font-medium text-slate-200">
@@ -760,8 +1061,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             )}
           </div>
 
-          {/* Media URL: YouTube can use it instead of a file; Instagram requires
-              it (the IG API publishes from a public URL, not raw bytes). */}
+          {/* Media URL: YouTube can use it instead of a file; Instagram requires it. */}
           {showMediaUrlField && (
             <div>
               <span className="mb-2 block text-sm font-semibold text-white">
@@ -807,6 +1107,50 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             })()}
           </button>
         </section>
+
+        {/* RIGHT: live publishing score + checklist */}
+        <aside className="xl:sticky xl:top-4 xl:self-start">
+          <div className="card p-5">
+            <div className="flex items-center gap-2">
+              <Gauge className="h-4 w-4 text-cyan-accent" />
+              <span className="text-sm font-semibold text-white">Publishing score</span>
+            </div>
+            <div className="mt-3 flex items-end gap-3">
+              <span className={`text-4xl font-extrabold tabular-nums ${scoreColor}`}>{score}</span>
+              <span className="pb-1 text-sm text-slate-500">/ 100</span>
+              <span className="ml-auto pb-1 text-right">
+                <span className="block text-[11px] text-slate-500">Estimated reach</span>
+                <span className={`text-sm font-bold ${scoreColor}`}>{reach}</span>
+              </span>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-navy-900/80">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-cyan-accent to-emerald-400 transition-all"
+                style={{ width: `${score}%` }}
+              />
+            </div>
+
+            <ul className="mt-4 space-y-2">
+              {checklist.map((c) => (
+                <li key={c.label} className="flex items-start gap-2 text-sm">
+                  {c.done ? (
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                  ) : (
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                  )}
+                  <span className="flex-1">
+                    <span className={c.done ? 'text-slate-300' : 'text-slate-200'}>{c.label}</span>
+                    {!c.done && <span className="block text-[11px] text-slate-500">{c.hint}</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <p className="mt-4 border-t border-white/5 pt-3 text-[11px] text-slate-500">
+              Your score updates live as you prepare the post. Higher scores tend to reach more people.
+            </p>
+          </div>
+        </aside>
       </div>
 
       {tiktokOpen && (
