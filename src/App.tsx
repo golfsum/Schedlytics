@@ -5,6 +5,7 @@ import CalendarView from './components/CalendarView'
 import InsightsView from './components/InsightsView'
 import MediaStudioView from './components/MediaStudioView'
 import DashboardView from './components/DashboardView'
+import ContentView from './components/ContentView'
 import CampaignsView from './components/CampaignsView'
 import SettingsView from './components/SettingsView'
 import NewPostPanel from './components/NewPostPanel'
@@ -27,7 +28,7 @@ export default function App() {
   const { addToast } = useToast()
   const { user } = useAuth()
   const [nav, setNav] = useState<NavId>(
-    () => (window.history.state?.slNav as NavId) || 'calendar',
+    () => (window.history.state?.slNav as NavId) || 'dashboard',
   )
 
   // Keep in-app navigation in the browser history so Back/Forward move between
@@ -146,6 +147,9 @@ export default function App() {
 
             {nav === 'media-studio' && (
               <MediaStudioView onSchedule={addPost} onScheduled={() => navigate('calendar')} />
+            )}
+            {nav === 'content' && (
+              <ContentView posts={posts} onNavigate={navigate} onOpenPost={setDetailPost} />
             )}
             {nav === 'campaigns' && <CampaignsView />}
             {nav === 'insights' && <InsightsView />}

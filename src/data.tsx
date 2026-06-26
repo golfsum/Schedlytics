@@ -15,6 +15,7 @@ import {
   Link2,
   MessageSquare,
   Settings,
+  FileText,
 } from 'lucide-react'
 import type {
   Platform,
@@ -102,10 +103,11 @@ export const isComingSoon = (id: PlatformId) => COMING_SOON.includes(id)
 
 export const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard },
+  { id: 'content', label: 'Content', Icon: FileText },
   { id: 'campaigns', label: 'Campaigns', Icon: Megaphone },
-  { id: 'calendar', label: 'Content Calendar', Icon: Calendar },
   { id: 'links', label: 'Links', Icon: Link2 },
   { id: 'insights', label: 'Insights', Icon: Lightbulb },
+  { id: 'calendar', label: 'Content Calendar', Icon: Calendar },
   { id: 'media-studio', label: 'Media Studio', Icon: Clapperboard },
   { id: 'inbox', label: 'Inbox', Icon: MessageSquare },
   { id: 'settings', label: 'Settings', Icon: Settings },
