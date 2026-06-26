@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FileText, Loader2, Check, Inbox as InboxIcon, KeyRound, Ban, ShieldCheck, Users, Eye, AlertTriangle, Trash2, RefreshCw } from 'lucide-react'
+import { FileText, Loader2, Check, Inbox as InboxIcon, KeyRound, Ban, ShieldCheck, Users, Eye, AlertTriangle, Trash2, RefreshCw, Crown } from 'lucide-react'
 import { useToast } from './Toast'
 import {
   fetchEarlyAccess,
@@ -9,6 +9,7 @@ import {
   fetchUsers,
   sendPasswordReset,
   setUserDisabled,
+  setUserFounder,
   fetchAnalytics,
   clearAnalytics,
   fetchErrors,
@@ -738,6 +739,15 @@ function UsersPanel() {
     addToast(`${u.email} ${u.disabled ? 'enabled' : 'disabled'}`)
   }
 
+  const toggleFounder = async (u: AdminUser) => {
+    setBusy(u.uid)
+    const ok = await setUserFounder(u.uid, !u.founder)
+    setBusy(null)
+    if (!ok) return addToast('Could not update founder status', 'info')
+    setState((cur) => (Array.isArray(cur) ? cur.map((x) => (x.uid === u.uid ? { ...x, founder: !u.founder } : x)) : cur))
+    addToast(`${u.email} ${u.founder ? 'removed from' : 'marked as'} founders`)
+  }
+
   if (state === 'loading') return <Loading />
   if (state === 'error')
     return (
@@ -818,6 +828,19 @@ function UsersPanel() {
               </td>
               <td className="px-4 py-2.5">
                 <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => toggleFounder(u)}
+                    disabled={busy === u.uid}
+                    className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold disabled:opacity-50 ${
+                      u.founder
+                        ? 'border-amber-400/30 bg-amber-400/10 text-amber-300 hover:bg-amber-400/20'
+                        : 'border-white/10 text-slate-300 hover:text-white'
+                    }`}
+                    title={u.founder ? 'Remove founder badge' : 'Mark as founder'}
+                  >
+                    <Crown className="h-3.5 w-3.5" />
+                    {u.founder ? 'Founder' : 'Make founder'}
+                  </button>
                   <button
                     onClick={() => reset(u)}
                     disabled={busy === u.uid || !u.email}

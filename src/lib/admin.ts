@@ -347,6 +347,20 @@ export async function setUserDisabled(uid: string, disabled: boolean): Promise<b
   }
 }
 
+/** Mark or unmark a user as a Founder. */
+export async function setUserFounder(uid: string, founder: boolean): Promise<boolean> {
+  try {
+    const r = await fetch(`${apiBase}/api/admin/users/${uid}/founder`, {
+      method: 'POST',
+      headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ founder }),
+    })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
 /** Submit a support ticket (any signed-in user). */
 export async function submitSupport(email: string, subject: string, message: string): Promise<boolean> {
   if (!backendEnabled) return false

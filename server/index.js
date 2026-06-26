@@ -11,6 +11,7 @@ import { links, linkOwners } from './links-store.js'
 import { scheduled } from './scheduled-store.js'
 import { weeklySubs } from './weekly-store.js'
 import { earlyAccess, EA_CAP } from './early-access-store.js'
+import { founders } from './founders-store.js'
 import { support } from './support-store.js'
 import { analytics } from './analytics-store.js'
 import { errors as errorLog } from './error-store.js'
@@ -495,15 +496,9 @@ app.get('/api/admin/users', async (req, res) => {
     const users = await listUsers()
     if (users === null) return res.json({ configured: false, users: [] })
     // Enrich with badge facts: plan (paid/free), admin allowlist, and founder
-    // (the earliest EA_CAP accounts by signup time).
+    // (manually curated set, toggled from the admin dashboard).
     const plansMap = await plansByUid().catch(() => ({}))
-    const founderUids = new Set(
-      users
-        .filter((u) => u.createdAt)
-        .sort((a, b) => a.createdAt - b.createdAt)
-        .slice(0, EA_CAP)
-        .map((u) => u.uid),
-    )
+    const founderMap = await founders.all().catch(() => ({}))
     const enriched = users.map((u) => {
       const plan = plansMap[u.uid]?.plan || 'free'
       return {
@@ -511,10 +506,10 @@ app.get('/api/admin/users', async (req, res) => {
         plan,
         paid: plan === 'pro' || plan === 'business',
         isAdmin: Boolean(u.email && ADMIN_EMAILS.includes(u.email.toLowerCase())),
-        founder: founderUids.has(u.uid),
+        founder: Boolean(founderMap[u.uid]),
       }
     })
-    res.json({ configured: true, users: enriched, founderCap: EA_CAP })
+    res.json({ configured: true, users: enriched })
   } catch (err) {
     // Admin-only endpoint, so it's safe to surface the real cause (e.g. a bad
     // private key or a missing IAM role) to help configure the service account.
@@ -564,6 +559,20 @@ app.patch('/api/admin/users/:uid', async (req, res) => {
   } catch (err) {
     console.error('[admin/users patch] failed:', err.message)
     res.status(400).json({ error: err.message || 'Could not update user' })
+  }
+})
+
+// Mark or unmark a user as a Founder (manually curated badge).
+app.post('/api/admin/users/:uid/founder', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  const { founder } = req.body || {}
+  if (typeof founder !== 'boolean') return res.status(400).json({ error: 'founder must be a boolean' })
+  try {
+    await founders.set(req.params.uid, founder)
+    res.json({ ok: true, uid: req.params.uid, founder })
+  } catch (err) {
+    console.error('[admin/users founder] failed:', err.message)
+    res.status(400).json({ error: err.message || 'Could not update founder status' })
   }
 })
 
