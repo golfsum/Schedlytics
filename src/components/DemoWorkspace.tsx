@@ -65,7 +65,7 @@ export function DemoBanner({
         You are viewing a sample workspace. Remove it anytime, or create your first tracked link to
         start collecting real results.
       </p>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
         <button
           onClick={onCreateLink}
           className="inline-flex items-center gap-1.5 rounded-lg gradient-cyan px-3 py-1.5 text-xs font-bold text-navy-900 shadow-glow-soft"
