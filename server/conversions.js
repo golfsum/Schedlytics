@@ -60,11 +60,21 @@ export async function tagRedirect(link, ownerUid) {
 
 /* ------------------------------ conversions ------------------------------ */
 
-async function recordConversion({ site, clickId, event, value, currency, path, referer }) {
+// How many conversions a single click id may produce (bounds replay abuse).
+const MAX_CONVERSIONS_PER_CLICK = 10
+
+async function recordConversion({ clickId, event, value, currency, path, referer }) {
+  // SECURITY: ownership comes ONLY from a valid, server-minted click id. The
+  // snippet's `site`/`data-site` value is just the public uid and is fully
+  // attacker-controllable, so we never trust it to assign a conversion to an
+  // account. A conversion without a valid click id is dropped.
   const click = clickId ? await stateStore.get(`clk:${clickId}`) : null
-  // The owning site is whoever the snippet says (data-site), or the click owner.
-  const uid = site || click?.uid
-  if (!uid) return null
+  if (!click || !click.uid) return null
+  const uid = click.uid
+
+  // Bound replay: one click id can only convert a few times.
+  const converted = Number(click.converted || 0)
+  if (converted >= MAX_CONVERSIONS_PER_CLICK) return null
 
   const conv = {
     id: crypto.randomBytes(6).toString('hex'),
@@ -73,19 +83,25 @@ async function recordConversion({ site, clickId, event, value, currency, path, r
     value: Number.isFinite(value) && value > 0 ? Number(value) : 0,
     currency: String(currency || 'USD').slice(0, 8),
     path: path ? String(path).slice(0, 300) : null,
-    attributed: Boolean(click),
-    slug: click?.slug || null,
-    destination: click?.url || null,
-    title: click?.title || null,
-    campaign: click?.campaign || null,
-    sourcePostId: click?.sourcePostId || null,
-    platform: click?.platform || null,
+    attributed: true,
+    slug: click.slug || null,
+    destination: click.url || null,
+    title: click.title || null,
+    campaign: click.campaign || null,
+    sourcePostId: click.sourcePostId || null,
+    platform: click.platform || null,
     referer: referer ? String(referer).slice(0, 200) : null,
   }
 
   const cur = (await convStore.get(uid)) || { items: [] }
   cur.items = [conv, ...(cur.items || [])].slice(0, MAX_PER_SITE)
   await convStore.put(uid, cur)
+  // Mark the click as having converted so it cannot be replayed indefinitely.
+  try {
+    await stateStore.set(`clk:${clickId}`, { ...click, converted: converted + 1 }, WINDOW_SECONDS)
+  } catch {
+    /* best-effort */
+  }
   return conv
 }
 

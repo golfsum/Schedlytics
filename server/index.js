@@ -1150,11 +1150,25 @@ const ashrtFetch = (path, opts = {}) =>
     headers: { 'Content-Type': 'application/json', 'x-api-key': ashrt.apiKey, ...(opts.headers || {}) },
   })
 
+/** Accept only well-formed http(s) URLs (adds https:// when scheme is missing). */
+function isSafeHttpUrl(raw) {
+  let s = String(raw || '').trim()
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) s = `https://${s}`
+  try {
+    const u = new URL(s)
+    return u.protocol === 'http:' || u.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 app.post('/api/links', limit('links', 40, 3600), async (req, res) => {
   const uid = await uidFromReq(req)
   if (!uid) return res.status(401).json({ error: 'Please sign in.' })
   const url = req.body?.url
   if (!url || !String(url).trim()) return res.status(400).json({ error: 'url is required' })
+  // Only allow http(s) destinations (blocks javascript:, data:, file:, etc.).
+  if (!isSafeHttpUrl(url)) return res.status(400).json({ error: 'Enter a valid http(s) link.' })
 
   // Prefer ashrt.link when configured; fall back to the built-in shortener.
   if (ashrtEnabled) {
