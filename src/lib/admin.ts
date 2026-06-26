@@ -51,6 +51,15 @@ export async function fetchAnalytics(): Promise<AnalyticsData | null> {
     return null
   }
 }
+/** Wipe all recorded traffic (drops pre-launch / owner test visits). */
+export async function clearAnalytics(): Promise<boolean> {
+  try {
+    const r = await fetch(`${apiBase}/api/admin/analytics`, { method: 'DELETE', headers: await authHeaders() })
+    return r.ok
+  } catch {
+    return false
+  }
+}
 
 export interface Banner {
   message: string

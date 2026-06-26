@@ -83,4 +83,10 @@ export const analytics = {
       driver: h.driver,
     }
   },
+
+  /** Wipe all recorded traffic (admin reset, e.g. to drop pre-launch test data). */
+  async clear() {
+    const map = await h.all()
+    await Promise.all(Object.keys(map).map((day) => h.del(day)))
+  },
 }

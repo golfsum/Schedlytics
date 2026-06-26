@@ -10,6 +10,7 @@ import {
   sendPasswordReset,
   setUserDisabled,
   fetchAnalytics,
+  clearAnalytics,
   fetchErrors,
   clearErrors,
   downloadErrorsCsv,
@@ -201,10 +202,27 @@ function BroadcastComposer() {
 }
 
 function TrafficPanel() {
+  const { addToast } = useToast()
   const [data, setData] = useState<AnalyticsData | null | 'loading'>('loading')
+  const [resetting, setResetting] = useState(false)
+  const load = () => fetchAnalytics().then((d) => setData(d))
   useEffect(() => {
-    fetchAnalytics().then((d) => setData(d))
+    load()
   }, [])
+
+  const reset = async () => {
+    if (!window.confirm('Reset all traffic stats? This clears recorded views and unique visitors and cannot be undone.')) return
+    setResetting(true)
+    const ok = await clearAnalytics()
+    setResetting(false)
+    if (ok) {
+      addToast('Traffic stats reset')
+      setData('loading')
+      load()
+    } else {
+      addToast('Could not reset traffic', 'info')
+    }
+  }
 
   if (data === 'loading') return <Loading />
   if (!data) return <ErrorCard label="Could not load traffic." />
@@ -218,6 +236,20 @@ function TrafficPanel() {
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-slate-400">
+          First-party traffic. Set ANALYTICS_EXCLUDE_IPS to keep your own visits out, then reset to
+          drop earlier ones.
+        </p>
+        <button
+          onClick={reset}
+          disabled={resetting}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white disabled:opacity-60"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          {resetting ? 'Resetting…' : 'Reset stats'}
+        </button>
+      </div>
       <div className="grid gap-4 md:grid-cols-3">
         {periods.map((p) => (
           <div key={p.label} className="card p-5">

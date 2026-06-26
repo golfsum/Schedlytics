@@ -204,8 +204,15 @@ const ANALYTICS_EXCLUDE_IPS = (process.env.ANALYTICS_EXCLUDE_IPS || '')
   .map((s) => s.trim())
   .filter(Boolean)
 
-const clientIp = (req) =>
-  String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim()
+// All IPs in the forwarded chain (Vercel may list more than one).
+const forwardedIps = (req) =>
+  String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+const clientIp = (req) => forwardedIps(req)[0] || ''
+// Excluded if ANY address in the chain is on the list (handles proxies + IPv6).
+const isExcludedIp = (req) => forwardedIps(req).some((ip) => ANALYTICS_EXCLUDE_IPS.includes(ip))
 
 // Public beacon. POST /api/track?type=demo when the demo is opened. Never errors
 // (a tracking failure must not affect the page); skips excluded IPs and bots.
@@ -214,7 +221,7 @@ app.post('/api/track', async (req, res) => {
     const ip = clientIp(req)
     const ua = req.get('user-agent') || ''
     const isBot = /bot|crawl|spider|slurp|preview|monitor|lighthouse|headless|curl|wget/i.test(ua)
-    if (ip && ANALYTICS_EXCLUDE_IPS.includes(ip)) return res.json({ ok: true, skipped: 'excluded' })
+    if (isExcludedIp(req)) return res.json({ ok: true, skipped: 'excluded' })
     if (isBot) return res.json({ ok: true, skipped: 'bot' })
     const visitor = crypto.createHash('sha256').update(`${ip}|${ua}`).digest('hex').slice(0, 16)
     const type = ['site', 'app', 'demo'].includes(req.query.type) ? req.query.type : 'site'
@@ -327,6 +334,13 @@ app.get('/api/admin/overview', async (req, res) => {
 app.get('/api/admin/analytics', async (req, res) => {
   if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
   res.json(await analytics.summary())
+})
+
+// Reset all recorded traffic (e.g. to drop pre-launch / owner test visits).
+app.delete('/api/admin/analytics', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  await analytics.clear()
+  res.json({ ok: true })
 })
 
 // Errors users hit: top by frequency, most-affected users, recent occurrences.
