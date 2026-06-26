@@ -129,6 +129,16 @@ const GOAL_TYPES = ['Clicks', 'Conversions', 'Revenue', 'Subscribers', 'Traffic'
 const STEPS = ['welcome', 'goal', 'userType', 'platform', 'campaign', 'link', 'conversion', 'done'] as const
 type Step = (typeof STEPS)[number]
 
+// Short labels for the progress rail (welcome + done are excluded).
+const STEP_LABELS: { key: Step; label: string }[] = [
+  { key: 'goal', label: 'Goal' },
+  { key: 'userType', label: 'Type' },
+  { key: 'platform', label: 'Platform' },
+  { key: 'campaign', label: 'Campaign' },
+  { key: 'link', label: 'Link' },
+  { key: 'conversion', label: 'Finish' },
+]
+
 /* ------------------------------- wizard ---------------------------------- */
 
 function OnboardingWizard() {
@@ -159,6 +169,16 @@ function OnboardingWizard() {
   const finish = () => {
     update({ setupComplete: true })
     close()
+  }
+  const isDone = (k: string) => state.completed.includes(k)
+  const copyFirstLink = () => {
+    if (!state.firstTrackedUrl) return
+    try {
+      navigator.clipboard?.writeText(state.firstTrackedUrl)
+      addToast('Link copied')
+    } catch {
+      /* ignore */
+    }
   }
 
   const chooseGoal = (g: string) => {
@@ -256,15 +276,24 @@ function OnboardingWizard() {
           )}
         </div>
 
-        {/* progress dots */}
+        {/* labeled progress rail */}
         {step !== 'welcome' && step !== 'done' && (
           <div className="flex gap-1.5 px-6 pt-4">
-            {STEPS.slice(1, -1).map((s, i) => (
-              <span
-                key={s}
-                className={`h-1 flex-1 rounded-full ${i <= idx - 1 ? 'bg-cyan-accent' : 'bg-white/10'}`}
-              />
-            ))}
+            {STEP_LABELS.map(({ key, label }) => {
+              const at = STEPS.indexOf(key)
+              const done = at < idx
+              const active = at === idx
+              return (
+                <div key={key} className="flex flex-1 flex-col items-center gap-1">
+                  <span className={`h-1 w-full rounded-full ${done || active ? 'bg-cyan-accent' : 'bg-white/10'}`} />
+                  <span
+                    className={`text-[10px] ${active ? 'font-semibold text-cyan-accent' : done ? 'text-slate-400' : 'text-slate-600'}`}
+                  >
+                    {label}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         )}
 
@@ -519,17 +548,42 @@ function OnboardingWizard() {
               <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl gradient-cyan text-navy-900 shadow-glow">
                 <PartyPopper className="h-7 w-7" />
               </div>
-              <h2 className="mt-4 text-xl font-bold text-white">You are all set</h2>
-              <p className="mt-2 text-sm text-slate-400">
-                Share your tracked link in a post, video description, or bio. Come back after people
-                click and Schedlytics will show which content drove the traffic.
-              </p>
+              <h2 className="mt-4 text-xl font-bold text-white">You are ready 🎉</h2>
+              <p className="mt-1 text-sm text-slate-400">Your workspace has been created.</p>
+
+              <ul className="mx-auto mt-4 max-w-[16rem] space-y-2 text-left">
+                <DoneRow done={isDone('campaign')} label="Campaign created" />
+                <DoneRow done={isDone('link')} label="Tracked link ready" />
+                <DoneRow done label="Dashboard personalized" />
+              </ul>
+
+              <div className="mt-4 rounded-xl border border-white/10 bg-navy-900/50 p-4 text-left">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Next, your dashboard will show
+                </p>
+                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5">
+                  {['Clicks', 'Visitors', 'Best platform', 'Best content', 'Revenue (when connected)'].map((b) => (
+                    <span key={b} className="flex items-center gap-1.5 text-sm text-slate-300">
+                      <Check className="h-3.5 w-3.5 shrink-0 text-cyan-accent" strokeWidth={2.5} /> {b}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
               <button
                 onClick={finish}
-                className="mt-6 w-full rounded-lg gradient-cyan py-2.5 text-sm font-bold text-navy-900 shadow-glow"
+                className="mt-5 w-full rounded-lg gradient-cyan py-2.5 text-sm font-bold text-navy-900 shadow-glow"
               >
                 Go to dashboard
               </button>
+              {state.firstTrackedUrl && (
+                <button
+                  onClick={copyFirstLink}
+                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-accent hover:underline"
+                >
+                  <Copy className="h-3.5 w-3.5" /> Copy my first link
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -603,6 +657,21 @@ function PlatformCard({
       <span className="text-sm font-semibold text-white">{p.name}</span>
       {done && <Check className="ml-auto h-4 w-4 text-cyan-accent" />}
     </button>
+  )
+}
+
+function DoneRow({ done, label }: { done?: boolean; label: string }) {
+  return (
+    <li className="flex items-center gap-2.5 text-sm">
+      <span
+        className={`grid h-5 w-5 shrink-0 place-items-center rounded-full ${
+          done ? 'gradient-cyan text-navy-900' : 'border border-white/15 text-transparent'
+        }`}
+      >
+        <Check className="h-3 w-3" strokeWidth={3} />
+      </span>
+      <span className={done ? 'text-slate-200' : 'text-slate-500'}>{label}</span>
+    </li>
   )
 }
 
