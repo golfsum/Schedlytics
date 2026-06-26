@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useNotifications, type NotificationType } from './Notifications'
+import { TopbarInstallButton } from './InstallPrompt'
 import { useAuth } from './Auth'
 import { useProfile, initialsOf } from './Profile'
 import { useConnections, CONNECTABLE } from './Connections'
@@ -183,6 +184,9 @@ export default function Topbar({ onNavigate, onUpgrade, posts, onMenu }: TopbarP
       </form>
 
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
+        {/* install app (hidden once installed) */}
+        <TopbarInstallButton />
+
         {/* notifications */}
         <div className="relative" ref={notifRef}>
           <button

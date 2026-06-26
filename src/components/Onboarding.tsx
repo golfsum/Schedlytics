@@ -22,7 +22,6 @@ import { PLATFORMS, isComingSoon } from '../data'
 import { createShortLink } from '../lib/shortLinks'
 import { useCampaigns, buildCampaign } from './Campaigns'
 import { useToast } from './Toast'
-import { useAuth } from './Auth'
 import Confetti from './Confetti'
 import { logActivity } from '../lib/admin'
 import type { PlatformId } from '../types'
@@ -73,11 +72,10 @@ export const SETUP_STEPS = [
 ] as const
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
-  // Scope onboarding to the signed-in user so completion survives logout (the
-  // generic logout purge wipes the un-scoped key, which made the wizard reopen
-  // on every login). Per-uid keys also keep separate accounts isolated.
-  const { user } = useAuth()
-  const [state, setState] = usePersistedState<OnboardingState>(`sl_onboarding:${user?.uid || 'anon'}`, EMPTY)
+  // 'sl_onboarding' is a synced key (see lib/sync.ts): the server restores it on
+  // login, so completion/dismissal survive logout AND follow the user across
+  // devices. (It's purged on an account switch, then re-pulled for the new uid.)
+  const [state, setState] = usePersistedState<OnboardingState>('sl_onboarding', EMPTY)
   const [isOpen, setIsOpen] = useState(false)
 
   const update = (patch: Partial<OnboardingState>) => setState((s) => ({ ...s, ...patch }))

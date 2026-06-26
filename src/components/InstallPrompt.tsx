@@ -1,10 +1,48 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Download, X, Share, Plus } from 'lucide-react'
+import { useToast } from './Toast'
 import { canInstall, promptInstall, onInstallChange, isStandalone, isIOS } from '../lib/pwa'
 
 const DISMISS_KEY = 'sl_pwa_dismissed'
 const VISITS_KEY = 'sl_visits'
+
+/**
+ * Permanent install button for the top bar (next to notifications). Hidden once
+ * the app is installed; on desktop/Android it triggers the native prompt, on
+ * iOS it shows the Add-to-Home-Screen steps.
+ */
+export function TopbarInstallButton() {
+  const { addToast } = useToast()
+  const [installable, setInstallable] = useState(canInstall())
+  const [installed, setInstalled] = useState(isStandalone())
+  useEffect(
+    () =>
+      onInstallChange(() => {
+        setInstallable(canInstall())
+        setInstalled(isStandalone())
+      }),
+    [],
+  )
+  const ios = isIOS()
+  if (installed || (!installable && !ios)) return null
+
+  const click = async () => {
+    if (installable) await promptInstall()
+    else addToast('On iPhone: tap the Share button, then "Add to Home Screen".', 'info', 6000)
+  }
+
+  return (
+    <button
+      onClick={click}
+      title="Install Schedlytics"
+      aria-label="Install Schedlytics"
+      className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-accent/30 bg-cyan-accent/10 text-cyan-accent transition-colors hover:bg-cyan-accent/20"
+    >
+      <Download className="h-[18px] w-[18px]" />
+    </button>
+  )
+}
 
 /** Settings card showing install status with an Install action when available. */
 export function InstallAppCard() {
@@ -139,7 +177,7 @@ export default function InstallPrompt() {
               <>
                 <p className="text-sm font-bold text-white">Install Schedlytics</p>
                 <p className="mt-0.5 text-xs text-slate-400">
-                  Get faster access from your desktop and keep your workspace one click away.
+                  Get faster access on desktop and mobile, and keep your workspace one tap away.
                 </p>
                 <div className="mt-3 flex gap-2">
                   <button

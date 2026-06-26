@@ -6,7 +6,9 @@
 import { auth } from './firebase'
 import { apiBase, backendEnabled } from './socialApi'
 
-/** The localStorage keys that make up a user's portable workspace. */
+/** The localStorage keys that make up a user's portable workspace. These are
+ *  pulled from the server on login and pushed back on change, so they follow the
+ *  user across devices. */
 export const SYNC_KEYS = [
   'sl_profile',
   'sl_plan',
@@ -15,26 +17,27 @@ export const SYNC_KEYS = [
   'sl_reels',
   'sl_bio_title',
   'sl_bio_links',
+  'sl_bio_profile',
   'sl_default_descriptions',
   'sl_notif_prefs',
   'sl_demo_pref',
+  'sl_campaigns',
+  'sl_branded_domain',
+  'sl_recurring_slot',
+  'sl_onboarding',
 ]
 
 /**
  * Every per-account localStorage key (synced plus local-only). Wiped when a
  * different account signs in on the same browser, so one account never shows
- * another's data.
+ * another's data. (The synced keys are restored from the server right after.)
  */
 export const PURGE_KEYS = [
   ...SYNC_KEYS,
-  'sl_campaigns',
-  'sl_onboarding',
+  // Local-only / transient (recomputed or device-specific):
   'sl_billing_snap',
   'sl_growth_level',
-  'sl_bio_profile',
-  'sl_branded_domain',
   'sl_read_comments',
-  'sl_recurring_slot',
   'schedlytics_links_v1',
 ]
 
