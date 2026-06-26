@@ -96,6 +96,10 @@ if (existsSync(SITE_DIR)) {
     'track-content-that-drives-sales',
     'find-your-best-performing-platform',
     'utm-best-practices',
+    'how-to-track-a-product-launch',
+    'youtube-description-links',
+    'link-in-bio-strategy',
+    'clicks-vs-unique-visitors',
   ]) {
     app.get(`/${slug}`, (_req, res) => res.sendFile(join(SITE_DIR, `${slug}.html`)))
   }
