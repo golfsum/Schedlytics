@@ -753,6 +753,10 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             allowFrames={caps.frame && mediaMode === 'video'}
             note={caps.note}
             videoSrc={hasVideoFile ? mediaPreview : undefined}
+            onRequestVideo={() => {
+              setMediaMode('video')
+              openFilePicker()
+            }}
             onSelect={(url) => {
               setThumbnail(url)
               addToast('Thumbnail set')

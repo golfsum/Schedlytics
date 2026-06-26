@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Film, ImagePlus, Loader2, Check, Clapperboard, Sparkles } from 'lucide-react'
+import { ImagePlus, Loader2, Check, Clapperboard, Sparkles, UploadCloud } from 'lucide-react'
 
 interface ThumbnailPickerProps {
   /** Platform allows uploading a custom thumbnail image. */
@@ -13,33 +13,31 @@ interface ThumbnailPickerProps {
    * extract cover frames from it automatically so the user never uploads twice.
    */
   videoSrc?: string
+  /** Open the Media section's file picker (the single upload entry point). */
+  onRequestVideo?: () => void
   onSelect: (dataUrl: string) => void
 }
 
 /**
- * Pick a thumbnail by extracting frames from the uploaded video (drawn to a
- * canvas, fully client-side) or by uploading a custom image. When the parent
- * already has a video (videoSrc), frames are grabbed automatically on upload so
- * there is no second video upload. Which options show depends on the platform.
+ * Pick a thumbnail by extracting cover frames from the video uploaded in the
+ * Media section (drawn to a canvas, fully client-side) or by uploading a custom
+ * image. There is no second video upload here: frames come straight from the
+ * Media upload's file. Which options show depends on the platform.
  */
 export default function ThumbnailPicker({
   allowCustom,
   allowFrames,
   note,
   videoSrc,
+  onRequestVideo,
   onSelect,
 }: ThumbnailPickerProps) {
-  // Legacy local video (only used when the parent has no video to share).
-  const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null)
   const [frames, setFrames] = useState<string[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const imageInput = useRef<HTMLInputElement>(null)
-
-  // The video we draw frames from: the parent's upload takes priority.
-  const effectiveSrc = videoSrc ?? localVideoUrl
 
   const seek = (v: HTMLVideoElement, t: number) =>
     new Promise<void>((res) => {
@@ -72,12 +70,12 @@ export default function ThumbnailPicker({
     }
   }
 
-  // Auto-grab cover frames whenever the source video changes. This is the whole
+  // Auto-grab cover frames whenever the Media video changes. This is the whole
   // point of the rework: the user uploads the video once and gets thumbnails.
   useEffect(() => {
     setFrames([])
     setSelected(null)
-    if (!effectiveSrc || !allowFrames) return
+    if (!videoSrc || !allowFrames) return
     const v = videoRef.current
     if (!v) return
     const onReady = () => {
@@ -90,19 +88,12 @@ export default function ThumbnailPicker({
       return () => v.removeEventListener('loadedmetadata', onReady)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveSrc, allowFrames])
+  }, [videoSrc, allowFrames])
 
   const choose = (url: string) => {
     setSelected(url)
     onSelect(url)
   }
-
-  const onLocalVideoChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (f) setLocalVideoUrl(URL.createObjectURL(f))
-    e.target.value = ''
-  }
-  const localVideoInput = useRef<HTMLInputElement>(null)
 
   const onCustomChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
@@ -117,16 +108,33 @@ export default function ThumbnailPicker({
         {note && <span className="text-[11px] text-slate-500">{note}</span>}
       </div>
 
-      {/* Hidden video used only to draw frames to a canvas. */}
-      {effectiveSrc && allowFrames && (
-        <video ref={videoRef} src={effectiveSrc} muted playsInline preload="metadata" className="hidden" />
+      {/*
+        Offscreen video used only to draw frames to a canvas. It must stay in the
+        render tree (not display:none) so the browser decodes frames we can draw;
+        we just push it out of view.
+      */}
+      {videoSrc && allowFrames && (
+        <video
+          ref={videoRef}
+          src={videoSrc}
+          muted
+          playsInline
+          preload="auto"
+          crossOrigin="anonymous"
+          aria-hidden
+          className="pointer-events-none absolute h-px w-px opacity-0"
+        />
       )}
 
-      {/* Empty state: frames come from the Media video. If none yet, hint that. */}
-      {allowFrames && !effectiveSrc && (
-        <p className="rounded-lg border border-dashed border-white/10 bg-navy-900/40 px-3 py-2.5 text-[11px] text-slate-500">
-          Upload a video above and cover frames appear here automatically.
-        </p>
+      {/* Empty state: frames come from the Media video. Reuse that same picker. */}
+      {allowFrames && !videoSrc && (
+        <button
+          onClick={onRequestVideo}
+          className="flex w-full flex-col items-center gap-1.5 rounded-lg border border-dashed border-white/15 bg-navy-900/40 px-3 py-4 text-slate-400 transition-colors hover:border-cyan-accent/40 hover:text-cyan-accent"
+        >
+          <UploadCloud className="h-5 w-5" />
+          <span className="text-[11px] font-medium">Upload a video to auto-generate thumbnails</span>
+        </button>
       )}
 
       {/* Extracting */}
@@ -165,22 +173,13 @@ export default function ThumbnailPicker({
       {/* actions row */}
       <div className="mt-3 flex flex-wrap gap-2">
         {/* Re-grab frames (the auto pass already ran, but allow a manual retry). */}
-        {allowFrames && effectiveSrc && (
+        {allowFrames && videoSrc && (
           <button
             onClick={extractFrames}
             disabled={busy}
             className="flex items-center gap-2 rounded-lg border border-white/10 bg-navy-900/60 px-3 py-2 text-sm font-medium text-slate-200 hover:text-white disabled:opacity-60"
           >
             <Clapperboard className="h-4 w-4 text-cyan-accent" /> Regenerate frames
-          </button>
-        )}
-        {/* Fallback: if the parent has no video, let them pick one here too. */}
-        {allowFrames && !effectiveSrc && (
-          <button
-            onClick={() => localVideoInput.current?.click()}
-            className="flex items-center gap-2 rounded-lg border border-white/10 bg-navy-900/60 px-3 py-2 text-sm font-medium text-slate-200 hover:text-white"
-          >
-            <Film className="h-4 w-4 text-cyan-accent" /> Upload video for frames
           </button>
         )}
         {allowCustom && (
@@ -200,7 +199,6 @@ export default function ThumbnailPicker({
           <Sparkles className="h-4 w-4" /> Generate AI thumbnail
           <span className="rounded-full bg-white/5 px-1.5 text-[10px] font-semibold text-slate-400">Soon</span>
         </button>
-        <input ref={localVideoInput} type="file" accept="video/*" className="hidden" onChange={onLocalVideoChosen} />
         <input ref={imageInput} type="file" accept="image/*" className="hidden" onChange={onCustomChosen} />
       </div>
 
