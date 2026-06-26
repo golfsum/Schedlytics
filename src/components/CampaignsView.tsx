@@ -16,9 +16,9 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { AreaChart } from './charts'
 import { useToast } from './Toast'
-import { useSeededState } from '../lib/usePersisted'
+import { useCampaigns } from './Campaigns'
 import { exportCsv } from '../lib/csv'
-import { PLATFORMS, CAMPAIGNS, type Campaign, type CampaignStatus } from '../data'
+import { PLATFORMS, type Campaign, type CampaignStatus } from '../data'
 
 const STATUS_STYLE: Record<CampaignStatus, string> = {
   Active: 'bg-emerald-400/10 text-emerald-300',
@@ -40,14 +40,14 @@ function seriesFromSeed(seed: string, n: number, base: number): number[] {
 
 export default function CampaignsView() {
   const { addToast } = useToast()
-  const [campaigns, setCampaigns] = useSeededState<Campaign[]>('sl_campaigns', CAMPAIGNS, [])
+  const { campaigns, addCampaign: addToStore } = useCampaigns()
   const [openId, setOpenId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
 
   const open = campaigns.find((c) => c.id === openId) || null
 
   const addCampaign = (c: Campaign) => {
-    setCampaigns((prev) => [c, ...prev])
+    addToStore(c)
     setCreating(false)
     addToast('Campaign created 🎯')
   }

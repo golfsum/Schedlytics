@@ -9,6 +9,8 @@ import { InboxProvider } from './components/Inbox.tsx'
 import { AuthProvider, AuthGate } from './components/Auth.tsx'
 import { ProfileProvider } from './components/Profile.tsx'
 import { PlanProvider } from './components/Plan.tsx'
+import { CampaignsProvider } from './components/Campaigns.tsx'
+import { OnboardingProvider } from './components/Onboarding.tsx'
 import { SyncGate } from './components/SyncGate.tsx'
 import { resolveShortLinkRedirect } from './lib/shortLinks.ts'
 import { trackVisit } from './lib/track.ts'
@@ -39,7 +41,11 @@ if (!resolveShortLinkRedirect()) {
               <NotificationsProvider>
                 <ConnectionsProvider>
                   <InboxProvider>
-                    <App />
+                    <CampaignsProvider>
+                      <OnboardingProvider>
+                        <App />
+                      </OnboardingProvider>
+                    </CampaignsProvider>
                   </InboxProvider>
                 </ConnectionsProvider>
               </NotificationsProvider>

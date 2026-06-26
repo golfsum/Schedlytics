@@ -45,6 +45,8 @@ import { realGrowthScore, realWeeklyBrief, topByClicks, levelFor, GROWTH_LEVELS 
 import { GROWTH_SCORE, WEEKLY_BRIEF, SAMPLE_OPPORTUNITIES, type Opportunity } from '../data'
 import { GrowthScoreCard, ThisWeekCard, OpportunitiesCard } from './GrowthCoach'
 import ConversionsCard from './ConversionsCard'
+import CampaignPerformanceCard from './CampaignPerformanceCard'
+import { SetupChecklist } from './Onboarding'
 import type { CalendarPost, NavId, PlatformId } from '../types'
 
 /** Icon per growth-metric key (data lives in GROWTH_METRICS). */
@@ -292,6 +294,9 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
         </div>
       </div>
 
+      {/* first-run setup progress (real accounts, until complete) */}
+      <SetupChecklist onShareHint={() => onNavigate('links')} />
+
       {/* hero: Growth Level (enlarged) + This Week */}
       <div className="grid gap-5 lg:grid-cols-5">
         <div className="lg:col-span-3">
@@ -346,6 +351,9 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
 
       {/* what each post is actually worth */}
       <ConversionsCard sample={sampleData} onNavigate={onNavigate} />
+
+      {/* 4. Campaign Performance */}
+      <CampaignPerformanceCard onNavigate={onNavigate} />
 
       {/* 5. Platform Performance */}
       <BestPlatformsCard sample={sampleData} />
