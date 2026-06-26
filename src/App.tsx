@@ -16,6 +16,7 @@ import LinkToolsView from './components/LinkTools'
 import InboxView from './components/InboxView'
 import AdminView from './components/AdminView'
 import BroadcastBanner from './components/BroadcastBanner'
+import { BillingBanner } from './components/Plan'
 import { useToast } from './components/Toast'
 import { useAuth } from './components/Auth'
 import { useSeededState } from './lib/usePersisted'
@@ -136,6 +137,7 @@ export default function App() {
         <div className="flex min-h-0 flex-1">
           {/* scrollable content */}
           <main className="min-w-0 flex-1 overflow-y-auto p-5 sm:p-6">
+            <BillingBanner />
             {nav === 'calendar' && (
               <CalendarView
                 posts={posts}

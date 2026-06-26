@@ -300,16 +300,17 @@ interface BrandedDomain {
 
 function BrandedDomainSection() {
   const { addToast } = useToast()
-  const { plan } = usePlan()
+  const { can } = usePlan()
   const [bd, setBd] = useSeededState<BrandedDomain>(
     'sl_branded_domain',
     { domain: 'go.mystore.com', verified: true },
     { domain: '', verified: false },
   )
   const [draft, setDraft] = useState(bd.domain)
-  const isBusiness = plan === 'business'
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
+  const allowed = can('branded-domain')
 
-  if (!isBusiness) {
+  if (!allowed) {
     return (
       <div className="card p-5">
         <div className="mb-1 flex items-center gap-2">
@@ -320,7 +321,7 @@ function BrandedDomainSection() {
           Send short links from your own domain like <span className="text-slate-200">go.yourbrand.com</span>{' '}
           instead of the default. Available on the Business plan.
         </p>
-        <div className="flex items-center gap-3 rounded-xl border border-dashed border-white/10 bg-navy-900/40 p-4">
+        <div className="flex flex-col gap-3 rounded-xl border border-dashed border-white/10 bg-navy-900/40 p-4 sm:flex-row sm:items-center">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-navy-800 text-slate-500">
             <Lock className="h-5 w-5" />
           </span>
@@ -328,7 +329,19 @@ function BrandedDomainSection() {
             Upgrade to <span className="font-semibold text-white">Business</span> to connect a custom
             branded domain for your tracked links.
           </div>
+          <button
+            onClick={() => setUpgradeOpen(true)}
+            className="shrink-0 rounded-lg gradient-cyan px-4 py-2 text-sm font-bold text-navy-900 shadow-glow-soft"
+          >
+            Upgrade to Business
+          </button>
         </div>
+        {upgradeOpen && (
+          <UpgradeModal
+            onClose={() => setUpgradeOpen(false)}
+            reason="Upgrade to Business to use a custom branded domain for your tracked links."
+          />
+        )}
       </div>
     )
   }

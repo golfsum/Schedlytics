@@ -7,6 +7,9 @@ import { startCheckout, openBillingPortal } from '../lib/billing'
 
 interface UpgradeModalProps {
   onClose: () => void
+  /** Optional context line explaining why the upgrade is being offered, e.g.
+   *  "Upgrade to Business to use branded domains." */
+  reason?: string
 }
 
 interface Plan {
@@ -37,7 +40,7 @@ const PLANS: Plan[] = [
 ]
 
 /** Plan-comparison modal triggered by the Upgrade buttons. */
-export default function UpgradeModal({ onClose }: UpgradeModalProps) {
+export default function UpgradeModal({ onClose, reason }: UpgradeModalProps) {
   const { addToast } = useToast()
   const { plan: current, setPlan, celebrate } = usePlan()
   const [busy, setBusy] = useState<string | null>(null)
@@ -93,7 +96,7 @@ export default function UpgradeModal({ onClose }: UpgradeModalProps) {
               <span className="text-xs font-semibold uppercase tracking-wide">Upgrade</span>
             </div>
             <h2 className="mt-1 text-xl font-bold text-white">Unlock more with Schedlytics</h2>
-            <p className="text-sm text-slate-400">Choose the plan that fits how you grow.</p>
+            <p className="text-sm text-slate-400">{reason || 'Choose the plan that fits how you grow.'}</p>
           </div>
           <button
             onClick={onClose}
