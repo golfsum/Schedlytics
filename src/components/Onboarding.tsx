@@ -171,6 +171,7 @@ function OnboardingWizard() {
   const [busy, setBusy] = useState(false)
   const [createdUrl, setCreatedUrl] = useState<string | null>(null)
   const [selectedPlat, setSelectedPlat] = useState<PlatformId | null>(state.firstPlatform ?? null)
+  const [finishing, setFinishing] = useState(false)
 
   // Suggest a first campaign name from the user's type when they reach that step.
   useEffect(() => {
@@ -184,9 +185,13 @@ function OnboardingWizard() {
     update({ dismissed: true })
     close()
   }
+  // Brief "initializing" beat before entering the app, for polish.
   const finish = () => {
-    update({ setupComplete: true })
-    close()
+    setFinishing(true)
+    window.setTimeout(() => {
+      update({ setupComplete: true })
+      close()
+    }, 650)
   }
   const isDone = (k: string) => state.completed.includes(k)
   const copyFirstLink = () => {
@@ -280,6 +285,15 @@ function OnboardingWizard() {
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-center bg-navy-950/75 p-4 backdrop-blur-sm animate-fade-in">
+      {finishing && (
+        <div className="absolute inset-0 z-10 grid place-items-center bg-navy-950/90">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <Loader2 className="h-7 w-7 animate-spin text-cyan-accent" />
+            <p className="text-sm font-semibold text-white">Initializing your workspace…</p>
+            <p className="text-xs italic text-slate-500">Every click starts a story.</p>
+          </div>
+        </div>
+      )}
       {step === 'done' && <Confetti />}
       <div className="relative flex w-full max-w-lg flex-col rounded-2xl border border-white/10 bg-navy-800 shadow-panel">
         {/* header */}
@@ -576,12 +590,19 @@ function OnboardingWizard() {
                 <DoneRow done label="Dashboard personalized" />
               </ul>
 
+              {/* workspace stats */}
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <WorkspaceStat value={isDone('campaign') ? 1 : 0} label="Campaigns" />
+                <WorkspaceStat value={isDone('link') ? 1 : 0} label="Tracked links" />
+                <WorkspaceStat value={state.firstPlatform ? 1 : 0} label="Platforms" />
+              </div>
+
+              {/* aha preview */}
               <div className="mt-4 rounded-xl border border-white/10 bg-navy-900/50 p-4 text-left">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Next, your dashboard will show
-                </p>
+                <p className="text-sm font-semibold text-white">Your dashboard is ready</p>
+                <p className="mt-0.5 text-xs text-slate-400">You'll soon be tracking</p>
                 <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5">
-                  {['Clicks', 'Visitors', 'Best platform', 'Best content', 'Revenue (when connected)'].map((b) => (
+                  {['Clicks', 'Visitors', 'Best-performing content', 'Best platform', 'Revenue (when connected)'].map((b) => (
                     <span key={b} className="flex items-center gap-1.5 text-sm text-slate-300">
                       <Check className="h-3.5 w-3.5 shrink-0 text-cyan-accent" strokeWidth={2.5} /> {b}
                     </span>
@@ -593,7 +614,7 @@ function OnboardingWizard() {
                 onClick={finish}
                 className="mt-5 w-full rounded-lg gradient-cyan py-2.5 text-sm font-bold text-navy-900 shadow-glow"
               >
-                Go to dashboard
+                Open My Dashboard
               </button>
               {state.firstTrackedUrl && (
                 <button
@@ -603,6 +624,19 @@ function OnboardingWizard() {
                   <Copy className="h-3.5 w-3.5" /> Copy my first link
                 </button>
               )}
+
+              {/* next step: bridge to the first real click */}
+              <div className="mt-4 rounded-xl border border-cyan-accent/20 bg-cyan-accent/5 p-4 text-left">
+                <p className="flex items-center gap-1.5 text-sm font-semibold text-white">
+                  <Rocket className="h-4 w-4 text-cyan-accent" /> Next step
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  Share your tracked link in your next YouTube description, Pinterest pin, newsletter, or
+                  bio. We start tracking visitors the moment someone clicks.
+                </p>
+              </div>
+
+              <p className="mt-4 text-xs italic text-slate-500">Every click starts a story.</p>
             </div>
           )}
         </div>
@@ -691,6 +725,15 @@ function DoneRow({ done, label }: { done?: boolean; label: string }) {
       </span>
       <span className={done ? 'text-slate-200' : 'text-slate-500'}>{label}</span>
     </li>
+  )
+}
+
+function WorkspaceStat({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="rounded-xl border border-white/5 bg-navy-900/50 p-3 text-center">
+      <div className="text-xl font-bold text-white">{value}</div>
+      <div className="text-[11px] text-slate-500">{label}</div>
+    </div>
   )
 }
 

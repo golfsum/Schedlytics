@@ -178,7 +178,15 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
   const { pref: demoPref, enableDemo } = useDemoWorkspace()
   const connectedAny = Object.values(accounts || {}).some((a) => a?.connected)
   const hasRealActivity = connectedAny || realClicks >= 10
-  const demoActive = !urlDemo && demoPref !== 'off' && (demoPref === 'on' || !hasRealActivity)
+  // ?demows=1 force-shows the demo workspace (preview/QA aid; works even in url-demo).
+  const forceDemoWs = (() => {
+    try {
+      return new URLSearchParams(window.location.search).get('demows') === '1'
+    } catch {
+      return false
+    }
+  })()
+  const demoActive = forceDemoWs || (!urlDemo && demoPref !== 'off' && (demoPref === 'on' || !hasRealActivity))
   const sampleData = urlDemo || demoActive
   // The local/backend click counter does not dedupe visitors, so when no real
   // unique-visitor data exists we show a conservative estimate (<= clicks).
