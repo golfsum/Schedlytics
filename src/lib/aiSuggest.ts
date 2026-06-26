@@ -70,7 +70,7 @@ function shrinkFrame(dataUrl: string, maxW = 640): Promise<string> {
  */
 export async function aiAnalyze(
   frames: string[],
-  opts: { platform: string; topic?: string },
+  opts: { platform: string; topic?: string; category?: string; filename?: string; durationSec?: number },
 ): Promise<AiAnalysis | null> {
   if (!backendEnabled || !frames.length) return null
   try {
@@ -80,7 +80,14 @@ export async function aiAnalyze(
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ frames: small, platform: opts.platform, topic: opts.topic || '' }),
+      body: JSON.stringify({
+        frames: small,
+        platform: opts.platform,
+        topic: opts.topic || '',
+        category: opts.category || '',
+        filename: opts.filename || '',
+        durationSec: opts.durationSec || 0,
+      }),
     })
     if (!res.ok) return null
     const data = (await res.json()) as Partial<AiAnalysis>

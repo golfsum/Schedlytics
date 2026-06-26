@@ -143,6 +143,20 @@ function rewriteTitle(t: string, style: 'better' | 'shorter' | 'clicks' | 'seo')
   }
 }
 
+/** Content categories that ground the AI so titles match the video. */
+const CONTENT_CATEGORIES = [
+  'Tutorial',
+  'Product review',
+  'Ambient / sleep / meditation',
+  'Gaming',
+  'Podcast',
+  'Educational',
+  'Short-form entertainment',
+  'Business / marketing',
+  'Music / visualizer',
+  'Other',
+]
+
 const REWRITES: { key: 'better' | 'shorter' | 'clicks' | 'seo'; label: string }[] = [
   { key: 'better', label: 'Better' },
   { key: 'shorter', label: 'Shorter' },
@@ -183,6 +197,8 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   const [generatingAll, setGeneratingAll] = useState(false)
   // Cover frames lifted from ThumbnailPicker (used for vision + auto-select).
   const [frames, setFrames] = useState<string[]>([])
+  // Content category the user picks to ground the AI (empty = let AI infer).
+  const [category, setCategory] = useState('')
   // Whether the server has a real Claude AI backend (vs offline samples).
   const [aiOn, setAiOn] = useState<boolean | null>(null)
   // Persisted weekly upload slot (e.g. "every Friday 8 PM").
@@ -230,6 +246,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     setCampaign('')
     setDestinationUrl('')
     setTrackedLink(null)
+    setCategory('')
   }
 
   const openFilePicker = () => fileRef.current?.click()
@@ -293,7 +310,15 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     setGeneratingAll(true)
     try {
       // Vision path: analyze the real frames (only when frames + real AI exist).
-      const analysis = frames.length ? await aiAnalyze(frames, { platform, topic: title }) : null
+      const analysis = frames.length
+        ? await aiAnalyze(frames, {
+            platform,
+            topic: title,
+            category,
+            filename: mediaFile?.name,
+            durationSec: mediaMeta.duration,
+          })
+        : null
       if (analysis && (analysis.titles.length || analysis.description || analysis.hashtags.length)) {
         if (analysis.titles[0]) setTitle(analysis.titles[0])
         if (analysis.description) setCaption(analysis.description)
@@ -837,6 +862,30 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
                 ? 'Generate everything from video'
                 : 'Generate everything'}
           </button>
+
+          {/* Content category - grounds the AI so titles match the video */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-400">
+              What kind of video is this? <span className="font-normal text-slate-500">(helps AI)</span>
+            </label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full rounded-lg border border-white/5 bg-navy-900/60 px-3 py-2 text-sm text-slate-200 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+            >
+              <option value="">Let AI figure it out</option>
+              {CONTENT_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            {frames.length > 0 && !category && !title.trim() && (
+              <p className="mt-1.5 text-[11px] text-amber-300/80">
+                Tip: pick a category or type a topic so AI describes this video accurately instead of guessing.
+              </p>
+            )}
+          </div>
 
           {/* Title */}
           <Field

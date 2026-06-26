@@ -93,6 +93,9 @@ router.post('/analyze', async (req, res) => {
   const frames = Array.isArray(req.body?.frames) ? req.body.frames.slice(0, 4) : []
   const platform = String(req.body?.platform || 'social').slice(0, 30)
   const topic = String(req.body?.topic || '').trim()
+  const category = String(req.body?.category || '').trim()
+  const filename = String(req.body?.filename || '').trim().slice(0, 120)
+  const durationSec = Number(req.body?.durationSec) || 0
   if (!frames.length) return res.status(400).json({ error: 'frames are required' })
 
   // Turn each data URL into an Anthropic image content block.
@@ -103,11 +106,27 @@ router.post('/analyze', async (req, res) => {
   }
   if (!images.length) return res.status(400).json({ error: 'frames must be base64 image data URLs' })
 
+  // Assemble the context the creator gave us, so the model is grounded instead
+  // of guessing. The duration helps it pick a format (Short vs long-form).
+  const ctx = []
+  if (category) ctx.push(`Content category: ${category}.`)
+  if (topic) ctx.push(`The creator describes it as: "${topic}".`)
+  if (durationSec) ctx.push(`Duration: about ${Math.round(durationSec)} seconds.`)
+  if (filename) ctx.push(`Original filename: "${filename}".`)
+
   const instruction =
-    `These are ${images.length} frames sampled across a ${platform} video` +
-    (topic ? ` the creator describes as: "${topic}".` : '.') +
-    ` Watch them and infer what the video is actually about. Then produce metadata optimized to ` +
-    `maximize click-through and watch time on ${platform}.\n\n` +
+    `These are ${images.length} frames sampled across a ${platform} video.\n` +
+    (ctx.length ? ctx.join(' ') + '\n' : '') +
+    `Watch the frames and infer what the video is actually about, then write metadata that maximizes ` +
+    `click-through and watch time on ${platform}.\n\n` +
+    `Rules:\n` +
+    `- Ground every word in what is actually shown or in the context above. Do NOT invent specific ` +
+    `events, places, or storylines (e.g. do not say "two universes colliding") unless the creator's ` +
+    `topic stated it.\n` +
+    `- For abstract, ambient, or visual-only footage (no clear subject), write calm descriptive titles ` +
+    `about the mood and use case (sleep, focus, relaxation), e.g. "Deep Blue Ambient Visuals for Sleep" ` +
+    `or "Relaxing Abstract Motion Background", not dramatic claims.\n` +
+    `- Match the category and platform conventions.\n\n` +
     `Return ONLY this JSON object (no markdown, no commentary):\n` +
     `{"titles": [5 distinct titles, each under 70 characters],` +
     ` "description": "2 to 4 sentences with a strong hook and a clear call to action, at least 150 characters",` +
