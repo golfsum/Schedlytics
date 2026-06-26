@@ -15,7 +15,7 @@
  *  snippet carries in data-site.
  */
 import crypto from 'node:crypto'
-import { hashStore, stateStore } from './kv.js'
+import { hashStore, stateStore, rateLimit } from './kv.js'
 import { verifyIdToken } from './lib/firebaseAuth.js'
 import { BASE_URL } from './config.js'
 
@@ -196,6 +196,10 @@ export function registerPublicConversionRoutes(app, express) {
   })
   app.post('/api/track-conversion', express.text({ type: '*/*', limit: '8kb' }), async (req, res) => {
     allowCrossSite(res)
+    // Per-IP rate limit so nobody can flood conversion events for a site key.
+    const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim()
+    const { allowed } = await rateLimit(`track-conv:${ip}`, 120, 60)
+    if (!allowed) return res.status(429).end()
     let body = {}
     try {
       body = typeof req.body === 'string' && req.body ? JSON.parse(req.body) : req.body || {}

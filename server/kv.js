@@ -94,6 +94,42 @@ export function hashStore(hashKey, fileName) {
   }
 }
 
+/* ------------------------------ rate limiting ----------------------------- */
+
+const rlMem = new Map() // local fallback (fixed window per key)
+
+/**
+ * Fixed-window rate limit. Returns { allowed, retryAfter }. Backed by an atomic
+ * Redis INCR+EXPIRE in prod, or an in-memory window locally. Never throws.
+ */
+export async function rateLimit(key, max, windowSeconds) {
+  try {
+    if (!useKV) {
+      const now = Date.now()
+      const e = rlMem.get(key)
+      if (!e || now > e.reset) {
+        rlMem.set(key, { count: 1, reset: now + windowSeconds * 1000 })
+        return { allowed: true }
+      }
+      e.count += 1
+      if (e.count > max) return { allowed: false, retryAfter: Math.ceil((e.reset - now) / 1000) }
+      return { allowed: true }
+    }
+    const k = `rl:${key}`
+    const count = await redis(['INCR', k])
+    if (count === 1) await redis(['EXPIRE', k, String(windowSeconds)])
+    if (count > max) {
+      let ttl = await redis(['TTL', k])
+      if (!(ttl > 0)) ttl = windowSeconds
+      return { allowed: false, retryAfter: ttl }
+    }
+    return { allowed: true }
+  } catch {
+    // Never let the limiter break a request.
+    return { allowed: true }
+  }
+}
+
 /* ------------------------ state store (with TTL) -------------------------- */
 
 const mem = new Map() // local fallback

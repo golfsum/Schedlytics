@@ -23,7 +23,7 @@ import { sendEmail, emailEnabled } from './email.js'
 import { isConfigured as fbAdminConfigured, listUsers, passwordResetLink, setUserDisabled } from './lib/firebaseAdmin.js'
 import { verifyIdToken } from './lib/firebaseAuth.js'
 import { uidFromReq } from './lib/reqUser.js'
-import { stateStore } from './kv.js'
+import { stateStore, rateLimit } from './kv.js'
 import { validAccessToken } from './tokens.js'
 import youtubeRoutes from './routes/youtube.js'
 import aiRoutes from './routes/ai.js'
@@ -59,6 +59,32 @@ app.use(
     credentials: true,
   }),
 )
+
+// Security headers on every API response (Vercel also sets these on static
+// assets via vercel.json; this covers the API + local dev). frame-ancestors and
+// X-Frame-Options stop clickjacking; nosniff stops MIME sniffing.
+app.use((_req, res, next) => {
+  res.set('X-Content-Type-Options', 'nosniff')
+  res.set('X-Frame-Options', 'DENY')
+  res.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  res.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+  res.set('Content-Security-Policy', "frame-ancestors 'none'; base-uri 'self'; object-src 'none'")
+  next()
+})
+
+/** Per-IP rate-limit middleware for abuse-prone public endpoints.
+ *  (clientIp is defined below; it's resolved at request time, not load time.) */
+function limit(name, max, windowSec) {
+  return async (req, res, next) => {
+    const { allowed, retryAfter } = await rateLimit(`${name}:${clientIp(req) || 'unknown'}`, max, windowSec)
+    if (!allowed) {
+      if (retryAfter) res.set('Retry-After', String(retryAfter))
+      return res.status(429).json({ error: 'Too many requests. Please slow down and try again.' })
+    }
+    next()
+  }
+}
 
 // Platform-specific routes (extras beyond generic stats).
 app.use('/api/youtube', youtubeRoutes)
@@ -183,7 +209,7 @@ async function notifyEarlyAccess(email, result) {
 }
 
 // Early-access sign-up: first EA_CAP accepted, rest waitlisted.
-app.post('/api/early-access', async (req, res) => {
+app.post('/api/early-access', limit('early-access', 5, 3600), async (req, res) => {
   const { email } = req.body || {}
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email))) {
     return res.status(400).json({ error: 'A valid email is required' })
@@ -240,7 +266,7 @@ app.post('/api/track', async (req, res) => {
 
 // Public beacon for errors a user hit in the app (powers the admin Errors tab).
 // Never errors; ignores bots.
-app.post('/api/track-error', async (req, res) => {
+app.post('/api/track-error', limit('track-error', 120, 60), async (req, res) => {
   try {
     const ua = req.get('user-agent') || ''
     if (/bot|crawl|spider|lighthouse|headless/i.test(ua)) return res.json({ ok: true })
@@ -446,7 +472,7 @@ app.get('/api/admin/early-access', async (req, res) => {
 })
 
 // Submit a support ticket (public for signed-in users; notifies the owner).
-app.post('/api/support', async (req, res) => {
+app.post('/api/support', limit('support', 5, 600), async (req, res) => {
   const { email, subject, message, userId } = req.body || {}
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email))) {
     return res.status(400).json({ error: 'A valid email is required' })
@@ -476,7 +502,7 @@ app.post('/api/support', async (req, res) => {
 // In-app feedback widget. Stored alongside support tickets (kind: 'feedback'),
 // tagged by category, with auto-captured page/device context.
 const FEEDBACK_LABEL = { bug: 'Bug report', feature: 'Feature request', confusing: 'Something confusing', general: 'General feedback' }
-app.post('/api/feedback', async (req, res) => {
+app.post('/api/feedback', limit('feedback', 12, 600), async (req, res) => {
   const { email, category, message, meta, userId } = req.body || {}
   if (!message || !String(message).trim()) return res.status(400).json({ error: 'A message is required' })
   const cat = FEEDBACK_LABEL[category] ? category : 'general'
@@ -1124,7 +1150,7 @@ const ashrtFetch = (path, opts = {}) =>
     headers: { 'Content-Type': 'application/json', 'x-api-key': ashrt.apiKey, ...(opts.headers || {}) },
   })
 
-app.post('/api/links', async (req, res) => {
+app.post('/api/links', limit('links', 40, 3600), async (req, res) => {
   const uid = await uidFromReq(req)
   if (!uid) return res.status(401).json({ error: 'Please sign in.' })
   const url = req.body?.url
