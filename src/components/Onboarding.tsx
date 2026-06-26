@@ -754,14 +754,28 @@ function BackBtn({ onClick }: { onClick: () => void }) {
 
 /* -------------------------- first-run checklist -------------------------- */
 
-/** Setup progress card shown on the dashboard until setup is complete. */
-export function SetupChecklist({ onShareHint }: { onShareHint?: () => void }) {
+/**
+ * Setup progress card. On the dashboard it shows only while setup is actively in
+ * progress; once the user skips it, it moves to Settings (place="settings"),
+ * where they can finish or revisit their answers any time.
+ */
+export function SetupChecklist({
+  onShareHint,
+  place = 'dashboard',
+}: {
+  onShareHint?: () => void
+  place?: 'dashboard' | 'settings'
+}) {
   const { state, open } = useOnboarding()
   if (sampleData || state.setupComplete) return null
 
   const doneCount = SETUP_STEPS.filter((s) => state.completed.includes(s.key)).length
-  // Nothing started and not dismissed: the wizard will open on its own.
-  if (doneCount === 0 && !state.dismissed) return null
+  if (place === 'dashboard') {
+    // After skipping, it lives in Settings - keep the dashboard clean.
+    if (state.dismissed) return null
+    // First run (nothing started): the wizard auto-opens, so no card needed.
+    if (doneCount === 0) return null
+  }
 
   const nextStep = SETUP_STEPS.find((s) => !state.completed.includes(s.key))
 

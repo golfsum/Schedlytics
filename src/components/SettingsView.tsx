@@ -18,6 +18,7 @@ import {
   Copy,
   Plus,
   Trash2,
+  Rocket,
 } from 'lucide-react'
 import Toggle from './Toggle'
 import { useToast } from './Toast'
@@ -28,6 +29,7 @@ import { useAuth } from './Auth'
 import { usePlan, PLAN_INFO } from './Plan'
 import UpgradeModal from './UpgradeModal'
 import { InstallAppCard } from './InstallPrompt'
+import { useOnboarding, SetupChecklist } from './Onboarding'
 import { openBillingPortal, formatPlanDate } from '../lib/billing'
 import { fetchConversionGoals, saveConversionGoals } from '../lib/conversions'
 import { sampleData } from '../lib/socialApi'
@@ -38,6 +40,7 @@ import { PLATFORMS, isComingSoon } from '../data'
 import type { PlatformId } from '../types'
 
 const SECTIONS = [
+  { id: 'setup', label: 'Getting started', Icon: Rocket },
   { id: 'accounts', label: 'Connected Accounts', Icon: Link2 },
   { id: 'domain', label: 'Branded Domain', Icon: Globe },
   { id: 'profile', label: 'Profile', Icon: User },
@@ -76,6 +79,7 @@ export default function SettingsView() {
         </nav>
 
         <div>
+          {section === 'setup' && <SetupSection />}
           {section === 'accounts' && (
             <div className="space-y-5">
               <AccountsSection />
@@ -186,6 +190,52 @@ function SupportSection() {
           </button>
         </form>
       )}
+    </div>
+  )
+}
+
+/* ------------------------------ getting started --------------------------- */
+
+function SetupSection() {
+  const { state, open } = useOnboarding()
+
+  if (state.setupComplete) {
+    return (
+      <div className="card grid place-items-center gap-3 p-8 text-center">
+        <span className="grid h-11 w-11 place-items-center rounded-full bg-emerald-400/15 text-emerald-300">
+          <Check className="h-5 w-5" />
+        </span>
+        <h2 className="text-lg font-bold text-white">You're all set</h2>
+        <p className="max-w-sm text-sm text-slate-400">
+          Your workspace is configured. You can run the guided setup again any time to revisit or change
+          your answers.
+        </p>
+        <button
+          onClick={open}
+          className="rounded-lg border border-cyan-accent/30 px-4 py-2 text-sm font-semibold text-cyan-accent hover:bg-cyan-accent/10"
+        >
+          Redo guided setup
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-lg font-bold text-white">Getting started</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          Finish setting up your workspace, or revisit any step. Picking up where you left off takes a
+          minute.
+        </p>
+      </div>
+      <SetupChecklist place="settings" />
+      <button
+        onClick={open}
+        className="flex items-center gap-2 rounded-lg gradient-cyan px-4 py-2 text-sm font-bold text-navy-900 shadow-glow-soft"
+      >
+        <Rocket className="h-4 w-4" /> Open guided setup
+      </button>
     </div>
   )
 }

@@ -1,7 +1,31 @@
 import { useState } from 'react'
-import { Loader2, Mail, Lock } from 'lucide-react'
+import { Loader2, Mail, Lock, Check, X as XIcon } from 'lucide-react'
 import { BrandIcon } from './Logo'
 import { useAuth } from './Auth'
+
+/** Password requirements enforced on account creation. */
+const PASSWORD_RULES = [
+  { key: 'len', label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
+  { key: 'upper', label: 'An uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
+  { key: 'number', label: 'A number', test: (p: string) => /[0-9]/.test(p) },
+  { key: 'special', label: 'A special character', test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+] as const
+
+/** 0-4 score + label/color for the strength meter. */
+function passwordStrength(p: string) {
+  if (!p) return { score: 0, label: '', color: 'bg-white/10', text: 'text-slate-500' }
+  let score = PASSWORD_RULES.filter((r) => r.test(p)).length
+  if (p.length >= 12 && score === 4) score = 5 // bonus tier for long + all rules
+  const tiers = [
+    { label: 'Very weak', color: 'bg-rose-500', text: 'text-rose-300' },
+    { label: 'Weak', color: 'bg-rose-500', text: 'text-rose-300' },
+    { label: 'Fair', color: 'bg-amber-500', text: 'text-amber-300' },
+    { label: 'Good', color: 'bg-cyan-accent', text: 'text-cyan-accent' },
+    { label: 'Strong', color: 'bg-emerald-500', text: 'text-emerald-300' },
+    { label: 'Very strong', color: 'bg-emerald-500', text: 'text-emerald-300' },
+  ]
+  return { score, ...tiers[score] }
+}
 
 /** Sign-in screen shown at /app when the user is not authenticated. */
 export default function LoginScreen() {
@@ -9,14 +33,22 @@ export default function LoginScreen() {
   const [mode, setMode] = useState<'signin' | 'register' | 'reset'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [busy, setBusy] = useState<'google' | 'email' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [resetSent, setResetSent] = useState(false)
+
+  const ruleResults = PASSWORD_RULES.map((r) => ({ ...r, ok: r.test(password) }))
+  const allRulesMet = ruleResults.every((r) => r.ok)
+  const passwordsMatch = confirm.length > 0 && password === confirm
+  const strength = passwordStrength(password)
+  const canRegister = allRulesMet && passwordsMatch
 
   const goMode = (m: 'signin' | 'register' | 'reset') => {
     setMode(m)
     setError(null)
     setResetSent(false)
+    setConfirm('')
   }
 
   const google = async () => {
@@ -33,6 +65,10 @@ export default function LoginScreen() {
 
   const submitEmail = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (mode === 'register' && !canRegister) {
+      setError(!allRulesMet ? 'Your password does not meet all the requirements yet.' : 'The passwords do not match.')
+      return
+    }
     setError(null)
     setBusy('email')
     try {
@@ -174,6 +210,64 @@ export default function LoginScreen() {
               />
             </div>
 
+            {mode === 'register' && (
+              <>
+                {/* live strength meter */}
+                {password && (
+                  <div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500">Password strength</span>
+                      <span className={`font-semibold ${strength.text}`}>{strength.label}</span>
+                    </div>
+                    <div className="mt-1 flex gap-1">
+                      {[0, 1, 2, 3].map((i) => (
+                        <span
+                          key={i}
+                          className={`h-1.5 flex-1 rounded-full ${
+                            i < Math.min(strength.score, 4) ? strength.color : 'bg-white/10'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* requirements - tick off as the user types */}
+                <ul className="space-y-1">
+                  {ruleResults.map((r) => (
+                    <li
+                      key={r.key}
+                      className={`flex items-center gap-1.5 text-[11px] ${r.ok ? 'text-emerald-300' : 'text-slate-500'}`}
+                    >
+                      {r.ok ? <Check className="h-3 w-3" /> : <XIcon className="h-3 w-3 text-slate-600" />}
+                      {r.label}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* re-type password */}
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <input
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                    type="password"
+                    required
+                    placeholder="Re-type password"
+                    className="w-full rounded-lg border border-white/5 bg-navy-900/60 py-2.5 pl-9 pr-3 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+                  />
+                </div>
+                {confirm.length > 0 &&
+                  (passwordsMatch ? (
+                    <p className="flex items-center gap-1 text-[11px] text-emerald-300">
+                      <Check className="h-3 w-3" /> Passwords match
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-rose-400">Passwords do not match.</p>
+                  ))}
+              </>
+            )}
+
             {mode === 'signin' && (
               <div className="text-right">
                 <button
@@ -190,7 +284,7 @@ export default function LoginScreen() {
 
             <button
               type="submit"
-              disabled={busy !== null}
+              disabled={busy !== null || (mode === 'register' && !canRegister)}
               className="flex w-full items-center justify-center gap-2 rounded-lg gradient-cyan py-2.5 text-sm font-bold text-navy-900 shadow-glow transition-transform hover:scale-[1.01] disabled:opacity-70"
             >
               {busy === 'email' && <Loader2 className="h-4 w-4 animate-spin" />}
