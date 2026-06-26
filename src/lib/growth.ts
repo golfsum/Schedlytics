@@ -20,12 +20,12 @@ export interface GrowthLevel {
 }
 
 export const GROWTH_LEVELS: GrowthLevel[] = [
-  { name: 'Growth Scout', min: 0 },
-  { name: 'Growth Builder', min: 20 },
-  { name: 'Growth Creator', min: 40 },
-  { name: 'Growth Influencer', min: 60 },
-  { name: 'Growth Expert', min: 75 },
-  { name: 'Growth Authority', min: 88 },
+  { name: 'Starter', min: 0 },
+  { name: 'Explorer', min: 20 },
+  { name: 'Growth Builder', min: 40 },
+  { name: 'Creator', min: 60 },
+  { name: 'Influencer', min: 75 },
+  { name: 'Authority', min: 88 },
   { name: 'Growth Legend', min: 97 },
 ]
 

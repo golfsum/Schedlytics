@@ -307,9 +307,6 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
         </div>
       </div>
 
-      {/* actionable roadmap: top move + expandable list */}
-      <OpportunitiesCard opportunities={opportunities} onNavigate={onNavigate} />
-
       {/* prominent trend chart, right under the growth cards */}
       <ClicksOverTime
         sample={sampleData}
@@ -344,14 +341,17 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
         ))}
       </div>
 
-      {/* top posts + best platforms */}
-      <div className="grid gap-5 xl:grid-cols-2">
-        <TopPostsCard sample={sampleData} />
-        <BestPlatformsCard sample={sampleData} />
-      </div>
+      {/* 3. Top Performing Content (the main V1 section, content first) */}
+      <TopPostsCard sample={sampleData} />
 
-      {/* conversions: what each post is actually worth */}
+      {/* what each post is actually worth */}
       <ConversionsCard sample={sampleData} onNavigate={onNavigate} />
+
+      {/* 5. Platform Performance */}
+      <BestPlatformsCard sample={sampleData} />
+
+      {/* 6. Growth Opportunities */}
+      <OpportunitiesCard opportunities={opportunities} onNavigate={onNavigate} />
 
       {/* headline insight */}
       <InsightCallout sample={sampleData} onNavigate={onNavigate} />
@@ -762,7 +762,10 @@ function ClicksOverTime({
 function TopPostsCard({ sample }: { sample: boolean }) {
   return (
     <div className="card p-5">
-      <h2 className="mb-4 text-lg font-bold text-white">Top Performing Posts</h2>
+      <h2 className="text-lg font-bold text-white">Top Performing Content</h2>
+      <p className="mb-4 text-sm text-slate-400">
+        See which posts, videos, and links are driving clicks, conversions, and revenue.
+      </p>
       {sample ? (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -811,7 +814,8 @@ function TopPostsCard({ sample }: { sample: boolean }) {
 function BestPlatformsCard({ sample }: { sample: boolean }) {
   return (
     <div className="card p-5">
-      <h2 className="mb-4 text-lg font-bold text-white">Best Platforms</h2>
+      <h2 className="text-lg font-bold text-white">Platform Performance</h2>
+      <p className="mb-4 text-sm text-slate-400">See which channels drive traffic, conversions, and growth.</p>
       {sample ? (
         <div className="space-y-2.5">
           {PLATFORM_PERFORMANCE.map((row) => {
