@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Loader2, Mail, Lock, Check, X as XIcon } from 'lucide-react'
+import { Loader2, Mail, Lock, Check, X as XIcon, Eye, EyeOff } from 'lucide-react'
 import { BrandIcon } from './Logo'
 import { useAuth } from './Auth'
 
@@ -34,6 +34,8 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [showPw, setShowPw] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [busy, setBusy] = useState<'google' | 'email' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [resetSent, setResetSent] = useState(false)
@@ -41,8 +43,9 @@ export default function LoginScreen() {
   const ruleResults = PASSWORD_RULES.map((r) => ({ ...r, ok: r.test(password) }))
   const allRulesMet = ruleResults.every((r) => r.ok)
   const passwordsMatch = confirm.length > 0 && password === confirm
+  const emailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)
   const strength = passwordStrength(password)
-  const canRegister = allRulesMet && passwordsMatch
+  const canRegister = emailValid && allRulesMet && passwordsMatch
 
   const goMode = (m: 'signin' | 'register' | 'reset') => {
     setMode(m)
@@ -202,12 +205,20 @@ export default function LoginScreen() {
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                type="password"
+                type={showPw ? 'text' : 'password'}
                 required
                 minLength={6}
                 placeholder="Password"
-                className="w-full rounded-lg border border-white/5 bg-navy-900/60 py-2.5 pl-9 pr-3 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+                className="w-full rounded-lg border border-white/5 bg-navy-900/60 py-2.5 pl-9 pr-10 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
               />
+              <button
+                type="button"
+                onClick={() => setShowPw((v) => !v)}
+                aria-label={showPw ? 'Hide password' : 'Show password'}
+                className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-slate-500 hover:text-slate-200"
+              >
+                {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
 
             {mode === 'register' && (
@@ -216,7 +227,7 @@ export default function LoginScreen() {
                 {password && (
                   <div>
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-500">Password strength</span>
+                      <span className="text-slate-500">Strength</span>
                       <span className={`font-semibold ${strength.text}`}>{strength.label}</span>
                     </div>
                     <div className="mt-1 flex gap-1">
@@ -251,11 +262,19 @@ export default function LoginScreen() {
                   <input
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
-                    type="password"
+                    type={showConfirm ? 'text' : 'password'}
                     required
                     placeholder="Re-type password"
-                    className="w-full rounded-lg border border-white/5 bg-navy-900/60 py-2.5 pl-9 pr-3 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+                    className="w-full rounded-lg border border-white/5 bg-navy-900/60 py-2.5 pl-9 pr-10 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm((v) => !v)}
+                    aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                    className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-slate-500 hover:text-slate-200"
+                  >
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
                 {confirm.length > 0 &&
                   (passwordsMatch ? (
@@ -263,7 +282,9 @@ export default function LoginScreen() {
                       <Check className="h-3 w-3" /> Passwords match
                     </p>
                   ) : (
-                    <p className="text-[11px] text-rose-400">Passwords do not match.</p>
+                    <p className="flex items-center gap-1 text-[11px] text-rose-400">
+                      <XIcon className="h-3 w-3" /> Passwords do not match
+                    </p>
                   ))}
               </>
             )}
@@ -282,14 +303,34 @@ export default function LoginScreen() {
 
             {error && <p className="text-xs text-rose-400">{error}</p>}
 
+            {mode === 'register' && (
+              <p className="text-center text-[11px] leading-relaxed text-slate-500">
+                By creating an account, you agree to the{' '}
+                <a href="/terms" target="_blank" rel="noreferrer" className="text-cyan-accent hover:underline">
+                  Terms
+                </a>{' '}
+                and{' '}
+                <a href="/privacy" target="_blank" rel="noreferrer" className="text-cyan-accent hover:underline">
+                  Privacy Policy
+                </a>
+                .
+              </p>
+            )}
+
             <button
               type="submit"
               disabled={busy !== null || (mode === 'register' && !canRegister)}
-              className="flex w-full items-center justify-center gap-2 rounded-lg gradient-cyan py-2.5 text-sm font-bold text-navy-900 shadow-glow transition-transform hover:scale-[1.01] disabled:opacity-70"
+              className="flex w-full items-center justify-center gap-2 rounded-lg gradient-cyan py-2.5 text-sm font-bold text-navy-900 shadow-glow transition-transform hover:scale-[1.01] disabled:opacity-70 disabled:hover:scale-100"
             >
               {busy === 'email' && <Loader2 className="h-4 w-4 animate-spin" />}
               {mode === 'signin' ? 'Sign in' : 'Create account'}
             </button>
+
+            {mode === 'register' && (
+              <p className="text-center text-[11px] text-slate-500">
+                Early Access pricing is locked in while your subscription stays active.
+              </p>
+            )}
           </form>
 
           <p className="mt-4 text-center text-xs text-slate-400">
@@ -300,6 +341,10 @@ export default function LoginScreen() {
             >
               {mode === 'signin' ? 'Create one' : 'Sign in'}
             </button>
+          </p>
+
+          <p className="mt-3 border-t border-white/5 pt-3 text-center text-[11px] text-slate-500">
+            Secure sign-in powered by Google and Firebase.
           </p>
           </>
           )}
