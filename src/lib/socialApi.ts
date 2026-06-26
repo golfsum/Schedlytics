@@ -6,7 +6,7 @@
  * its built-in simulated connection flow so the demo still works standalone.
  */
 import type { PlatformId } from '../types'
-import { firebaseEnabled } from './firebase'
+import { auth, firebaseEnabled } from './firebase'
 
 const API = import.meta.env.VITE_API_URL?.replace(/\/$/, '')
 
@@ -33,6 +33,26 @@ export const apiBase = API ?? ''
 /** Origin the backend serves from (used to validate OAuth popup messages). */
 export const apiOrigin =
   typeof window !== 'undefined' ? (API ? new URL(API).origin : window.location.origin) : ''
+
+/**
+ * The signed-in user's Firebase ID token, or null when auth is disabled or no
+ * one is signed in. Every backend call carries this so the server can scope all
+ * data (connected accounts, links, scheduled posts) to the right user.
+ */
+export async function authToken(): Promise<string | null> {
+  try {
+    const u = auth?.currentUser
+    return u ? await u.getIdToken() : null
+  } catch {
+    return null
+  }
+}
+
+/** Authorization header for backend calls (omitted when not signed in). */
+async function authHeaders(extra?: Record<string, string>): Promise<Record<string, string>> {
+  const t = await authToken()
+  return { ...(t ? { Authorization: `Bearer ${t}` } : {}), ...(extra || {}) }
+}
 
 /**
  * Whether to seed the UI with sample content (calendar posts, notifications,
@@ -70,29 +90,45 @@ export interface RemoteStats {
  */
 export function startConnect(platform: PlatformId): Window | null {
   if (!backendEnabled) return null
-  const url = `${apiBase}/auth/${platform}/start?popup=1`
   const w = 600
   const h = 720
   const left = window.screenX + Math.max(0, (window.outerWidth - w) / 2)
   const top = window.screenY + Math.max(0, (window.outerHeight - h) / 2)
+  // Open the popup synchronously (a click is required, and resolving the token
+  // first would break that), then navigate it once we have the ID token. The
+  // token rides in the URL because a popup navigation can't carry a header.
   const popup = window.open(
-    url,
+    'about:blank',
     'schedlytics_oauth',
     `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no`,
   )
-  return popup && !popup.closed ? popup : null
+  if (!popup || popup.closed) return null
+  authToken().then((t) => {
+    const qs = `popup=1${t ? `&t=${encodeURIComponent(t)}` : ''}`
+    try {
+      popup.location.href = `${apiBase}/auth/${platform}/start?${qs}`
+    } catch {
+      /* popup closed before navigation */
+    }
+  })
+  return popup
 }
 
 /** Full-page fallback when popups are blocked. */
-export function startConnectRedirect(platform: PlatformId): void {
+export async function startConnectRedirect(platform: PlatformId): Promise<void> {
   if (!backendEnabled) return
-  window.location.href = `${apiBase}/auth/${platform}/start`
+  const t = await authToken()
+  const qs = t ? `?t=${encodeURIComponent(t)}` : ''
+  window.location.href = `${apiBase}/auth/${platform}/start${qs}`
 }
 
 /** Current connection status + cached profile for every platform. */
 export async function fetchAccounts(): Promise<Record<string, RemoteAccount>> {
   if (!backendEnabled) return {}
-  const res = await fetch(`${apiBase}/api/accounts`, { credentials: 'include' })
+  const res = await fetch(`${apiBase}/api/accounts`, {
+    credentials: 'include',
+    headers: await authHeaders(),
+  })
   if (!res.ok) throw new Error(`accounts ${res.status}`)
   return res.json()
 }
@@ -100,7 +136,10 @@ export async function fetchAccounts(): Promise<Record<string, RemoteAccount>> {
 /** Live stats for one connected platform. */
 export async function fetchStats(platform: PlatformId): Promise<RemoteStats> {
   if (!backendEnabled) throw new Error('backend disabled')
-  const res = await fetch(`${apiBase}/api/${platform}/stats`, { credentials: 'include' })
+  const res = await fetch(`${apiBase}/api/${platform}/stats`, {
+    credentials: 'include',
+    headers: await authHeaders(),
+  })
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `stats ${res.status}`)
   return res.json()
 }
@@ -125,7 +164,7 @@ export async function publishPost(
   const res = await fetch(`${apiBase}/api/${platform}/publish`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),
   })
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `${res.status}`)
@@ -150,10 +189,10 @@ export async function publishMedia(
   const res = await fetch(`${apiBase}/api/${platform}/publish-media`, {
     method: 'POST',
     credentials: 'include',
-    headers: {
+    headers: await authHeaders({
       'Content-Type': (file as File).type || 'application/octet-stream',
       'X-Upload-Meta': encodeMeta(meta),
-    },
+    }),
     body: file,
   })
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `${res.status}`)
@@ -173,7 +212,10 @@ export interface TikTokCreatorInfo {
 }
 export async function fetchTikTokCreatorInfo(): Promise<TikTokCreatorInfo> {
   if (!backendEnabled) throw new Error('backend disabled')
-  const res = await fetch(`${apiBase}/api/tiktok/creator-info`, { credentials: 'include' })
+  const res = await fetch(`${apiBase}/api/tiktok/creator-info`, {
+    credentials: 'include',
+    headers: await authHeaders(),
+  })
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `${res.status}`)
   return res.json()
 }
@@ -199,7 +241,7 @@ export async function schedulePost(input: {
   const res = await fetch(`${apiBase}/api/scheduled`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(input),
   })
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `${res.status}`)
@@ -209,7 +251,10 @@ export async function schedulePost(input: {
 /** List queued scheduled posts. */
 export async function listScheduled(): Promise<ScheduledPost[]> {
   if (!backendEnabled) return []
-  const res = await fetch(`${apiBase}/api/scheduled`, { credentials: 'include' })
+  const res = await fetch(`${apiBase}/api/scheduled`, {
+    credentials: 'include',
+    headers: await authHeaders(),
+  })
   if (!res.ok) return []
   return res.json()
 }
@@ -217,7 +262,11 @@ export async function listScheduled(): Promise<ScheduledPost[]> {
 /** Cancel a queued scheduled post. */
 export async function cancelScheduled(id: string): Promise<void> {
   if (!backendEnabled) return
-  await fetch(`${apiBase}/api/scheduled/${id}`, { method: 'DELETE', credentials: 'include' })
+  await fetch(`${apiBase}/api/scheduled/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: await authHeaders(),
+  })
 }
 
 /** Disconnect a platform (revoke locally / remove stored tokens). */
@@ -226,6 +275,7 @@ export async function disconnectAccount(platform: PlatformId): Promise<void> {
   await fetch(`${apiBase}/api/${platform}/disconnect`, {
     method: 'POST',
     credentials: 'include',
+    headers: await authHeaders(),
   })
 }
 
@@ -235,7 +285,10 @@ export async function disconnectAccount(platform: PlatformId): Promise<void> {
 
 async function getJson<T>(path: string): Promise<T> {
   if (!backendEnabled) throw new Error('backend disabled')
-  const res = await fetch(`${apiBase}${path}`, { credentials: 'include' })
+  const res = await fetch(`${apiBase}${path}`, {
+    credentials: 'include',
+    headers: await authHeaders(),
+  })
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `${res.status}`)
   return res.json() as Promise<T>
 }
@@ -317,11 +370,14 @@ export function fetchTikTokRecentVideos(max = 6) {
 /** Opt the user in/out of the weekly growth brief email. Best-effort, no-throw. */
 export function subscribeWeeklyBrief(email: string, enabled: boolean): Promise<void> {
   if (!backendEnabled || !email) return Promise.resolve()
-  return fetch(`${apiBase}/api/weekly-brief/subscribe`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, enabled }),
-  })
+  return authHeaders({ 'Content-Type': 'application/json' })
+    .then((headers) =>
+      fetch(`${apiBase}/api/weekly-brief/subscribe`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ email, enabled }),
+      }),
+    )
     .then(() => undefined)
     .catch(() => undefined)
 }
@@ -367,7 +423,10 @@ async function uploadDirectToYouTube(
   meta: YTUploadMeta,
   onProgress?: (fraction: number) => void,
 ): Promise<{ id?: string; url?: string; privacyStatus?: string }> {
-  const tokenRes = await fetch(`${apiBase}/api/youtube/upload-token`, { credentials: 'include' })
+  const tokenRes = await fetch(`${apiBase}/api/youtube/upload-token`, {
+    credentials: 'include',
+    headers: await authHeaders(),
+  })
   if (!tokenRes.ok) throw new Error('no upload token')
   const { accessToken } = (await tokenRes.json()) as { accessToken?: string }
   if (!accessToken) throw new Error('no upload token')
@@ -430,7 +489,7 @@ async function uploadViaRelay(
   const sess = await fetch(`${apiBase}/api/youtube/upload-session`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       title: meta.title,
       description: meta.description || '',
@@ -454,12 +513,12 @@ async function uploadViaRelay(
     const res = await fetch(`${apiBase}/api/youtube/upload-chunk`, {
       method: 'POST',
       credentials: 'include',
-      headers: {
+      headers: await authHeaders({
         'Content-Type': 'application/octet-stream',
         'X-Upload-Url': uploadUrl,
         'X-Upload-Range': `bytes ${start}-${end - 1}/${total}`,
         'X-File-Type': fileType,
-      },
+      }),
       body: file.slice(start, end),
     })
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `upload ${res.status}`)
@@ -500,7 +559,7 @@ export async function replyToYouTubeComment(parentId: string, text: string) {
   const res = await fetch(`${apiBase}/api/youtube/comments/${encodeURIComponent(parentId)}/reply`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ text }),
   })
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `${res.status}`)
@@ -520,7 +579,7 @@ export async function publishYouTubeVideo(body: {
   const res = await fetch(`${apiBase}/api/youtube/upload`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `${res.status}`)

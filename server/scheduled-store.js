@@ -16,10 +16,11 @@ export const scheduled = {
     return Object.values(await store.all()).sort((a, b) => (a.publishAt || 0) - (b.publishAt || 0))
   },
 
-  async add({ platform, caption = '', mediaUrl, publishAt }) {
+  async add({ uid = null, platform, caption = '', mediaUrl, publishAt }) {
     const id = crypto.randomBytes(6).toString('hex')
     const rec = {
       id,
+      uid,
       platform,
       caption,
       mediaUrl,
@@ -29,6 +30,10 @@ export const scheduled = {
     }
     await store.put(id, rec)
     return rec
+  },
+
+  async get(id) {
+    return store.get(id)
   },
 
   async update(id, patch) {

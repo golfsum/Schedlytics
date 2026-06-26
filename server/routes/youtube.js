@@ -20,13 +20,15 @@
 import express, { Router } from 'express'
 import { youtube } from '../platforms/youtube.js'
 import { validAccessToken } from '../tokens.js'
+import { uidFromReq } from '../lib/reqUser.js'
 
 const router = Router()
 
 /** Wrap a handler so "Not connected"/API errors return clean JSON. */
 const guard = (fn) => async (req, res) => {
   try {
-    const { token } = await validAccessToken(youtube)
+    const uid = await uidFromReq(req)
+    const { token } = await validAccessToken(youtube, uid)
     await fn(req, res, token)
   } catch (err) {
     const status = err.status || 502

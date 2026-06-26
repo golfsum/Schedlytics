@@ -6,8 +6,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { PORT, BASE_URL, FRONTEND_URL, creds, ashrt } from './config.js'
 import { getPlatform, platforms, PUBLISH_CAPABILITIES } from './platforms/index.js'
-import { store } from './store.js'
-import { links } from './links-store.js'
+import { store, userTokens } from './store.js'
+import { links, linkOwners } from './links-store.js'
 import { scheduled } from './scheduled-store.js'
 import { weeklySubs } from './weekly-store.js'
 import { earlyAccess, EA_CAP } from './early-access-store.js'
@@ -21,6 +21,7 @@ import { tagRedirect, registerPublicConversionRoutes, registerConversionRoutes }
 import { sendEmail, emailEnabled } from './email.js'
 import { isConfigured as fbAdminConfigured, listUsers, passwordResetLink, setUserDisabled } from './lib/firebaseAdmin.js'
 import { verifyIdToken } from './lib/firebaseAuth.js'
+import { uidFromReq } from './lib/reqUser.js'
 import { stateStore } from './kv.js'
 import { validAccessToken } from './tokens.js'
 import youtubeRoutes from './routes/youtube.js'
@@ -558,8 +559,13 @@ app.get('/auth/:platform/start', async (req, res) => {
       .send(`${platform.name} is not configured. Add its credentials to .env`)
   }
 
+  // The connecting user (from the ?t= ID token) is bound into the CSRF state so
+  // the callback stores the token under the right account.
+  const uid = await uidFromReq(req)
+  if (!uid) return res.status(401).send('Please sign in to Schedlytics before connecting a platform.')
+
   const state = crypto.randomBytes(16).toString('hex')
-  await stateStore.set(state, { platform: platform.id, popup: req.query.popup === '1' }, STATE_TTL)
+  await stateStore.set(state, { platform: platform.id, popup: req.query.popup === '1', uid }, STATE_TTL)
   res.redirect(platform.getAuthUrl(state))
 })
 
@@ -607,16 +613,18 @@ app.get('/auth/:platform/callback', async (req, res) => {
   }
 
   if (error) return finish('error', String(error_description || error))
-  if (!entry || entry.platform !== platform.id) return finish('error', 'invalid_state')
+  if (!entry || entry.platform !== platform.id || !entry.uid) return finish('error', 'invalid_state')
   await stateStore.del(String(state))
+  const uid = entry.uid
+  const tokens$ = userTokens(uid)
 
   try {
     const tokens = await platform.exchangeCode(String(code))
-    await store.set(platform.id, tokens)
+    await tokens$.set(platform.id, tokens)
     // Fetch + cache a profile so the dashboard has something immediately.
     try {
       const stats = await platform.getStats(tokens.accessToken, tokens)
-      await store.set(platform.id, {
+      await tokens$.set(platform.id, {
         profile: { handle: stats.handle, name: stats.name, avatar: stats.avatar, followers: stats.followers },
       })
     } catch (e) {
@@ -634,8 +642,9 @@ app.get('/auth/:platform/callback', async (req, res) => {
 /*  Accounts - connection status for every platform                            */
 /* -------------------------------------------------------------------------- */
 
-app.get('/api/accounts', async (_req, res) => {
-  const all = await store.all()
+app.get('/api/accounts', async (req, res) => {
+  const uid = await uidFromReq(req)
+  const all = uid ? await userTokens(uid).all() : {}
   const accounts = {}
   for (const id of Object.keys(platforms)) {
     const rec = all[id]
@@ -655,10 +664,11 @@ app.get('/api/:platform/stats', async (req, res) => {
   if (!platform) return res.status(404).json({ error: 'Unknown platform' })
 
   try {
-    const { token, record } = await validAccessToken(platform)
+    const uid = await uidFromReq(req)
+    const { token, record } = await validAccessToken(platform, uid)
     const stats = await platform.getStats(token, record)
     // refresh the cached profile too
-    await store.set(platform.id, {
+    await userTokens(uid).set(platform.id, {
       profile: { handle: stats.handle, name: stats.name, avatar: stats.avatar, followers: stats.followers },
     })
     res.json(stats)
@@ -685,7 +695,8 @@ app.post('/api/:platform/publish', async (req, res) => {
     })
   }
   try {
-    const { token, record } = await validAccessToken(platform)
+    const uid = await uidFromReq(req)
+    const { token, record } = await validAccessToken(platform, uid)
     const result = await platform.publish(token, record, req.body || {})
     res.json(result)
   } catch (err) {
@@ -703,7 +714,8 @@ app.get('/api/:platform/creator-info', async (req, res) => {
     return res.status(404).json({ error: 'Not available for this platform' })
   }
   try {
-    const { token } = await validAccessToken(platform)
+    const uid = await uidFromReq(req)
+    const { token } = await validAccessToken(platform, uid)
     res.json(await platform.getCreatorInfo(token))
   } catch (err) {
     console.error(`[${platform.id}] creator-info error:`, err.message)
@@ -719,7 +731,8 @@ app.get('/api/:platform/recent-videos', async (req, res) => {
     return res.status(404).json({ error: 'Not available for this platform' })
   }
   try {
-    const { token } = await validAccessToken(platform)
+    const uid = await uidFromReq(req)
+    const { token } = await validAccessToken(platform, uid)
     res.json(await platform.getRecentVideos(token, Number(req.query.max) || 6))
   } catch (err) {
     console.error(`[${platform.id}] recent-videos error:`, err.message)
@@ -754,7 +767,8 @@ app.post(
       /* ignore malformed meta */
     }
     try {
-      const { token, record } = await validAccessToken(platform)
+      const uid = await uidFromReq(req)
+      const { token, record } = await validAccessToken(platform, uid)
       const result = await platform.publishMedia(token, record, {
         buffer,
         contentType: req.get('content-type') || 'application/octet-stream',
@@ -774,19 +788,28 @@ app.post(
 /*    media URL + caption + time) and a Vercel Cron job publishes it when due.  */
 /* -------------------------------------------------------------------------- */
 
-app.get('/api/scheduled', async (_req, res) => res.json(await scheduled.all()))
+app.get('/api/scheduled', async (req, res) => {
+  const uid = await uidFromReq(req)
+  const all = await scheduled.all()
+  res.json(uid ? all.filter((p) => p.uid === uid) : [])
+})
 
 app.post('/api/scheduled', async (req, res) => {
+  const uid = await uidFromReq(req)
+  if (!uid) return res.status(401).json({ error: 'Please sign in.' })
   const { platform, caption, mediaUrl, publishAt } = req.body || {}
   if (!platform || !mediaUrl || !publishAt) {
     return res.status(400).json({ error: 'platform, mediaUrl and publishAt are required' })
   }
   if (!getPlatform(platform)) return res.status(400).json({ error: 'Unknown platform' })
-  const rec = await scheduled.add({ platform, caption, mediaUrl, publishAt })
+  const rec = await scheduled.add({ uid, platform, caption, mediaUrl, publishAt })
   res.json(rec)
 })
 
 app.delete('/api/scheduled/:id', async (req, res) => {
+  const uid = await uidFromReq(req)
+  const rec = await scheduled.get(req.params.id)
+  if (rec && uid && rec.uid !== uid) return res.status(403).json({ error: 'forbidden' })
   await scheduled.remove(req.params.id)
   res.json({ ok: true })
 })
@@ -805,7 +828,8 @@ app.get('/api/cron/publish', async (req, res) => {
     try {
       const platform = getPlatform(post.platform)
       if (!platform) throw new Error('unknown platform')
-      const { token, record } = await validAccessToken(platform)
+      if (!post.uid) throw new Error('scheduled post has no owner')
+      const { token, record } = await validAccessToken(platform, post.uid)
 
       let result
       if (post.platform === 'instagram') {
@@ -834,11 +858,12 @@ app.get('/api/cron/publish', async (req, res) => {
 /* -------------------------------------------------------------------------- */
 
 app.post('/api/weekly-brief/subscribe', async (req, res) => {
+  const uid = await uidFromReq(req)
   const { email, enabled } = req.body || {}
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email))) {
     return res.status(400).json({ error: 'valid email is required' })
   }
-  await weeklySubs.set(email, Boolean(enabled))
+  await weeklySubs.set(email, Boolean(enabled), uid)
   res.json({ ok: true, enabled: Boolean(enabled), emailConfigured: emailEnabled })
 })
 
@@ -882,20 +907,22 @@ app.get('/api/cron/weekly-brief', async (req, res) => {
   if (secret && req.get('authorization') !== `Bearer ${secret}`) {
     return res.status(401).json({ error: 'unauthorized' })
   }
-  // Real aggregates from the link store (honest data, no fabricated stats).
+  // Real aggregates from the link store, scoped per subscriber (honest data,
+  // no fabricated stats). Each subscriber only sees their own links.
   const all = await links.all()
-  const clicks = all.reduce((s, l) => s + (l.clicks || 0), 0)
-  const visitors = all.reduce((s, l) => s + (l.uniqueVisitors || 0), 0)
-  const top = all.slice().sort((a, b) => (b.clicks || 0) - (a.clicks || 0))[0]
-  const topLink = top ? `${BASE_URL}/s/${top.slug}` : ''
   const weekIndex = Math.floor(Date.now() / (7 * 86400000))
   const tip = WEEKLY_TIPS[weekIndex % WEEKLY_TIPS.length]
-  const html = weeklyEmailHtml({ clicks, visitors, topLink, tip })
 
   const subs = await weeklySubs.all()
   const results = []
   for (const s of subs) {
     try {
+      const mine = s.uid ? all.filter((l) => l.uid === s.uid) : []
+      const clicks = mine.reduce((sum, l) => sum + (l.clicks || 0), 0)
+      const visitors = mine.reduce((sum, l) => sum + (l.uniqueVisitors || 0), 0)
+      const top = mine.slice().sort((a, b) => (b.clicks || 0) - (a.clicks || 0))[0]
+      const topLink = top ? `${BASE_URL}/s/${top.slug}` : ''
+      const html = weeklyEmailHtml({ clicks, visitors, topLink, tip })
       const r = await sendEmail({ to: s.email, subject: 'Your weekly growth brief', html })
       results.push({ to: s.email, ...r })
     } catch (err) {
@@ -913,17 +940,20 @@ app.get('/api/cron/weekly-brief', async (req, res) => {
 app.post('/api/:platform/disconnect', async (req, res) => {
   const platform = getPlatform(req.params.platform)
   if (!platform) return res.status(404).json({ error: 'Unknown platform' })
+  const uid = await uidFromReq(req)
+  if (!uid) return res.status(401).json({ error: 'Please sign in.' })
+  const tokens$ = userTokens(uid)
   // Real logout: revoke the grant at the platform (best-effort) so reconnecting
   // requires a fresh consent, then drop our stored token either way.
   if (typeof platform.revoke === 'function') {
     try {
-      const tokens = await store.get(platform.id)
+      const tokens = await tokens$.get(platform.id)
       if (tokens) await platform.revoke(tokens)
     } catch (err) {
       console.warn(`[${platform.id}] revoke failed (clearing locally anyway):`, err.message)
     }
   }
-  await store.remove(platform.id)
+  await tokens$.remove(platform.id)
   res.json({ ok: true })
 })
 
@@ -936,9 +966,16 @@ app.post('/api/:platform/disconnect', async (req, res) => {
 app.post('/api/data-deletion', async (req, res) => {
   const { email, reason } = req.body || {}
 
-  // Delete the data we actually hold (per-platform tokens + cached profiles).
-  const removed = Object.keys(await store.all())
-  for (const id of removed) await store.remove(id)
+  // Delete the data we hold for the signed-in user (per-platform tokens +
+  // cached profiles). If the request is unauthenticated we cannot identify the
+  // user's records, so nothing is removed (the user must sign in first).
+  const uid = await uidFromReq(req)
+  let removed = []
+  if (uid) {
+    const tokens$ = userTokens(uid)
+    removed = Object.keys(await tokens$.all())
+    for (const id of removed) await tokens$.remove(id)
+  }
 
   const confirmationCode = 'DEL-' + crypto.randomBytes(4).toString('hex').toUpperCase()
   console.log(
@@ -986,6 +1023,8 @@ const ashrtFetch = (path, opts = {}) =>
   })
 
 app.post('/api/links', async (req, res) => {
+  const uid = await uidFromReq(req)
+  if (!uid) return res.status(401).json({ error: 'Please sign in.' })
   const url = req.body?.url
   if (!url || !String(url).trim()) return res.status(400).json({ error: 'url is required' })
 
@@ -996,7 +1035,11 @@ app.post('/api/links', async (req, res) => {
         method: 'POST',
         body: JSON.stringify({ url, source: 'schedlytics' }),
       })
-      return res.status(r.status).json(await r.json())
+      const data = await r.json()
+      // The link lives in ashrt.link, but we record who created it so the Links
+      // list stays scoped per user.
+      if (r.ok && data?.slug) await linkOwners.setOwner(data.slug, uid)
+      return res.status(r.status).json(data)
     } catch (err) {
       console.warn('[links] ashrt.link unreachable, using local store:', err.message)
     }
@@ -1005,32 +1048,42 @@ app.post('/api/links', async (req, res) => {
   let clean = String(url).trim()
   if (!/^https?:\/\//i.test(clean)) clean = `https://${clean}`
   const slug = crypto.randomBytes(3).toString('hex')
-  const link = await links.add({ slug, url: clean, clicks: 0, uniqueVisitors: 0, createdAt: Date.now() })
+  const link = await links.add({ slug, uid, url: clean, clicks: 0, uniqueVisitors: 0, createdAt: Date.now() })
   res.json(withShort(link))
 })
 
-app.get('/api/links', async (_req, res) => {
+app.get('/api/links', async (req, res) => {
+  const uid = await uidFromReq(req)
+  if (!uid) return res.json([])
   if (ashrtEnabled) {
     try {
       const r = await ashrtFetch('/api/links')
       const data = await r.json()
-      return res.json(data.links || [])
+      const owners = await linkOwners.all()
+      return res.json((data.links || []).filter((l) => owners[l.slug] === uid))
     } catch (err) {
       console.warn('[links] ashrt.link unreachable, using local store:', err.message)
     }
   }
-  res.json((await links.all()).map(withShort))
+  res.json((await links.all()).filter((l) => l.uid === uid).map(withShort))
 })
 
 app.delete('/api/links/:slug', async (req, res) => {
+  const uid = await uidFromReq(req)
+  if (!uid) return res.status(401).json({ error: 'Please sign in.' })
   if (ashrtEnabled) {
     try {
+      const owner = await linkOwners.ownerOf(req.params.slug)
+      if (owner && owner !== uid) return res.status(403).json({ error: 'forbidden' })
       await ashrtFetch(`/api/links/${req.params.slug}`, { method: 'DELETE' })
+      await linkOwners.remove(req.params.slug)
       return res.json({ ok: true })
     } catch (err) {
       console.warn('[links] ashrt.link unreachable, using local store:', err.message)
     }
   }
+  const link = await links.get(req.params.slug)
+  if (link && link.uid && link.uid !== uid) return res.status(403).json({ error: 'forbidden' })
   await links.remove(req.params.slug)
   res.json({ ok: true })
 })

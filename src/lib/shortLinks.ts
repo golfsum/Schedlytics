@@ -11,7 +11,7 @@
  * Either way the generated link is on a domain that actually resolves and
  * redirects - never the unowned "sched.ly" placeholder.
  */
-import { apiBase, backendEnabled } from './socialApi'
+import { apiBase, backendEnabled, authToken } from './socialApi'
 import type { PlatformId } from '../types'
 
 export interface ShortLink {
@@ -100,22 +100,28 @@ function seedIfEmpty() {
 
 /* ------------------------------ backend calls ----------------------------- */
 
+/** Authorization header so the backend scopes links to the signed-in user. */
+async function authHeader(extra?: Record<string, string>): Promise<Record<string, string>> {
+  const t = await authToken()
+  return { ...(t ? { Authorization: `Bearer ${t}` } : {}), ...(extra || {}) }
+}
+
 async function apiList(): Promise<ShortLink[]> {
-  const r = await fetch(`${apiBase}/api/links`)
+  const r = await fetch(`${apiBase}/api/links`, { headers: await authHeader() })
   if (!r.ok) throw new Error('list failed')
   return r.json()
 }
 async function apiCreate(url: string): Promise<ShortLink> {
   const r = await fetch(`${apiBase}/api/links`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await authHeader({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ url }),
   })
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'create failed')
   return r.json()
 }
 async function apiDelete(slug: string): Promise<void> {
-  await fetch(`${apiBase}/api/links/${slug}`, { method: 'DELETE' })
+  await fetch(`${apiBase}/api/links/${slug}`, { method: 'DELETE', headers: await authHeader() })
 }
 
 /* ------------------------------ unified API ------------------------------- */

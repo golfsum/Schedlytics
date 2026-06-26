@@ -7,6 +7,25 @@ import { hashStore } from './kv.js'
  */
 const h = hashStore('sched:links', '.links.json')
 
+// Maps a short-link slug to the Firebase uid that created it, so we can scope
+// the Links list per user even when the link itself lives in ashrt.link.
+const ownersHash = hashStore('sched:link-owners', '.link-owners.json')
+export const linkOwners = {
+  async setOwner(slug, uid) {
+    if (slug && uid) await ownersHash.put(String(slug), uid)
+  },
+  async ownerOf(slug) {
+    return ownersHash.get(String(slug))
+  },
+  async remove(slug) {
+    await ownersHash.del(String(slug))
+  },
+  /** { [slug]: uid } for every recorded owner. */
+  async all() {
+    return ownersHash.all()
+  },
+}
+
 export const links = {
   driver: h.driver,
 

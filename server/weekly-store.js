@@ -13,13 +13,13 @@ export const weeklySubs = {
     return Object.values(await h.all())
   },
   /** Enable or disable the weekly brief for an email address. */
-  async set(email, enabled) {
+  async set(email, enabled, uid = null) {
     const key = String(email || '').trim().toLowerCase()
     if (!key) return
     if (!enabled) {
       await h.del(key)
       return
     }
-    await h.put(key, { email: key, enabled: true, since: Date.now() })
+    await h.put(key, { email: key, uid, enabled: true, since: Date.now() })
   },
 }
