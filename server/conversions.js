@@ -243,6 +243,46 @@ export function registerConversionRoutes(app) {
     }
   })
 
+  // Manually record revenue / a conversion against a campaign or content item.
+  // Lets users attribute outcomes before Stripe / website tracking is wired.
+  app.post('/api/conversions/manual', requireUser, async (req, res) => {
+    const b = req.body || {}
+    const value = Number(b.value)
+    if (!Number.isFinite(value) || value < 0) {
+      return res.status(400).json({ error: 'amount must be a positive number' })
+    }
+    let at = Date.now()
+    if (b.date) {
+      const t = new Date(b.date).getTime()
+      if (Number.isFinite(t)) at = t
+    }
+    const conv = {
+      id: crypto.randomBytes(6).toString('hex'),
+      at,
+      event: String(b.event || 'manual').slice(0, 60),
+      value,
+      currency: String(b.currency || 'USD').slice(0, 8),
+      path: null,
+      attributed: true,
+      manual: true,
+      slug: b.contentId ? String(b.contentId).slice(0, 80) : null,
+      destination: null,
+      title: b.contentTitle ? String(b.contentTitle).slice(0, 120) : null,
+      campaign: b.campaign ? String(b.campaign).slice(0, 80) : null,
+      sourcePostId: null,
+      platform: b.platform ? String(b.platform).slice(0, 30) : null,
+      notes: b.notes ? String(b.notes).slice(0, 300) : null,
+    }
+    try {
+      const cur = (await convStore.get(req.auth.uid)) || { items: [] }
+      cur.items = [conv, ...(cur.items || [])].slice(0, MAX_PER_SITE)
+      await convStore.put(req.auth.uid, cur)
+      res.json({ ok: true, conversion: conv })
+    } catch (err) {
+      res.status(500).json({ error: err.message })
+    }
+  })
+
   app.get('/api/conversions/goals', requireUser, async (req, res) => {
     const cfg = (await goalStore.get(req.auth.uid)) || { goals: [] }
     res.json({ goals: cfg.goals || [], siteKey: req.auth.uid, snippetUrl: `${BASE_URL}/sl.js` })

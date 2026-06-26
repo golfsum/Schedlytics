@@ -7,6 +7,7 @@ import {
   type ConversionBucket,
 } from '../lib/conversions'
 import type { NavId } from '../types'
+import ManualRevenueModal from './ManualRevenueModal'
 
 const SAMPLE: ConversionSummary = {
   total: 128,
@@ -51,21 +52,23 @@ export default function ConversionsCard({
   const [data, setData] = useState<ConversionSummary | null>(sample ? SAMPLE : null)
   const [loading, setLoading] = useState(!sample)
   const [lens, setLens] = useState<Lens>('byContent')
+  const [revOpen, setRevOpen] = useState(false)
 
-  useEffect(() => {
+  const load = () => {
     if (sample) return
-    let cancelled = false
     fetchConversionSummary()
-      .then((s) => {
-        if (!cancelled) setData(s)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
+      .then((s) => setData(s))
+      .finally(() => setLoading(false))
+  }
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sample])
+
+  const onAddRevenue = () => setRevOpen(true)
+  const revenueModal = revOpen ? (
+    <ManualRevenueModal onClose={() => setRevOpen(false)} onAdded={load} />
+  ) : null
 
   if (loading) {
     return (
@@ -82,12 +85,12 @@ export default function ConversionsCard({
   if (!data || data.total === 0) {
     return (
       <div className="card p-5">
-        <Header />
+        <Header onAddRevenue={onAddRevenue} />
         <div className="mt-4 rounded-xl border border-dashed border-white/10 bg-navy-900/40 p-5 text-sm text-slate-400">
           <p className="text-slate-300">No conversions tracked yet.</p>
           <p className="mt-1">
-            Add the Schedlytics tracking snippet to your website, then mark your goal pages or report
-            sales. Conversions you earn will show up here, attributed to the exact post that drove them.
+            Add the Schedlytics tracking snippet to your website to track conversions automatically, or
+            add revenue manually to attribute a sale to a campaign or piece of content.
           </p>
           {onNavigate && (
             <button
@@ -98,6 +101,7 @@ export default function ConversionsCard({
             </button>
           )}
         </div>
+        {revenueModal}
       </div>
     )
   }
@@ -106,7 +110,7 @@ export default function ConversionsCard({
 
   return (
     <div className="card p-5">
-      <Header />
+      <Header onAddRevenue={onAddRevenue} />
 
       <div className="mt-4 grid grid-cols-3 gap-3">
         <Tile icon={<Target className="h-4 w-4" />} label="Conversions" value={String(data.total)} />
@@ -145,19 +149,30 @@ export default function ConversionsCard({
           ))}
         </ul>
       )}
+      {revenueModal}
     </div>
   )
 }
 
-function Header() {
+function Header({ onAddRevenue }: { onAddRevenue?: () => void }) {
   return (
-    <div>
-      <div className="flex items-center gap-2 text-cyan-accent">
-        <Target className="h-4 w-4" />
-        <span className="text-xs font-semibold uppercase tracking-wide">Conversions</span>
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        <div className="flex items-center gap-2 text-cyan-accent">
+          <Target className="h-4 w-4" />
+          <span className="text-xs font-semibold uppercase tracking-wide">Conversions</span>
+        </div>
+        <h2 className="mt-1 text-lg font-bold text-white">What your content is worth</h2>
+        <p className="text-sm text-slate-400">Signups and sales attributed back to the post that drove them.</p>
       </div>
-      <h2 className="mt-1 text-lg font-bold text-white">What your content is worth</h2>
-      <p className="text-sm text-slate-400">Signups and sales attributed back to the post that drove them.</p>
+      {onAddRevenue && (
+        <button
+          onClick={onAddRevenue}
+          className="shrink-0 rounded-lg border border-cyan-accent/30 px-3 py-1.5 text-xs font-semibold text-cyan-accent hover:bg-cyan-accent/10"
+        >
+          + Add revenue
+        </button>
+      )}
     </div>
   )
 }

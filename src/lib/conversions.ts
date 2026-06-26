@@ -89,6 +89,32 @@ export async function saveConversionGoals(goals: ConversionGoal[]): Promise<Conv
   }
 }
 
+export interface ManualRevenueInput {
+  value: number
+  currency?: string
+  date?: string
+  campaign?: string
+  contentId?: string
+  contentTitle?: string
+  platform?: string
+  event?: string
+  notes?: string
+}
+
+/** Record manual revenue / a conversion against a campaign or content item. */
+export async function addManualRevenue(input: ManualRevenueInput): Promise<boolean> {
+  try {
+    const r = await fetch(`${apiBase}/api/conversions/manual`, {
+      method: 'POST',
+      headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
 /** Format a currency amount for display (whole dollars, grouped). */
 export function money(n: number, currency = 'USD'): string {
   try {
