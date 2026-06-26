@@ -27,6 +27,7 @@ import { useProfile, initialsOf } from './Profile'
 import { useAuth } from './Auth'
 import { usePlan, PLAN_INFO } from './Plan'
 import UpgradeModal from './UpgradeModal'
+import { InstallAppCard } from './InstallPrompt'
 import { openBillingPortal, formatPlanDate } from '../lib/billing'
 import { fetchConversionGoals, saveConversionGoals } from '../lib/conversions'
 import { sampleData } from '../lib/socialApi'
@@ -75,7 +76,12 @@ export default function SettingsView() {
         </nav>
 
         <div>
-          {section === 'accounts' && <AccountsSection />}
+          {section === 'accounts' && (
+            <div className="space-y-5">
+              <AccountsSection />
+              <InstallAppCard />
+            </div>
+          )}
           {section === 'domain' && <BrandedDomainSection />}
           {section === 'profile' && <ProfileSection />}
           {section === 'notifications' && <NotificationsSection />}
