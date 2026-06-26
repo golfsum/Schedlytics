@@ -46,6 +46,11 @@ async function planForUid(uid) {
   return (await plans.get(uid)) || { ...FREE }
 }
 
+/** Every stored plan record keyed by uid (admin badges). */
+export async function plansByUid() {
+  return plans.all()
+}
+
 /** Map a Stripe subscription to our plan record and persist it under `uid`. */
 async function saveFromSubscription(uid, sub, customerId) {
   const priceId = sub.items?.data?.[0]?.price?.id || null

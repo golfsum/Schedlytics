@@ -295,10 +295,17 @@ export interface AdminUser {
   providers: string[]
   createdAt: number | null
   lastSignInAt: number | null
+  /** Badge facts (server-derived). */
+  plan?: string
+  paid?: boolean
+  isAdmin?: boolean
+  founder?: boolean
 }
 export interface UsersResult {
   configured: boolean
   users: AdminUser[]
+  /** The number of earliest accounts treated as founders. */
+  founderCap?: number
   /** Server-side failure detail (e.g. a bad service-account key), when present. */
   error?: string
 }

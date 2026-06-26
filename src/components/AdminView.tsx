@@ -788,6 +788,7 @@ function UsersPanel() {
         <thead>
           <tr className="border-b border-white/5 text-[11px] uppercase tracking-wide text-slate-500">
             <th className="px-4 py-2 font-semibold">User</th>
+            <th className="px-4 py-2 font-semibold">Badges</th>
             <th className="px-4 py-2 font-semibold">Sign-in</th>
             <th className="px-4 py-2 font-semibold">Created</th>
             <th className="px-4 py-2 font-semibold">Last seen</th>
@@ -801,6 +802,9 @@ function UsersPanel() {
               <td className="px-4 py-2.5">
                 <div className="font-medium text-white">{u.email || '(no email)'}</div>
                 {u.displayName && <div className="text-xs text-slate-500">{u.displayName}</div>}
+              </td>
+              <td className="px-4 py-2.5">
+                <UserBadges user={u} />
               </td>
               <td className="px-4 py-2.5 text-slate-400">{u.providers.map(providerLabel).join(', ') || 'None'}</td>
               <td className="px-4 py-2.5 text-slate-400">{fmtDate(u.createdAt || 0)}</td>
@@ -848,6 +852,29 @@ function UsersPanel() {
 
 const providerLabel = (id: string) =>
   ({ 'google.com': 'Google', password: 'Email', 'facebook.com': 'Facebook', 'github.com': 'GitHub' }[id] || id)
+
+const PLAN_LABEL: Record<string, string> = { pro: 'Creator', business: 'Business' }
+
+/** The badge chips for one user: Admin, Founder, and a plan chip (Paid/Free). */
+function UserBadges({ user }: { user: AdminUser }) {
+  const chips: { label: string; className: string }[] = []
+  if (user.isAdmin) chips.push({ label: 'Admin', className: 'bg-violet-400/15 text-violet-300 ring-1 ring-violet-400/20' })
+  if (user.founder) chips.push({ label: 'Founder', className: 'bg-amber-400/15 text-amber-300 ring-1 ring-amber-400/20' })
+  chips.push(
+    user.paid
+      ? { label: PLAN_LABEL[user.plan || ''] || 'Paid', className: 'bg-cyan-accent/15 text-cyan-accent ring-1 ring-cyan-accent/20' }
+      : { label: 'Free', className: 'bg-white/5 text-slate-400 ring-1 ring-white/10' },
+  )
+  return (
+    <div className="flex flex-wrap gap-1">
+      {chips.map((c) => (
+        <span key={c.label} className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${c.className}`}>
+          {c.label}
+        </span>
+      ))}
+    </div>
+  )
+}
 
 function Breakdown({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
   return (

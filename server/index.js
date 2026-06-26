@@ -16,7 +16,7 @@ import { analytics } from './analytics-store.js'
 import { errors as errorLog } from './error-store.js'
 import { banner } from './banner-store.js'
 import { checkHealth } from './health.js'
-import { registerBillingRoutes, stripeWebhook } from './billing.js'
+import { registerBillingRoutes, stripeWebhook, plansByUid } from './billing.js'
 import { tagRedirect, registerPublicConversionRoutes, registerConversionRoutes } from './conversions.js'
 import { sendEmail, emailEnabled } from './email.js'
 import { isConfigured as fbAdminConfigured, listUsers, passwordResetLink, setUserDisabled } from './lib/firebaseAdmin.js'
@@ -494,7 +494,27 @@ app.get('/api/admin/users', async (req, res) => {
   try {
     const users = await listUsers()
     if (users === null) return res.json({ configured: false, users: [] })
-    res.json({ configured: true, users })
+    // Enrich with badge facts: plan (paid/free), admin allowlist, and founder
+    // (the earliest EA_CAP accounts by signup time).
+    const plansMap = await plansByUid().catch(() => ({}))
+    const founderUids = new Set(
+      users
+        .filter((u) => u.createdAt)
+        .sort((a, b) => a.createdAt - b.createdAt)
+        .slice(0, EA_CAP)
+        .map((u) => u.uid),
+    )
+    const enriched = users.map((u) => {
+      const plan = plansMap[u.uid]?.plan || 'free'
+      return {
+        ...u,
+        plan,
+        paid: plan === 'pro' || plan === 'business',
+        isAdmin: Boolean(u.email && ADMIN_EMAILS.includes(u.email.toLowerCase())),
+        founder: founderUids.has(u.uid),
+      }
+    })
+    res.json({ configured: true, users: enriched, founderCap: EA_CAP })
   } catch (err) {
     // Admin-only endpoint, so it's safe to surface the real cause (e.g. a bad
     // private key or a missing IAM role) to help configure the service account.
