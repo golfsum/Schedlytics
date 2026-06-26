@@ -29,6 +29,7 @@ import { usePersistedState } from '../lib/usePersisted'
 import { backendEnabled, publishYouTubeVideo, publishYouTubeFile, publishPost, publishMedia, schedulePost } from '../lib/socialApi'
 import { aiTitles, aiCaptions, aiHashtags, type Suggestion } from '../lib/aiSuggest'
 import { PLATFORM_LIST, PLATFORMS, isComingSoon } from '../data'
+import TikTokSandboxNotice from './TikTokSandboxNotice'
 import type { CalendarPost, PlatformId } from '../types'
 
 interface MediaStudioViewProps {
@@ -427,6 +428,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             )
           })}
         </div>
+        {platform === 'tiktok' && <TikTokSandboxNotice className="mt-3" />}
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">

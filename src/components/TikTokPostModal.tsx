@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader2, Globe, Users, UserCheck, Lock, AlertCircle } from 'lucide-react'
 import Toggle from './Toggle'
+import TikTokSandboxNotice from './TikTokSandboxNotice'
 import { fetchTikTokCreatorInfo, type TikTokCreatorInfo } from '../lib/socialApi'
 
 export interface TikTokPostSettings {
@@ -65,6 +66,8 @@ export default function TikTokPostModal({
 
         <h2 className="text-lg font-bold text-white">Post to TikTok</h2>
         <p className="mt-1 text-sm text-slate-400">Review your post and choose who can see it.</p>
+
+        <TikTokSandboxNotice className="mt-3" />
 
         {loadErr ? (
           <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-400/10 p-3 text-sm text-amber-200">

@@ -20,6 +20,7 @@ import { useImageUpload } from './ImageUpload'
 import { useConnections } from './Connections'
 import { sampleData } from '../lib/socialApi'
 import { PLATFORM_LIST, PLATFORMS, SAMPLE_CAMPAIGNS, isComingSoon } from '../data'
+import TikTokSandboxNotice from './TikTokSandboxNotice'
 import type { CalendarPost, PlatformId } from '../types'
 
 interface NewPostPanelProps {
@@ -167,6 +168,8 @@ export default function NewPostPanel({ onClose, onSchedule }: NewPostPanelProps)
             </div>
           </div>
         </div>
+
+        {selected.includes('tiktok') && <TikTokSandboxNotice />}
 
         {/* Visual upload */}
         <div>
