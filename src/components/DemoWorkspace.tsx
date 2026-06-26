@@ -57,30 +57,30 @@ export function DemoBanner({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-cyan-accent/30 bg-cyan-accent/[0.07] px-4 py-3">
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-accent/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-cyan-accent">
+    <div className="flex flex-col gap-3 rounded-xl border border-cyan-accent/30 bg-cyan-accent/[0.07] px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
+      <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-cyan-accent/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-cyan-accent">
         <Sparkles className="h-3.5 w-3.5" /> Demo data
       </span>
-      <p className="min-w-0 flex-1 text-sm text-slate-300">
-        You are viewing a sample workspace. Remove it anytime, or create your first tracked link to
+      <p className="min-w-0 text-sm text-slate-300 sm:flex-1">
+        You are viewing a sample workspace. Remove it anytime or create your first tracked link to
         start collecting real results.
       </p>
-      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:shrink-0">
         <button
           onClick={onCreateLink}
-          className="inline-flex items-center gap-1.5 rounded-lg gradient-cyan px-3 py-1.5 text-xs font-bold text-navy-900 shadow-glow-soft"
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg gradient-cyan px-3 py-2 text-xs font-bold text-navy-900 shadow-glow-soft sm:w-auto sm:py-1.5"
         >
           <Plus className="h-3.5 w-3.5" /> Create tracked link
         </button>
         <button
           onClick={onConnect}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/5"
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/5 sm:w-auto sm:py-1.5"
         >
           <Plug className="h-3.5 w-3.5" /> Connect platform
         </button>
         <button
           onClick={() => setConfirm(true)}
-          className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-400 hover:bg-white/5 hover:text-white"
+          className="w-full rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white sm:w-auto sm:border-transparent sm:py-1.5 sm:text-slate-400"
         >
           Remove demo data
         </button>

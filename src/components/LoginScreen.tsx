@@ -5,12 +5,19 @@ import { useAuth } from './Auth'
 
 /** Sign-in screen shown at /app when the user is not authenticated. */
 export default function LoginScreen() {
-  const { signInWithGoogle, signInWithEmail, registerWithEmail } = useAuth()
-  const [mode, setMode] = useState<'signin' | 'register'>('signin')
+  const { signInWithGoogle, signInWithEmail, registerWithEmail, resetPassword } = useAuth()
+  const [mode, setMode] = useState<'signin' | 'register' | 'reset'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState<'google' | 'email' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [resetSent, setResetSent] = useState(false)
+
+  const goMode = (m: 'signin' | 'register' | 'reset') => {
+    setMode(m)
+    setError(null)
+    setResetSent(false)
+  }
 
   const google = async () => {
     setError(null)
@@ -38,20 +45,88 @@ export default function LoginScreen() {
     }
   }
 
+  const submitReset = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setBusy('email')
+    try {
+      await resetPassword(email)
+      setResetSent(true) // neutral: shown whether or not an account exists
+    } catch (err) {
+      setError(friendly(err))
+    } finally {
+      setBusy(null)
+    }
+  }
+
   return (
     <div className="grid min-h-screen place-items-center bg-navy-950 px-4 text-slate-200">
       <div className="w-full max-w-sm">
         <div className="mb-7 flex flex-col items-center text-center">
           <BrandIcon className="h-12 w-12 rounded-2xl ring-1 ring-white/10" />
           <h1 className="mt-4 text-2xl font-bold text-white">
-            {mode === 'signin' ? 'Welcome back' : 'Create your account'}
+            {mode === 'reset' ? 'Reset your password' : mode === 'signin' ? 'Welcome back' : 'Create your account'}
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            {mode === 'signin' ? 'Sign in to your Schedlytics dashboard.' : 'Start scheduling smarter in minutes.'}
+            {mode === 'reset'
+              ? 'Enter your email and we will send you a password reset link.'
+              : mode === 'signin'
+                ? 'Sign in to your Schedlytics dashboard.'
+                : 'Start scheduling smarter in minutes.'}
           </p>
         </div>
 
         <div className="card p-6">
+          {mode === 'reset' ? (
+            resetSent ? (
+              <div className="space-y-4 text-center">
+                <div className="mx-auto grid h-11 w-11 place-items-center rounded-full bg-cyan-accent/15 text-cyan-accent">
+                  <Mail className="h-5 w-5" />
+                </div>
+                <p className="text-sm text-slate-300">
+                  If an account exists for <span className="font-semibold text-white">{email}</span>, a reset
+                  link has been sent. Check your inbox and spam folder.
+                </p>
+                <button
+                  onClick={() => goMode('signin')}
+                  className="w-full rounded-lg border border-white/15 py-2.5 text-sm font-semibold text-white hover:bg-white/5"
+                >
+                  Back to sign in
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={submitReset} className="space-y-3">
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    className="w-full rounded-lg border border-white/5 bg-navy-900/60 py-2.5 pl-9 pr-3 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-accent/40 focus:outline-none focus:ring-2 focus:ring-cyan-accent/20"
+                  />
+                </div>
+                {error && <p className="text-xs text-rose-400">{error}</p>}
+                <button
+                  type="submit"
+                  disabled={busy !== null}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg gradient-cyan py-2.5 text-sm font-bold text-navy-900 shadow-glow transition-transform hover:scale-[1.01] disabled:opacity-70"
+                >
+                  {busy === 'email' && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Send reset link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goMode('signin')}
+                  className="w-full text-center text-xs font-semibold text-slate-400 hover:text-white"
+                >
+                  Back to sign in
+                </button>
+              </form>
+            )
+          ) : (
+          <>
           <button
             onClick={google}
             disabled={busy !== null}
@@ -99,6 +174,18 @@ export default function LoginScreen() {
               />
             </div>
 
+            {mode === 'signin' && (
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => goMode('reset')}
+                  className="text-xs font-semibold text-cyan-accent hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
             {error && <p className="text-xs text-rose-400">{error}</p>}
 
             <button
@@ -114,15 +201,14 @@ export default function LoginScreen() {
           <p className="mt-4 text-center text-xs text-slate-400">
             {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
             <button
-              onClick={() => {
-                setMode(mode === 'signin' ? 'register' : 'signin')
-                setError(null)
-              }}
+              onClick={() => goMode(mode === 'signin' ? 'register' : 'signin')}
               className="font-semibold text-cyan-accent hover:underline"
             >
               {mode === 'signin' ? 'Create one' : 'Sign in'}
             </button>
           </p>
+          </>
+          )}
         </div>
 
         <div className="mt-5 flex items-center justify-center gap-4 text-xs text-slate-500">

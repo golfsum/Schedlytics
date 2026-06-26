@@ -5,6 +5,7 @@ import {
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut,
 } from 'firebase/auth'
 import { auth, firebaseEnabled } from '../lib/firebase'
@@ -28,6 +29,9 @@ interface AuthValue {
   signInWithGoogle: () => Promise<void>
   signInWithEmail: (email: string, password: string) => Promise<void>
   registerWithEmail: (email: string, password: string) => Promise<void>
+  /** Send a password reset email. Resolves even if the address has no account
+   *  (so the UI can show neutral copy that never reveals account existence). */
+  resetPassword: (email: string) => Promise<void>
   signOutUser: () => Promise<void>
 }
 
@@ -76,6 +80,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const registerWithEmail = async (email: string, password: string) => {
     if (auth) await createUserWithEmailAndPassword(auth, email, password)
   }
+  const resetPassword = async (email: string) => {
+    if (!auth) return
+    try {
+      await sendPasswordResetEmail(auth, email)
+    } catch (err) {
+      // Swallow "user-not-found" so we never reveal whether an account exists;
+      // re-throw anything else (e.g. invalid email) so the form can react.
+      const code = (err as { code?: string })?.code || ''
+      if (code !== 'auth/user-not-found') throw err
+    }
+  }
   const signOutUser = async () => {
     if (auth) await signOut(auth)
     // Wipe this account's local data so the next sign-in never inherits it.
@@ -90,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, authRequired, signInWithGoogle, signInWithEmail, registerWithEmail, signOutUser }}
+      value={{ user, loading, authRequired, signInWithGoogle, signInWithEmail, registerWithEmail, resetPassword, signOutUser }}
     >
       {children}
     </AuthContext.Provider>
