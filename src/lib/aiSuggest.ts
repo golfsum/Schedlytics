@@ -38,6 +38,32 @@ export interface AiAnalysis {
 }
 
 /**
+ * Downscale a frame data URL to keep the analyze payload small (and vision
+ * cheap/fast). Full-res frames are kept for the thumbnail; only these shrunk
+ * copies are sent to the model. Falls back to the original on any failure.
+ */
+function shrinkFrame(dataUrl: string, maxW = 640): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      try {
+        const scale = Math.min(1, maxW / (img.width || maxW))
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.max(1, Math.round((img.width || maxW) * scale))
+        canvas.height = Math.max(1, Math.round((img.height || maxW) * scale))
+        const ctx = canvas.getContext('2d')
+        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/jpeg', 0.7))
+      } catch {
+        resolve(dataUrl)
+      }
+    }
+    img.onerror = () => resolve(dataUrl)
+    img.src = dataUrl
+  })
+}
+
+/**
  * Send sampled video frames to Claude's vision model so the title, description
  * and hashtags describe THIS video. Returns null when AI is off or it fails, so
  * the caller falls back to the text-only generator.
@@ -48,11 +74,13 @@ export async function aiAnalyze(
 ): Promise<AiAnalysis | null> {
   if (!backendEnabled || !frames.length) return null
   try {
+    // Send at most 4 small frames - enough for the model to read the video.
+    const small = await Promise.all(frames.slice(0, 4).map((f) => shrinkFrame(f)))
     const res = await fetch(`${apiBase}/api/ai/analyze`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ frames, platform: opts.platform, topic: opts.topic || '' }),
+      body: JSON.stringify({ frames: small, platform: opts.platform, topic: opts.topic || '' }),
     })
     if (!res.ok) return null
     const data = (await res.json()) as Partial<AiAnalysis>

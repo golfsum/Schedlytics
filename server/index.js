@@ -39,6 +39,10 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), strip
 // they set their own permissive CORS and must be registered before the app's
 // restrictive CORS below.
 registerPublicConversionRoutes(app, express)
+// The AI vision route receives base64 video frames, which exceed the default
+// 100kb JSON limit. Give it a larger ceiling before the global parser runs
+// (express.json marks the body parsed, so the global one then no-ops for it).
+app.use('/api/ai', express.json({ limit: '12mb' }))
 app.use(express.json())
 // Allow the configured frontend origin plus any localhost port (the dev server
 // port can vary), so requests are not blocked by CORS during local development.
