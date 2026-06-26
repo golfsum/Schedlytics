@@ -11,6 +11,7 @@ import { ProfileProvider } from './components/Profile.tsx'
 import { PlanProvider } from './components/Plan.tsx'
 import { CampaignsProvider } from './components/Campaigns.tsx'
 import { OnboardingProvider } from './components/Onboarding.tsx'
+import { DemoWorkspaceProvider } from './components/DemoWorkspace.tsx'
 import { SyncGate } from './components/SyncGate.tsx'
 import { resolveShortLinkRedirect } from './lib/shortLinks.ts'
 import { trackVisit } from './lib/track.ts'
@@ -42,9 +43,11 @@ if (!resolveShortLinkRedirect()) {
                 <ConnectionsProvider>
                   <InboxProvider>
                     <CampaignsProvider>
-                      <OnboardingProvider>
-                        <App />
-                      </OnboardingProvider>
+                      <DemoWorkspaceProvider>
+                        <OnboardingProvider>
+                          <App />
+                        </OnboardingProvider>
+                      </DemoWorkspaceProvider>
                     </CampaignsProvider>
                   </InboxProvider>
                 </ConnectionsProvider>

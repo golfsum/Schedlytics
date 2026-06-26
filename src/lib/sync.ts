@@ -17,6 +17,7 @@ export const SYNC_KEYS = [
   'sl_bio_links',
   'sl_default_descriptions',
   'sl_notif_prefs',
+  'sl_demo_pref',
 ]
 
 /**

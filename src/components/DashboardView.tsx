@@ -23,7 +23,7 @@ import { useAuth } from './Auth'
 import { useToast } from './Toast'
 import {
   backendEnabled,
-  sampleData,
+  sampleData as urlDemo,
   fetchStats,
   fetchYouTubeDaily,
   fetchYouTubeRecentVideos,
@@ -47,6 +47,7 @@ import { GrowthScoreCard, ThisWeekCard, OpportunitiesCard } from './GrowthCoach'
 import ConversionsCard from './ConversionsCard'
 import CampaignPerformanceCard from './CampaignPerformanceCard'
 import { SetupChecklist } from './Onboarding'
+import { useDemoWorkspace, DemoBanner } from './DemoWorkspace'
 import type { CalendarPost, NavId, PlatformId } from '../types'
 
 /** Icon per growth-metric key (data lives in GROWTH_METRICS). */
@@ -169,6 +170,16 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
   const realClicks = links.reduce((s, l) => s + (l.clicks || 0), 0)
   const trackedVisitors = links.reduce((s, l) => s + (l.uniqueVisitors || 0), 0)
   const hasRealClicks = realClicks > 0
+
+  // Demo Workspace: a fresh real account shows the labeled sample workspace so it
+  // is not empty; real data wins automatically once a platform is connected or
+  // ~10 clicks arrive. `sampleData` below is the URL demo OR the demo workspace,
+  // so every existing sample/live branch in this view honors it.
+  const { pref: demoPref, enableDemo } = useDemoWorkspace()
+  const connectedAny = Object.values(accounts || {}).some((a) => a?.connected)
+  const hasRealActivity = connectedAny || realClicks >= 10
+  const demoActive = !urlDemo && demoPref !== 'off' && (demoPref === 'on' || !hasRealActivity)
+  const sampleData = urlDemo || demoActive
   // The local/backend click counter does not dedupe visitors, so when no real
   // unique-visitor data exists we show a conservative estimate (<= clicks).
   const visitorsEstimated = trackedVisitors === 0 && hasRealClicks
@@ -260,16 +271,38 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
 
   return (
     <div className="space-y-6">
+      {/* persistent, labeled demo-workspace banner */}
+      {demoActive && (
+        <DemoBanner onCreateLink={() => onNavigate('links')} onConnect={() => onNavigate('settings')} />
+      )}
+
       {/* header */}
       <div className="flex flex-wrap items-end gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Growth Dashboard</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-white">Growth Dashboard</h1>
+            {demoActive && (
+              <span className="rounded-full bg-cyan-accent/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-cyan-accent">
+                Demo Workspace
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-sm text-slate-400">
-            {firstName !== 'there' ? `${firstName}, see ` : 'See '}which posts, platforms, and
-            campaigns are driving traffic.
+            {demoActive
+              ? 'Explore sample performance data. Create a tracked link to start collecting your own results.'
+              : `${firstName !== 'there' ? `${firstName}, see ` : 'See '}which posts, platforms, and campaigns are driving traffic.`}
           </p>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          {!urlDemo && !demoActive && !hasRealActivity && (
+            <button
+              onClick={enableDemo}
+              className="flex items-center gap-1.5 rounded-xl border border-cyan-accent/30 px-3.5 py-2.5 text-sm font-semibold text-cyan-accent transition-colors hover:bg-cyan-accent/10"
+            >
+              <Sparkles className="h-4 w-4" />
+              Show demo workspace
+            </button>
+          )}
           <button
             onClick={onQuickCreate}
             className="flex items-center gap-2 rounded-xl gradient-cyan px-4 py-2.5 text-sm font-bold text-navy-900 shadow-glow-soft transition-transform hover:scale-[1.03]"
