@@ -17,6 +17,7 @@ import InboxView from './components/InboxView'
 import AdminView from './components/AdminView'
 import BroadcastBanner from './components/BroadcastBanner'
 import { BillingBanner } from './components/Plan'
+import FeedbackWidget from './components/FeedbackWidget'
 import { useToast } from './components/Toast'
 import { useAuth } from './components/Auth'
 import { useSeededState } from './lib/usePersisted'
@@ -205,6 +206,9 @@ export default function App() {
 
       {/* upgrade modal */}
       {upgradeOpen && <UpgradeModal onClose={() => setUpgradeOpen(false)} />}
+
+      {/* global feedback button - on every app page */}
+      <FeedbackWidget page={nav} />
     </div>
   )
 }

@@ -11,7 +11,7 @@ export const support = {
     const map = await h.all()
     return Object.values(map).sort((a, b) => (b.at || 0) - (a.at || 0))
   },
-  async add({ email, subject, message, userId }) {
+  async add({ email, subject, message, userId, kind = 'support', category = null, meta = null }) {
     const id = crypto.randomBytes(5).toString('hex')
     const ticket = {
       id,
@@ -19,6 +19,12 @@ export const support = {
       subject: String(subject || '').slice(0, 200),
       message: String(message || '').slice(0, 5000),
       userId: userId || null,
+      // 'support' (contact form) or 'feedback' (in-app feedback widget).
+      kind: kind === 'feedback' ? 'feedback' : 'support',
+      // For feedback: 'bug' | 'feature' | 'confusing' | 'general'.
+      category: category || null,
+      // Auto-captured page/device context for feedback (object), capped.
+      meta: meta && typeof meta === 'object' ? meta : null,
       status: 'open',
       at: Date.now(),
     }

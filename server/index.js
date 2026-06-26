@@ -473,6 +473,57 @@ app.post('/api/support', async (req, res) => {
   }
 })
 
+// In-app feedback widget. Stored alongside support tickets (kind: 'feedback'),
+// tagged by category, with auto-captured page/device context.
+const FEEDBACK_LABEL = { bug: 'Bug report', feature: 'Feature request', confusing: 'Something confusing', general: 'General feedback' }
+app.post('/api/feedback', async (req, res) => {
+  const { email, category, message, meta, userId } = req.body || {}
+  if (!message || !String(message).trim()) return res.status(400).json({ error: 'A message is required' })
+  const cat = FEEDBACK_LABEL[category] ? category : 'general'
+  // Keep only known, size-capped context fields.
+  let safeMeta = null
+  if (meta && typeof meta === 'object') {
+    const pick = (v) => (v == null ? null : String(v).slice(0, 200))
+    safeMeta = {
+      page: pick(meta.page),
+      url: pick(meta.url),
+      browser: pick(meta.browser),
+      platform: pick(meta.platform),
+      version: pick(meta.version),
+      device: pick(meta.device),
+      viewport: pick(meta.viewport),
+      lastError: meta.lastError ? pick(meta.lastError).slice(0, 200) : null,
+    }
+  }
+  try {
+    const ticket = await support.add({
+      email: email || '',
+      subject: `[Feedback] ${FEEDBACK_LABEL[cat]}`,
+      message,
+      userId,
+      kind: 'feedback',
+      category: cat,
+      meta: safeMeta,
+    })
+    const adminTo = process.env.ADMIN_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER
+    if (adminTo) {
+      try {
+        await sendEmail({
+          to: adminTo,
+          subject: `New feedback: ${FEEDBACK_LABEL[cat]}`,
+          html: `<p>Type: <b>${FEEDBACK_LABEL[cat]}</b></p><p>From: ${ticket.email || '(anonymous)'}</p><p>${(ticket.message || '').replace(/</g, '&lt;')}</p><p style="color:#888">${safeMeta ? `${safeMeta.page || ''} · ${safeMeta.browser || ''} · ${safeMeta.device || ''}` : ''}</p>`,
+        })
+      } catch (e) {
+        console.warn('[feedback] notify failed:', e.message)
+      }
+    }
+    res.json({ ok: true, id: ticket.id })
+  } catch (err) {
+    console.error('[feedback] failed:', err.message)
+    res.status(500).json({ error: 'Could not send feedback. Please try again.' })
+  }
+})
+
 app.get('/api/admin/support', async (req, res) => {
   if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
   res.json({ tickets: await support.all() })

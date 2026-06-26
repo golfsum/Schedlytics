@@ -256,6 +256,16 @@ export async function downloadEarlyAccessCsv(): Promise<void> {
   URL.revokeObjectURL(url)
 }
 
+export interface FeedbackMeta {
+  page?: string | null
+  url?: string | null
+  browser?: string | null
+  platform?: string | null
+  version?: string | null
+  device?: string | null
+  viewport?: string | null
+  lastError?: string | null
+}
 export interface Ticket {
   id: string
   email: string
@@ -263,6 +273,10 @@ export interface Ticket {
   message: string
   status: 'open' | 'resolved'
   at: number
+  /** 'support' (contact form) or 'feedback' (in-app widget). */
+  kind?: 'support' | 'feedback'
+  category?: 'bug' | 'feature' | 'confusing' | 'general' | null
+  meta?: FeedbackMeta | null
 }
 export async function fetchSupport(): Promise<Ticket[]> {
   try {
@@ -369,6 +383,28 @@ export async function submitSupport(email: string, subject: string, message: str
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, subject, message }),
+    })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
+export interface FeedbackInput {
+  category: 'bug' | 'feature' | 'confusing' | 'general'
+  message: string
+  email?: string
+  userId?: string
+  meta?: FeedbackMeta | null
+}
+/** Submit in-app feedback. Stored alongside support tickets, tagged by type. */
+export async function submitFeedback(input: FeedbackInput): Promise<boolean> {
+  if (!backendEnabled) return false
+  try {
+    const r = await fetch(`${apiBase}/api/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
     })
     return r.ok
   } catch {

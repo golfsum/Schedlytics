@@ -649,6 +649,11 @@ function SupportPanel() {
         <div key={t.id} className="card p-5">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-white">{t.subject || '(no subject)'}</span>
+            {t.kind === 'feedback' && (
+              <span className="rounded-full bg-violet-400/15 px-2 py-0.5 text-[11px] font-semibold text-violet-300">
+                {FEEDBACK_CATEGORY[t.category || 'general']}
+              </span>
+            )}
             <span
               className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                 t.status === 'resolved' ? 'bg-emerald-400/10 text-emerald-300' : 'bg-cyan-accent/15 text-cyan-accent'
@@ -659,9 +664,33 @@ function SupportPanel() {
             <span className="ml-auto text-xs text-slate-500">{fmtDate(t.at)}</span>
           </div>
           <div className="mt-1 text-xs text-slate-400">
-            from <a href={`mailto:${t.email}`} className="text-cyan-accent hover:underline">{t.email}</a>
+            from{' '}
+            {t.email ? (
+              <a href={`mailto:${t.email}`} className="text-cyan-accent hover:underline">
+                {t.email}
+              </a>
+            ) : (
+              <span className="text-slate-500">anonymous</span>
+            )}
           </div>
           <p className="mt-3 whitespace-pre-wrap text-sm text-slate-200">{t.message}</p>
+
+          {t.meta && (
+            <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-slate-500">
+              {t.meta.page && <span className="rounded bg-white/5 px-1.5 py-0.5">page: {t.meta.page}</span>}
+              {(t.meta.browser || t.meta.version) && (
+                <span className="rounded bg-white/5 px-1.5 py-0.5">
+                  {t.meta.browser} {t.meta.version}
+                </span>
+              )}
+              {t.meta.device && <span className="rounded bg-white/5 px-1.5 py-0.5">{t.meta.device}</span>}
+              {t.meta.viewport && <span className="rounded bg-white/5 px-1.5 py-0.5">{t.meta.viewport}</span>}
+              {t.meta.platform && <span className="rounded bg-white/5 px-1.5 py-0.5">{t.meta.platform}</span>}
+              {t.meta.lastError && (
+                <span className="rounded bg-amber-400/10 px-1.5 py-0.5 text-amber-300">err: {t.meta.lastError}</span>
+              )}
+            </div>
+          )}
 
           {/* recent errors from this user, to give support context */}
           {(errsByUser[t.email]?.length ?? 0) > 0 && (
@@ -681,12 +710,14 @@ function SupportPanel() {
           )}
 
           <div className="mt-3 flex gap-2">
-            <a
-              href={`mailto:${t.email}?subject=${encodeURIComponent('Re: ' + (t.subject || 'your message'))}`}
-              className="rounded-lg gradient-cyan px-3 py-1.5 text-xs font-bold text-navy-900"
-            >
-              Reply by email
-            </a>
+            {t.email && (
+              <a
+                href={`mailto:${t.email}?subject=${encodeURIComponent('Re: ' + (t.subject || 'your message'))}`}
+                className="rounded-lg gradient-cyan px-3 py-1.5 text-xs font-bold text-navy-900"
+              >
+                Reply by email
+              </a>
+            )}
             <button
               onClick={() => toggle(t)}
               className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white"
@@ -877,6 +908,13 @@ const providerLabel = (id: string) =>
   ({ 'google.com': 'Google', password: 'Email', 'facebook.com': 'Facebook', 'github.com': 'GitHub' }[id] || id)
 
 const PLAN_LABEL: Record<string, string> = { pro: 'Creator', business: 'Business' }
+
+const FEEDBACK_CATEGORY: Record<string, string> = {
+  bug: 'Bug report',
+  feature: 'Feature request',
+  confusing: 'Confusing',
+  general: 'General',
+}
 
 /** The badge chips for one user: Admin, Founder, and a plan chip (Paid/Free). */
 function UserBadges({ user }: { user: AdminUser }) {

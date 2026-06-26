@@ -8,11 +8,18 @@ import { apiBase } from './socialApi'
 // Noisy browser errors that are not actionable.
 const IGNORE = /ResizeObserver loop|Script error\.?$|Load failed$/i
 
+// The most recent reported error, so the Feedback widget can attach context.
+let lastError: { context: string; message: string; at: number } | null = null
+export function getLastError() {
+  return lastError
+}
+
 export function reportError(context: string, detail?: string, platform?: string): void {
   const hasBackend = import.meta.env.PROD || apiBase !== ''
   if (!hasBackend) return
   const message = String(detail || '').trim()
   if (IGNORE.test(message) || IGNORE.test(context)) return
+  lastError = { context: String(context || 'app'), message: message.slice(0, 200), at: Date.now() }
 
   let email: string | null = null
   try {
