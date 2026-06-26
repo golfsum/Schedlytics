@@ -22,6 +22,7 @@ import { PLATFORMS, isComingSoon } from '../data'
 import { createShortLink } from '../lib/shortLinks'
 import { useCampaigns, buildCampaign } from './Campaigns'
 import { useToast } from './Toast'
+import Confetti from './Confetti'
 import type { PlatformId } from '../types'
 
 /* ------------------------------- state ----------------------------------- */
@@ -126,6 +127,15 @@ const TEMPLATES = [
 ]
 const GOAL_TYPES = ['Clicks', 'Conversions', 'Revenue', 'Subscribers', 'Traffic', 'Engagement']
 
+// Suggested first campaign per user type (so the Type answer does real work).
+const TYPE_TO_TEMPLATE: Record<string, string> = {
+  Creator: 'YouTube Traffic',
+  Agency: 'Product Launch',
+  'Small business': 'Newsletter Growth',
+  'Ecommerce brand': 'Black Friday',
+  'Coach or consultant': 'Lead Generation',
+}
+
 const STEPS = ['welcome', 'goal', 'userType', 'platform', 'campaign', 'link', 'conversion', 'done'] as const
 type Step = (typeof STEPS)[number]
 
@@ -161,6 +171,14 @@ function OnboardingWizard() {
   const [busy, setBusy] = useState(false)
   const [createdUrl, setCreatedUrl] = useState<string | null>(null)
   const [selectedPlat, setSelectedPlat] = useState<PlatformId | null>(state.firstPlatform ?? null)
+
+  // Suggest a first campaign name from the user's type when they reach that step.
+  useEffect(() => {
+    if (step === 'campaign' && !campName && state.userType && TYPE_TO_TEMPLATE[state.userType]) {
+      setCampName(TYPE_TO_TEMPLATE[state.userType])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step])
 
   const skip = () => {
     update({ dismissed: true })
@@ -262,7 +280,8 @@ function OnboardingWizard() {
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-center bg-navy-950/75 p-4 backdrop-blur-sm animate-fade-in">
-      <div className="flex w-full max-w-lg flex-col rounded-2xl border border-white/10 bg-navy-800 shadow-panel">
+      {step === 'done' && <Confetti />}
+      <div className="relative flex w-full max-w-lg flex-col rounded-2xl border border-white/10 bg-navy-800 shadow-panel">
         {/* header */}
         <div className="flex items-center justify-between border-b border-white/5 px-6 py-4">
           <div className="flex items-center gap-2 text-cyan-accent">
