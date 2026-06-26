@@ -3,4 +3,4 @@ Allow: /
 Disallow: /app/
 Disallow: /api/
 
-Sitemap: https://schedlytics.com/sitemap.xml
+Sitemap: https://www.schedlytics.com/sitemap.xml
