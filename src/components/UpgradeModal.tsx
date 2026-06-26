@@ -39,23 +39,29 @@ const PLANS: Plan[] = [
 /** Plan-comparison modal triggered by the Upgrade buttons. */
 export default function UpgradeModal({ onClose }: UpgradeModalProps) {
   const { addToast } = useToast()
-  const { plan: current, setPlan } = usePlan()
+  const { plan: current, setPlan, celebrate } = usePlan()
   const [busy, setBusy] = useState<string | null>(null)
 
+  const alreadyPaid = current === 'pro' || current === 'business'
+
   const choose = async (plan: Plan) => {
-    // Demo / no-backend mode has no real checkout: just switch the local plan.
+    // Demo / no-backend mode has no real checkout: just switch the local plan
+    // and show the same celebration a real upgrade would.
     if (sampleData) {
+      const wasPaid = current === 'pro' || current === 'business'
       setPlan(plan.id as PlanId)
-      addToast(`🎉 You're on the Schedlytics ${plan.name} plan!`)
+      celebrate({ kind: wasPaid ? 'changed' : 'upgraded', plan: plan.id as PlanId })
       onClose()
       return
     }
-    // Real accounts go to Stripe Checkout (this redirects away on success).
     setBusy(plan.id)
-    const err = await startCheckout(plan.id as PlanId)
+    // Switching between paid plans must go through the Billing Portal so Stripe
+    // swaps the existing subscription (a new Checkout would create a second one
+    // and double bill). New subscribers go straight to Checkout.
+    const err = alreadyPaid ? await openBillingPortal() : await startCheckout(plan.id as PlanId)
     if (err) {
       setBusy(null)
-      addToast(`Could not start checkout: ${err}`)
+      addToast(alreadyPaid ? err : `Could not start checkout: ${err}`)
     }
   }
 
@@ -137,7 +143,11 @@ export default function UpgradeModal({ onClose }: UpgradeModalProps) {
                 }`}
               >
                 {busy === plan.id && <Loader2 className="h-4 w-4 animate-spin" />}
-                {current === plan.id ? 'Current plan' : `Choose ${plan.name}`}
+                {current === plan.id
+                  ? 'Current plan'
+                  : alreadyPaid
+                    ? `Switch to ${plan.name}`
+                    : `Choose ${plan.name}`}
               </button>
             </div>
           ))}

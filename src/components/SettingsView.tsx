@@ -23,7 +23,7 @@ import { useProfile, initialsOf } from './Profile'
 import { useAuth } from './Auth'
 import { usePlan, PLAN_INFO } from './Plan'
 import UpgradeModal from './UpgradeModal'
-import { openBillingPortal } from '../lib/billing'
+import { openBillingPortal, formatPlanDate } from '../lib/billing'
 import { sampleData } from '../lib/socialApi'
 import { subscribeWeeklyBrief, backendEnabled } from '../lib/socialApi'
 import { submitSupport } from '../lib/admin'
@@ -530,12 +530,14 @@ function NotificationsSection() {
 /* --------------------------------- billing -------------------------------- */
 
 function BillingSection() {
-  const { plan } = usePlan()
+  const { plan, status } = usePlan()
   const { addToast } = useToast()
   const [upgradeOpen, setUpgradeOpen] = useState(false)
   const [managing, setManaging] = useState(false)
   const info = PLAN_INFO[plan]
   const isFree = plan === 'free'
+  const canceling = !isFree && Boolean(status?.cancelAtPeriodEnd)
+  const endDate = canceling ? formatPlanDate(status?.currentPeriodEnd) : null
 
   const manageBilling = async () => {
     setManaging(true)
@@ -561,6 +563,14 @@ function BillingSection() {
 
   return (
     <div className="space-y-5">
+      {canceling && (
+        <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-200">
+          Your <span className="font-semibold">{info.name}</span> plan is canceled and ends on{' '}
+          <span className="font-semibold">{endDate ?? 'the end of your billing period'}</span>. You keep
+          full access until then, then your account moves to Free. You can resume any time from Manage
+          billing.
+        </div>
+      )}
       <div className="card overflow-hidden">
         <div className="gradient-cyan-soft p-5">
           <div className="flex items-center justify-between gap-3">

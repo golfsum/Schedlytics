@@ -25,6 +25,16 @@ export interface PlanStatus {
   billingEnabled?: boolean
 }
 
+/** Format a subscription period-end timestamp (ms) as e.g. "June 25, 2026". */
+export function formatPlanDate(ms?: number | null): string | null {
+  if (!ms) return null
+  try {
+    return new Date(ms).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+  } catch {
+    return null
+  }
+}
+
 /** The user's current plan from Stripe. Null when unavailable. */
 export async function fetchPlanStatus(): Promise<PlanStatus | null> {
   if (!backendEnabled) return null
