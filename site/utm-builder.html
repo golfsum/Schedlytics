@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Free UTM Builder for Campaign Links | Schedlytics</title>
+    <meta
+      name="description"
+      content="A free UTM builder for clean, consistent campaign links. Add utm_source, utm_medium, and utm_campaign in seconds, then track every click in Schedlytics."
+    />
+    <link rel="canonical" href="https://schedlytics.com/utm-builder" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Free UTM Builder for Campaign Links" />
+    <meta property="og:description" content="Build clean, consistent UTM tracking links in seconds. Free, no signup." />
+    <meta property="og:url" content="https://schedlytics.com/utm-builder" />
+    <meta property="og:image" content="https://schedlytics.com/site-media/dashboard.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "Schedlytics UTM Builder",
+            "url": "https://schedlytics.com/utm-builder",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Any",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "description": "A free tool to build UTM tracking links for marketing campaigns."
+          },
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://schedlytics.com/" },
+              { "@type": "ListItem", "position": 2, "name": "UTM Builder", "item": "https://schedlytics.com/utm-builder" }
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is a UTM parameter?",
+                "acceptedAnswer": { "@type": "Answer", "text": "A UTM parameter is a tag added to the end of a link, like utm_source or utm_campaign, that tells analytics tools where a visitor came from. They make traffic from your posts and campaigns easy to identify." }
+              },
+              {
+                "@type": "Question",
+                "name": "Which UTM parameters should I use?",
+                "acceptedAnswer": { "@type": "Answer", "text": "Source, medium, and campaign are the three that matter most. Source is the platform, medium is the type of traffic such as social or email, and campaign is the specific push. Term and content are optional extras." }
+              },
+              {
+                "@type": "Question",
+                "name": "Is the UTM builder free?",
+                "acceptedAnswer": { "@type": "Answer", "text": "Yes. The Schedlytics UTM builder is completely free and runs in your browser. No signup is required to use it." }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <header class="nav">
+      <div class="container nav-inner">
+        <a class="brand" href="/">
+          <svg viewBox="0 0 64 64" width="32" height="32" aria-hidden="true">
+            <rect x="2" y="2" width="60" height="60" rx="14" fill="#1b2a44" />
+            <rect x="15" y="18" width="34" height="31" rx="4" fill="#b6cdec" />
+            <path d="M13 48 L25 40 L32 44 L50 22 M50 22 L42 23 M50 22 L49 31" fill="none" stroke="#e2b94d" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span>Sched<span class="accent">lytics</span></span>
+        </a>
+        <nav class="nav-links">
+          <a href="/#features">Features</a>
+          <a href="/#pricing">Pricing</a>
+          <a href="/guides">Guides</a>
+          <a href="/app/?demo=1">Try demo</a>
+        </nav>
+        <a class="btn btn-primary" href="/#early-access" data-app-href="/app/" data-app-text="Start tracking free">Get early access</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="seo-hero">
+        <div class="container">
+          <span class="eyebrow">Free tool</span>
+          <h1>UTM Builder for <span class="grad">Clean Campaign Links</span></h1>
+          <p class="lead">
+            Fill in the fields below to build a properly formatted UTM link in seconds. Free, no
+            signup, and it runs entirely in your browser.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" style="padding-top: 8px">
+        <div class="container">
+          <div class="utm">
+            <label for="u-url">Website URL <span class="req">required</span></label>
+            <input type="url" id="u-url" placeholder="https://yoursite.com/landing" />
+            <div class="utm-row">
+              <div>
+                <label for="u-source">Campaign source <span class="req">required</span></label>
+                <input type="text" id="u-source" placeholder="youtube" />
+              </div>
+              <div>
+                <label for="u-medium">Campaign medium <span class="req">required</span></label>
+                <input type="text" id="u-medium" placeholder="social" />
+              </div>
+            </div>
+            <label for="u-campaign">Campaign name <span class="req">required</span></label>
+            <input type="text" id="u-campaign" placeholder="summer_launch" />
+            <div class="utm-row">
+              <div>
+                <label for="u-term">Campaign term <span style="color:var(--faint)">optional</span></label>
+                <input type="text" id="u-term" placeholder="running shoes" />
+              </div>
+              <div>
+                <label for="u-content">Campaign content <span style="color:var(--faint)">optional</span></label>
+                <input type="text" id="u-content" placeholder="pinned_comment" />
+              </div>
+            </div>
+
+            <div class="utm-out">
+              <div class="utm-out-label">Your tracking link</div>
+              <div class="utm-url" id="u-out">Fill in the required fields to generate your link.</div>
+              <div class="utm-actions">
+                <button class="btn btn-primary" id="u-copy" type="button">Copy link</button>
+                <button class="btn btn-ghost" id="u-clear" type="button">Clear</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container seo-prose">
+          <h2>What is a UTM parameter?</h2>
+          <p>
+            A UTM parameter is a small tag you add to the end of a link, like
+            <code>utm_source=youtube</code>. When someone clicks the link, that tag travels with them,
+            so your analytics can tell exactly where the visitor came from. UTMs are the standard way
+            marketers label their traffic, and they work in nearly every analytics tool.
+          </p>
+          <h2>The five UTM parameters</h2>
+          <ul>
+            <li><strong>utm_source</strong> is the platform or place, such as youtube, pinterest, or newsletter.</li>
+            <li><strong>utm_medium</strong> is the type of traffic, such as social, email, or cpc.</li>
+            <li><strong>utm_campaign</strong> is the specific push, such as summer_launch.</li>
+            <li><strong>utm_term</strong> is optional and usually holds a keyword for paid search.</li>
+            <li><strong>utm_content</strong> is optional and separates two links in the same place, like two buttons.</li>
+          </ul>
+          <h2>A few tips for clean UTMs</h2>
+          <ul>
+            <li>Stay consistent. Pick lowercase and stick with it, since utm_source=YouTube and youtube are counted as different sources.</li>
+            <li>Use underscores instead of spaces so links stay readable and do not break.</li>
+            <li>Keep a simple naming system so a teammate could read a link and know the campaign at a glance.</li>
+          </ul>
+          <p>
+            Once your link is built, shorten and track it in Schedlytics so you also get clicks, unique
+            visitors, and campaign rollups. See <a href="/link-tracking">link tracking</a> and
+            <a href="/campaign-tracking">campaign tracking</a>.
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="section-head">
+            <h2>Explore by topic</h2>
+          </div>
+          <div class="related-grid">
+            <a class="related-card" href="/link-tracking">
+              <h3>Link Tracking</h3>
+              <p>Shorten your UTM link and track every click.</p>
+            </a>
+            <a class="related-card" href="/campaign-tracking">
+              <h3>Campaign Tracking</h3>
+              <p>Roll UTM links up into a measurable campaign.</p>
+            </a>
+            <a class="related-card" href="/social-media-analytics">
+              <h3>Social Media Analytics</h3>
+              <p>See what your tagged links actually drive.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="section-head">
+            <h2>Frequently asked questions</h2>
+          </div>
+          <div class="faq">
+            <details class="faq-item">
+              <summary>What is a UTM parameter?</summary>
+              <p>It is a tag added to the end of a link, like utm_source or utm_campaign, that tells analytics tools where a visitor came from. UTMs make traffic from your posts and campaigns easy to identify.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Which UTM parameters should I use?</summary>
+              <p>Source, medium, and campaign matter most. Source is the platform, medium is the type of traffic such as social or email, and campaign is the specific push. Term and content are optional extras.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Is this tool free?</summary>
+              <p>Yes. The Schedlytics UTM builder is completely free and runs in your browser. No signup is required.</p>
+            </details>
+            <details class="faq-item">
+              <summary>Does the builder send my data anywhere?</summary>
+              <p>No. The link is assembled in your browser. Nothing you type is sent to a server.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="early-access">
+        <div class="container">
+          <div class="cta-band">
+            <h2>Track the links you just built</h2>
+            <p>Join early access to shorten, brand, and measure every UTM link.</p>
+            <div class="hero-cta" style="justify-content:center">
+              <a class="btn btn-primary btn-lg" href="/#early-access" data-app-href="/app/" data-app-text="Start tracking free">Get early access</a>
+              <a class="btn btn-ghost btn-lg" href="/app/?demo=1">Try the demo</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer-inner">
+        <a class="brand" href="/" style="font-size:17px">
+          <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true">
+            <rect x="2" y="2" width="60" height="60" rx="14" fill="#1b2a44" />
+            <rect x="15" y="18" width="34" height="31" rx="4" fill="#b6cdec" />
+            <path d="M13 48 L25 40 L32 44 L50 22 M50 22 L42 23 M50 22 L49 31" fill="none" stroke="#e2b94d" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span>Sched<span class="accent">lytics</span></span>
+        </a>
+        <nav class="footer-links">
+          <a href="/social-media-analytics">Social Media Analytics</a>
+          <a href="/youtube-analytics">YouTube Analytics</a>
+          <a href="/campaign-tracking">Campaign Tracking</a>
+          <a href="/link-tracking">Link Tracking</a>
+          <a href="/utm-builder">UTM Builder</a>
+          <a href="/guides">Guides</a>
+        </nav>
+        <nav class="footer-links">
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Service</a>
+          <a href="/data-deletion">Data Deletion</a>
+          <a href="mailto:support@schedlytics.com">Contact</a>
+        </nav>
+        <p class="copy">&copy; 2026 Schedlytics. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var ids = ['url', 'source', 'medium', 'campaign', 'term', 'content']
+        var el = {}
+        ids.forEach(function (k) { el[k] = document.getElementById('u-' + k) })
+        var out = document.getElementById('u-out')
+        var copyBtn = document.getElementById('u-copy')
+        var clearBtn = document.getElementById('u-clear')
+
+        function enc(v) { return encodeURIComponent(v.trim()) }
+
+        function build() {
+          var url = (el.url.value || '').trim()
+          var source = (el.source.value || '').trim()
+          var medium = (el.medium.value || '').trim()
+          var campaign = (el.campaign.value || '').trim()
+          if (!url || !source || !medium || !campaign) {
+            out.textContent = 'Fill in the required fields to generate your link.'
+            return ''
+          }
+          var parts = ['utm_source=' + enc(source), 'utm_medium=' + enc(medium), 'utm_campaign=' + enc(campaign)]
+          if ((el.term.value || '').trim()) parts.push('utm_term=' + enc(el.term.value))
+          if ((el.content.value || '').trim()) parts.push('utm_content=' + enc(el.content.value))
+          var sep = url.indexOf('?') === -1 ? '?' : '&'
+          var full = url + sep + parts.join('&')
+          out.textContent = full
+          return full
+        }
+
+        ids.forEach(function (k) { el[k].addEventListener('input', build) })
+
+        copyBtn.addEventListener('click', function () {
+          var full = build()
+          if (!full) return
+          var done = function () {
+            var t = copyBtn.textContent
+            copyBtn.textContent = 'Copied'
+            setTimeout(function () { copyBtn.textContent = t }, 1500)
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(full).then(done).catch(done)
+          } else {
+            done()
+          }
+        })
+
+        clearBtn.addEventListener('click', function () {
+          ids.forEach(function (k) { el[k].value = '' })
+          build()
+        })
+      })()
+    </script>
+    <script>
+      (function () {
+        function applyProduction() {
+          var els = document.querySelectorAll('[data-app-href]')
+          for (var i = 0; i < els.length; i++) {
+            var a = els[i], href = a.getAttribute('data-app-href'), text = a.getAttribute('data-app-text')
+            if (href) a.setAttribute('href', href)
+            if (text) a.textContent = text
+          }
+        }
+        try {
+          fetch('/api/config').then(function (r) { return r.json() }).then(function (c) {
+            if (c.earlyAccess === false) applyProduction()
+          }).catch(function () {})
+        } catch (e) {}
+      })()
+    </script>
+    <script>
+      (function () {
+        try {
+          if (navigator.sendBeacon) navigator.sendBeacon('/api/track?type=site')
+          else fetch('/api/track?type=site', { method: 'POST', keepalive: true })
+        } catch (e) {}
+      })()
+    </script>
+    <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments) }</script>
+    <script defer src="/_vercel/insights/script.js"></script>
+  </body>
+</html>

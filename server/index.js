@@ -76,6 +76,18 @@ if (existsSync(SITE_DIR)) {
   app.get('/privacy', (_req, res) => res.sendFile(join(SITE_DIR, 'privacy.html')))
   app.get('/terms', (_req, res) => res.sendFile(join(SITE_DIR, 'terms.html')))
   app.get('/data-deletion', (_req, res) => res.sendFile(join(SITE_DIR, 'data-deletion.html')))
+  // SEO landing pages (clean URLs -> their .html). On Vercel cleanUrls does this
+  // automatically; this mirror keeps the same routes working in local dev.
+  for (const slug of [
+    'social-media-analytics',
+    'youtube-analytics',
+    'campaign-tracking',
+    'link-tracking',
+    'utm-builder',
+    'guides',
+  ]) {
+    app.get(`/${slug}`, (_req, res) => res.sendFile(join(SITE_DIR, `${slug}.html`)))
+  }
 }
 
 // CSRF "state" lives in KV (prod) or memory (local), with a 10-minute TTL.
