@@ -67,11 +67,13 @@ app.use(
 // X-Frame-Options stop clickjacking; nosniff stops MIME sniffing.
 app.use((_req, res, next) => {
   res.set('X-Content-Type-Options', 'nosniff')
-  res.set('X-Frame-Options', 'DENY')
+  // SAMEORIGIN (not DENY) so Firebase Auth's same-origin /__/auth/iframe can be
+  // framed by the app; external sites still cannot frame us (clickjacking).
+  res.set('X-Frame-Options', 'SAMEORIGIN')
   res.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   res.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
   res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-  res.set('Content-Security-Policy', "frame-ancestors 'none'; base-uri 'self'; object-src 'none'")
+  res.set('Content-Security-Policy', "frame-ancestors 'self'; base-uri 'self'; object-src 'none'")
   next()
 })
 
