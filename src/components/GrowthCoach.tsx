@@ -8,7 +8,8 @@ import {
   Loader2,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { Zap, Target, Database, ArrowRight } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Zap, Target, Database, ArrowRight, HelpCircle, X } from 'lucide-react'
 import { AreaChart } from './charts'
 import { PLATFORMS, type GrowthScore, type WeeklyBrief, type Opportunity } from '../data'
 import { aiRecommendations } from '../lib/aiSuggest'
@@ -62,6 +63,7 @@ export function GrowthScoreCard({
   // and ring-fill use a safe target when the score is still building.
   const target = data?.score ?? 0
   const count = useCountUp(target)
+  const [showInfo, setShowInfo] = useState(false)
   // Ring fills from empty on mount: start at full offset, then transition in.
   const [filled, setFilled] = useState(prefersReducedMotion())
   useEffect(() => {
@@ -96,7 +98,17 @@ export function GrowthScoreCard({
   return (
     <div className={`card p-5 ${hero ? 'shadow-glow ring-1 ring-cyan-accent/20' : ''}`}>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-white">Growth Level</h2>
+        <div className="flex items-center gap-1.5">
+          <h2 className="text-lg font-bold text-white">Growth Level</h2>
+          <button
+            onClick={() => setShowInfo(true)}
+            className="text-slate-500 transition-colors hover:text-cyan-accent"
+            title="How is this scored?"
+            aria-label="How is the Growth Level scored?"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </button>
+        </div>
         {delta !== 0 && (
           <span
             className={`flex animate-slide-in-up items-center gap-1 text-sm font-semibold ${delta > 0 ? 'text-emerald-400' : 'text-rose-400'}`}
@@ -161,7 +173,93 @@ export function GrowthScoreCard({
           </div>
         ))}
       </div>
+      {showInfo && <GrowthScoreModal data={data} onClose={() => setShowInfo(false)} />}
     </div>
+  )
+}
+
+/* explainer for how the Growth Level is calculated */
+const SCORE_FACTORS: { label: string; weight: string; what: string; improve: string }[] = [
+  {
+    label: 'Traffic',
+    weight: '35%',
+    what: 'How many clicks your tracked links drive. The more real clicks your content sends, the higher this goes.',
+    improve: 'Add trackable links to more posts and video descriptions.',
+  },
+  {
+    label: 'Engagement',
+    weight: '25%',
+    what: 'Likes and comments relative to reach on your connected channels.',
+    improve: 'Post content that earns replies, and add a clear call to action.',
+  },
+  {
+    label: 'Consistency',
+    weight: '20%',
+    what: 'How regularly you publish. A steady cadence beats occasional bursts.',
+    improve: 'Schedule posts so you publish on a steady rhythm.',
+  },
+  {
+    label: 'Campaigns',
+    weight: '20%',
+    what: 'Whether you group content into campaigns with tracked links and goals.',
+    improve: 'Run a campaign and tag your posts and links to it.',
+  },
+]
+
+function GrowthScoreModal({ data, onClose }: { data: GrowthScore; onClose: () => void }) {
+  const valueFor = (label: string) => data.factors.find((f) => f.label === label)?.value
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[80] grid place-items-center bg-navy-950/70 p-4 backdrop-blur-sm animate-fade-in"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/10 bg-navy-800 shadow-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between border-b border-white/5 px-6 py-4">
+          <div>
+            <div className="flex items-center gap-2 text-cyan-accent">
+              <Award className="h-4 w-4" />
+              <span className="text-xs font-semibold uppercase tracking-wide">Growth Level</span>
+            </div>
+            <h2 className="mt-1 text-lg font-bold text-white">How your score works</h2>
+            <p className="text-sm text-slate-400">
+              Your Growth Level is one number out of 100, built from four parts.
+            </p>
+          </div>
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4 px-6 py-5">
+          {SCORE_FACTORS.map((f) => {
+            const v = valueFor(f.label)
+            return (
+              <div key={f.label} className="rounded-xl border border-white/5 bg-navy-900/50 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-white">{f.label}</span>
+                  <span className="text-xs text-slate-500">
+                    {f.weight} of your score{v != null ? ` · now ${v}/100` : ''}
+                  </span>
+                </div>
+                <p className="mt-1.5 text-sm text-slate-400">{f.what}</p>
+                <p className="mt-2 flex items-start gap-1.5 text-sm text-cyan-accent">
+                  <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  {f.improve}
+                </p>
+              </div>
+            )
+          })}
+          <p className="text-xs text-slate-500">
+            Your level name (Starter through Growth Legend) is based on the total score. Reach the next
+            threshold to level up.
+          </p>
+        </div>
+      </div>
+    </div>,
+    document.body,
   )
 }
 

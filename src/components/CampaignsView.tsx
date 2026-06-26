@@ -264,8 +264,9 @@ function CampaignDetail({ campaign: c, onBack }: { campaign: Campaign; onBack: (
         {series.length ? (
           <AreaChart data={series} format={(v) => compact(v)} />
         ) : (
-          <div className="grid h-40 place-items-center rounded-xl border border-dashed border-white/10 text-sm text-slate-500">
-            No clicks yet for this campaign.
+          <div className="grid h-40 place-items-center rounded-xl border border-dashed border-white/10 px-4 text-center text-sm text-slate-500">
+            No clicks yet. Add tracked links to this campaign and share them, and traffic will show up
+            here.
           </div>
         )}
       </div>

@@ -463,7 +463,9 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
               )
             })}
             {upcoming.length === 0 && (
-              <p className="py-6 text-center text-sm text-slate-500">No posts scheduled yet.</p>
+              <p className="py-6 text-center text-sm text-slate-500">
+                Nothing scheduled yet. Create a post and it will show up here and on your calendar.
+              </p>
             )}
           </div>
         </div>

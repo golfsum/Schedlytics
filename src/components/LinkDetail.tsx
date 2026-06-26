@@ -94,8 +94,9 @@ export default function LinkDetail({ link, onBack }: { link: ShortLink; onBack: 
         {series.length ? (
           <AreaChart data={series} format={(v) => compact(v)} />
         ) : (
-          <div className="grid h-40 place-items-center rounded-xl border border-dashed border-white/10 text-sm text-slate-500">
-            No clicks recorded yet.
+          <div className="grid h-40 place-items-center rounded-xl border border-dashed border-white/10 px-4 text-center text-sm text-slate-500">
+            No clicks yet. Share this link in a post, video description, or bio, and visits will show up
+            here automatically.
           </div>
         )}
       </div>
