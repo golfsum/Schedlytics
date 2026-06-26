@@ -304,7 +304,7 @@ export default function LoginScreen() {
             {error && <p className="text-xs text-rose-400">{error}</p>}
 
             {mode === 'register' && (
-              <p className="text-center text-[11px] leading-relaxed text-slate-500">
+              <p className="text-balance text-center text-[11px] leading-relaxed text-slate-500">
                 By creating an account, you agree to the{' '}
                 <a href="/terms" target="_blank" rel="noreferrer" className="text-cyan-accent hover:underline">
                   Terms
@@ -327,8 +327,8 @@ export default function LoginScreen() {
             </button>
 
             {mode === 'register' && (
-              <p className="text-center text-[11px] text-slate-500">
-                Early Access pricing is locked in while your subscription stays active.
+              <p className="text-balance text-center text-[11px] leading-relaxed text-slate-500">
+                Early Access pricing is locked in while you stay subscribed.
               </p>
             )}
           </form>
