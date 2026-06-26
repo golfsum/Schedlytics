@@ -19,6 +19,35 @@ export const SYNC_KEYS = [
   'sl_notif_prefs',
 ]
 
+/**
+ * Every per-account localStorage key (synced plus local-only). Wiped when a
+ * different account signs in on the same browser, so one account never shows
+ * another's data.
+ */
+export const PURGE_KEYS = [
+  ...SYNC_KEYS,
+  'sl_campaigns',
+  'sl_onboarding',
+  'sl_billing_snap',
+  'sl_growth_level',
+  'sl_bio_profile',
+  'sl_branded_domain',
+  'sl_read_comments',
+  'sl_recurring_slot',
+  'schedlytics_links_v1',
+]
+
+/** Remove all per-account local data (on logout or account switch). */
+export function clearLocalUserData() {
+  for (const key of PURGE_KEYS) {
+    try {
+      localStorage.removeItem(key)
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 export type Snapshot = Record<string, unknown>
 
 /** Read the synced keys out of localStorage into a plain object. */

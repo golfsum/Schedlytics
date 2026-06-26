@@ -150,6 +150,7 @@ function OnboardingWizard() {
   const [dest, setDest] = useState('')
   const [busy, setBusy] = useState(false)
   const [createdUrl, setCreatedUrl] = useState<string | null>(null)
+  const [selectedPlat, setSelectedPlat] = useState<PlatformId | null>(state.firstPlatform ?? null)
 
   const skip = () => {
     update({ dismissed: true })
@@ -170,11 +171,14 @@ function OnboardingWizard() {
     markDone('userType')
     next()
   }
-  const connect = (p: PlatformId) => {
+  // Selecting a platform only highlights it; connecting (which opens the OAuth
+  // popup) is a deliberate second click so we never pop a login unprompted.
+  const doConnect = (p: PlatformId) => {
     update({ firstPlatform: p })
     markDone('platform')
     startConnect(p)
     addToast(`Opening ${PLATFORMS[p].name} to connect…`, 'info')
+    next()
   }
 
   const createCampaign = () => {
@@ -308,10 +312,13 @@ function OnboardingWizard() {
           )}
 
           {step === 'platform' && (
-            <Step title="Connect your first platform" subtitle="Start with one today. You can add more later.">
+            <Step
+              title="Connect a platform to get started?"
+              subtitle="Pick one and we will open it so you can sign in. This is optional, and you can always connect later."
+            >
               <div className="grid grid-cols-2 gap-2">
                 {AVAILABLE.map((p) => (
-                  <PlatformCard key={p} platform={p} onClick={() => connect(p)} done={state.firstPlatform === p} />
+                  <PlatformCard key={p} platform={p} onClick={() => setSelectedPlat(p)} done={selectedPlat === p} />
                 ))}
               </div>
               <p className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Coming soon</p>
@@ -324,10 +331,18 @@ function OnboardingWizard() {
                 Instagram, Facebook, and TikTok are awaiting platform approval. You can still create
                 trackable links and campaigns for them today.
               </p>
-              <div className="mt-5 flex items-center justify-between">
+              {selectedPlat && (
+                <button
+                  onClick={() => doConnect(selectedPlat)}
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg gradient-cyan py-2.5 text-sm font-bold text-navy-900 shadow-glow"
+                >
+                  Connect to {PLATFORMS[selectedPlat].name}
+                </button>
+              )}
+              <div className="mt-4 flex items-center justify-between">
                 <BackBtn onClick={back} />
-                <button onClick={next} className="text-sm font-semibold text-cyan-accent hover:underline">
-                  {state.firstPlatform ? 'Continue' : 'I will connect later'} →
+                <button onClick={next} className="text-sm font-semibold text-slate-400 hover:text-white">
+                  I will connect later →
                 </button>
               </div>
             </Step>
@@ -381,12 +396,17 @@ function OnboardingWizard() {
               </div>
               <div className="mt-5 flex items-center justify-between">
                 <BackBtn onClick={back} />
-                <button
-                  onClick={createCampaign}
-                  className="rounded-lg gradient-cyan px-4 py-2 text-sm font-bold text-navy-900 shadow-glow"
-                >
-                  Create campaign
-                </button>
+                <div className="flex items-center gap-3">
+                  <button onClick={next} className="text-sm font-medium text-slate-400 hover:text-white">
+                    Skip this step
+                  </button>
+                  <button
+                    onClick={createCampaign}
+                    className="rounded-lg gradient-cyan px-4 py-2 text-sm font-bold text-navy-900 shadow-glow"
+                  >
+                    Create campaign
+                  </button>
+                </div>
               </div>
             </Step>
           )}
@@ -444,14 +464,19 @@ function OnboardingWizard() {
                   </p>
                   <div className="mt-5 flex items-center justify-between">
                     <BackBtn onClick={back} />
-                    <button
-                      onClick={createLink}
-                      disabled={busy}
-                      className="inline-flex items-center gap-2 rounded-lg gradient-cyan px-4 py-2 text-sm font-bold text-navy-900 shadow-glow disabled:opacity-60"
-                    >
-                      {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                      Create tracked link
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button onClick={next} className="text-sm font-medium text-slate-400 hover:text-white">
+                        Skip this step
+                      </button>
+                      <button
+                        onClick={createLink}
+                        disabled={busy}
+                        className="inline-flex items-center gap-2 rounded-lg gradient-cyan px-4 py-2 text-sm font-bold text-navy-900 shadow-glow disabled:opacity-60"
+                      >
+                        {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                        Create tracked link
+                      </button>
+                    </div>
                   </div>
                 </>
               )}

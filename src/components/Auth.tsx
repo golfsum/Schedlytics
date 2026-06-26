@@ -9,9 +9,12 @@ import {
 } from 'firebase/auth'
 import { auth, firebaseEnabled } from '../lib/firebase'
 import { demoMode } from '../lib/socialApi'
+import { clearLocalUserData } from '../lib/sync'
 import LoginScreen from './LoginScreen'
 
 export interface AppUser {
+  /** Firebase UID (absent in demo mode). */
+  uid?: string
   name: string
   email: string
   photoURL?: string
@@ -57,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return onAuthStateChanged(auth, (fb) => {
       setUser(
         fb
-          ? { name: fb.displayName || fb.email || 'You', email: fb.email || '', photoURL: fb.photoURL || undefined }
+          ? { uid: fb.uid, name: fb.displayName || fb.email || 'You', email: fb.email || '', photoURL: fb.photoURL || undefined }
           : null,
       )
       setLoading(false)
@@ -75,6 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
   const signOutUser = async () => {
     if (auth) await signOut(auth)
+    // Wipe this account's local data so the next sign-in never inherits it.
+    try {
+      clearLocalUserData()
+      localStorage.removeItem('sl_uid')
+    } catch {
+      /* ignore */
+    }
     window.location.assign('/') // leave the app for the marketing site
   }
 
