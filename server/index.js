@@ -100,6 +100,12 @@ if (existsSync(SITE_DIR)) {
     'youtube-description-links',
     'link-in-bio-strategy',
     'clicks-vs-unique-visitors',
+    'pinterest-analytics',
+    'twitch-analytics',
+    'patreon-analytics',
+    'instagram-analytics',
+    'tiktok-analytics',
+    'facebook-analytics',
   ]) {
     app.get(`/${slug}`, (_req, res) => res.sendFile(join(SITE_DIR, `${slug}.html`)))
   }
