@@ -44,6 +44,7 @@ import { listShortLinks, type ShortLink } from '../lib/shortLinks'
 import { realGrowthScore, realWeeklyBrief, topByClicks, levelFor, GROWTH_LEVELS } from '../lib/growth'
 import { GROWTH_SCORE, WEEKLY_BRIEF, SAMPLE_OPPORTUNITIES, type Opportunity } from '../data'
 import { GrowthScoreCard, ThisWeekCard, OpportunitiesCard } from './GrowthCoach'
+import ConversionsCard from './ConversionsCard'
 import type { CalendarPost, NavId, PlatformId } from '../types'
 
 /** Icon per growth-metric key (data lives in GROWTH_METRICS). */
@@ -348,6 +349,9 @@ export default function DashboardView({ posts, onQuickCreate, onNavigate }: Dash
         <TopPostsCard sample={sampleData} />
         <BestPlatformsCard sample={sampleData} />
       </div>
+
+      {/* conversions: what each post is actually worth */}
+      <ConversionsCard sample={sampleData} onNavigate={onNavigate} />
 
       {/* headline insight */}
       <InsightCallout sample={sampleData} onNavigate={onNavigate} />

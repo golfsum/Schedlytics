@@ -14,6 +14,10 @@ import {
   Sparkles,
   LifeBuoy,
   Send,
+  Target,
+  Copy,
+  Plus,
+  Trash2,
 } from 'lucide-react'
 import Toggle from './Toggle'
 import { useToast } from './Toast'
@@ -24,6 +28,7 @@ import { useAuth } from './Auth'
 import { usePlan, PLAN_INFO } from './Plan'
 import UpgradeModal from './UpgradeModal'
 import { openBillingPortal, formatPlanDate } from '../lib/billing'
+import { fetchConversionGoals, saveConversionGoals } from '../lib/conversions'
 import { sampleData } from '../lib/socialApi'
 import { subscribeWeeklyBrief, backendEnabled } from '../lib/socialApi'
 import { submitSupport } from '../lib/admin'
@@ -36,6 +41,7 @@ const SECTIONS = [
   { id: 'domain', label: 'Branded Domain', Icon: Globe },
   { id: 'profile', label: 'Profile', Icon: User },
   { id: 'notifications', label: 'Notifications', Icon: Bell },
+  { id: 'tracking', label: 'Conversion Tracking', Icon: Target },
   { id: 'billing', label: 'Billing', Icon: CreditCard },
   { id: 'support', label: 'Support', Icon: LifeBuoy },
 ] as const
@@ -73,6 +79,7 @@ export default function SettingsView() {
           {section === 'domain' && <BrandedDomainSection />}
           {section === 'profile' && <ProfileSection />}
           {section === 'notifications' && <NotificationsSection />}
+          {section === 'tracking' && <ConversionTrackingSection />}
           {section === 'billing' && <BillingSection />}
           {section === 'support' && <SupportSection />}
         </div>
@@ -522,6 +529,175 @@ function NotificationsSection() {
             <Toggle checked={prefs[key]} onChange={(v) => set(key, v)} label={LABELS[key]} />
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+/* ---------------------------- conversion tracking ------------------------- */
+
+function ConversionTrackingSection() {
+  const { addToast } = useToast()
+  const [siteKey, setSiteKey] = useState<string>('YOUR_SITE_KEY')
+  const [snippetUrl, setSnippetUrl] = useState<string>(
+    typeof window !== 'undefined' ? `${window.location.origin}/sl.js` : '/sl.js',
+  )
+  const [goals, setGoals] = useState<{ pattern: string; name: string }[]>([])
+  const [loading, setLoading] = useState(!sampleData)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (sampleData || !backendEnabled) return
+    let cancelled = false
+    fetchConversionGoals()
+      .then((res) => {
+        if (cancelled || !res) return
+        setSiteKey(res.siteKey)
+        setSnippetUrl(res.snippetUrl)
+        setGoals(res.goals)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const snippet = `<script async src="${snippetUrl}" data-site="${siteKey}"></script>`
+
+  const copy = (text: string) => {
+    try {
+      navigator.clipboard?.writeText(text)
+      addToast('Copied to clipboard')
+    } catch {
+      addToast('Could not copy', 'info')
+    }
+  }
+
+  const addGoal = () => setGoals((g) => [...g, { pattern: '', name: '' }])
+  const removeGoal = (i: number) => setGoals((g) => g.filter((_, idx) => idx !== i))
+  const editGoal = (i: number, field: 'pattern' | 'name', value: string) =>
+    setGoals((g) => g.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)))
+
+  const save = async () => {
+    if (sampleData) {
+      addToast('Sign in to a real account to save goals', 'info')
+      return
+    }
+    setSaving(true)
+    const cleaned = goals.map((g) => ({ pattern: g.pattern.trim(), name: g.name.trim() })).filter((g) => g.pattern)
+    const result = await saveConversionGoals(cleaned)
+    setSaving(false)
+    if (result) {
+      setGoals(result)
+      addToast('Conversion goals saved')
+    } else {
+      addToast('Could not save goals', 'info')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="card p-5 text-sm text-slate-500">
+        <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> Loading…
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="card p-5">
+        <h2 className="text-lg font-bold text-white">Install the tracking snippet</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          Add this once to your website, just before the closing body tag. It connects the clicks your
+          posts drive to the signups and sales they produce.
+        </p>
+        <div className="mt-3 flex items-start gap-2 rounded-xl border border-white/10 bg-navy-900/70 p-3">
+          <code className="min-w-0 flex-1 break-all font-mono text-xs text-cyan-accent">{snippet}</code>
+          <button
+            onClick={() => copy(snippet)}
+            className="shrink-0 rounded-md border border-white/15 bg-navy-800 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-navy-700"
+          >
+            <Copy className="mr-1 inline h-3.5 w-3.5" /> Copy
+          </button>
+        </div>
+        {sampleData && (
+          <p className="mt-2 text-xs text-amber-300/80">
+            This is a preview. Sign in to a real account to get your live site key.
+          </p>
+        )}
+      </div>
+
+      <div className="card p-5">
+        <h2 className="text-lg font-bold text-white">Track a sale with a value</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          For purchases, call this where the sale completes so the revenue is attributed to the post
+          that drove it.
+        </p>
+        <div className="mt-3 rounded-xl border border-white/10 bg-navy-900/70 p-3">
+          <code className="block break-all font-mono text-xs text-slate-200">
+            schedlytics('conversion', {'{'} event: 'purchase', value: 49.0 {'}'})
+          </code>
+        </div>
+      </div>
+
+      <div className="card p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-white">Goal pages</h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Pages that count as a conversion when reached, like a thank you or confirmation page. The
+              snippet fires automatically when the path contains your pattern.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-2.5">
+          {goals.length === 0 && (
+            <p className="text-sm text-slate-500">No goal pages yet. Add one below.</p>
+          )}
+          {goals.map((g, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                value={g.pattern}
+                onChange={(e) => editGoal(i, 'pattern', e.target.value)}
+                placeholder="/thank-you"
+                className="flex-1 rounded-lg border border-white/10 bg-navy-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-cyan-accent focus:outline-none"
+              />
+              <input
+                value={g.name}
+                onChange={(e) => editGoal(i, 'name', e.target.value)}
+                placeholder="Signup (label)"
+                className="w-40 rounded-lg border border-white/10 bg-navy-900/60 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-cyan-accent focus:outline-none"
+              />
+              <button
+                onClick={() => removeGoal(i)}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-white/5 hover:text-rose-300"
+                aria-label="Remove goal"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 flex items-center gap-2">
+          <button
+            onClick={addGoal}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-navy-900/40 px-3 py-2 text-sm font-semibold text-white hover:bg-navy-900/70"
+          >
+            <Plus className="h-4 w-4" /> Add goal page
+          </button>
+          <button
+            onClick={save}
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 rounded-lg gradient-cyan px-4 py-2 text-sm font-bold text-navy-900 shadow-glow disabled:opacity-60"
+          >
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+            Save goals
+          </button>
+        </div>
       </div>
     </div>
   )
