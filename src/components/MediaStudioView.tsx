@@ -38,6 +38,7 @@ import { backendEnabled, publishYouTubeVideo, publishYouTubeFile, publishPost, p
 import { aiTitles, aiCaptions, aiHashtags, aiAnalyze, aiStatus, type Suggestion } from '../lib/aiSuggest'
 import { createShortLink, displayShort, normalizeUrl, type ShortLink } from '../lib/shortLinks'
 import { reportError } from '../lib/reportError'
+import { logActivity } from '../lib/admin'
 import { PLATFORM_LIST, PLATFORMS, isComingSoon } from '../data'
 import TikTokSandboxNotice from './TikTokSandboxNotice'
 import type { CalendarPost, PlatformId } from '../types'
@@ -486,6 +487,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   // Surface a clear success modal (and keep a bell entry as a record).
   const showPublished = (url: string | undefined, note: string) => {
     setPublished({ platform, url, note })
+    logActivity('publish', plat.name)
     if (url) {
       push({ type: 'success', title: `Published to ${plat.name}`, message: 'View the post', detail: url })
     }
@@ -515,7 +517,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     } catch (e) {
       const detail = e instanceof Error ? e.message : String(e)
       addToast('Could not publish. See the bell for details.', 'info', 6000)
-      reportError(`media-studio:publish:${platform}`, detail, platform)
+      reportError(`media-studio:publish:${platform}`, detail, platform, 'critical')
       push({ type: 'error', title: 'Publish failed', message: 'Tap to see the full reason', detail })
     } finally {
       setPublishing(false)
@@ -607,7 +609,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     } catch (e) {
       const detail = e instanceof Error ? e.message : String(e)
       addToast('Could not publish. See the bell for details.', 'info', 6000)
-      reportError(`media-studio:publish:${platform}`, detail, platform)
+      reportError(`media-studio:publish:${platform}`, detail, platform, 'critical')
       push({ type: 'error', title: 'Publish failed', message: 'Tap to see the full reason', detail })
     } finally {
       setPublishing(false)

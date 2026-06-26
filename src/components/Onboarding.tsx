@@ -23,6 +23,7 @@ import { createShortLink } from '../lib/shortLinks'
 import { useCampaigns, buildCampaign } from './Campaigns'
 import { useToast } from './Toast'
 import Confetti from './Confetti'
+import { logActivity } from '../lib/admin'
 import type { PlatformId } from '../types'
 
 /* ------------------------------- state ----------------------------------- */
@@ -188,6 +189,7 @@ function OnboardingWizard() {
   // Brief "initializing" beat before entering the app, for polish.
   const finish = () => {
     setFinishing(true)
+    logActivity('onboarding')
     window.setTimeout(() => {
       update({ setupComplete: true })
       close()

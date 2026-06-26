@@ -181,6 +181,8 @@ export interface ErrorEvent {
   email: string | null
   platform: string | null
   url: string | null
+  severity?: 'error' | 'critical' | 'warning'
+  device?: string | null
   source: string
 }
 export interface ErrorsData {
@@ -387,6 +389,41 @@ export async function submitSupport(email: string, subject: string, message: str
     return r.ok
   } catch {
     return false
+  }
+}
+
+export interface ActivityEvent {
+  id: string
+  at: number
+  type: string
+  email: string | null
+  uid: string | null
+  detail: string | null
+}
+/** The Founder activity feed (admin only). */
+export async function fetchActivity(): Promise<ActivityEvent[]> {
+  try {
+    const r = await fetch(`${apiBase}/api/admin/activity`, { headers: await authHeaders() })
+    return r.ok ? (await r.json()).events : []
+  } catch {
+    return []
+  }
+}
+
+/** Log a lifecycle event to the admin Founder activity feed. Best-effort. */
+export async function logActivity(
+  type: 'onboarding' | 'publish' | 'connect' | 'link',
+  detail?: string,
+): Promise<void> {
+  if (!backendEnabled) return
+  try {
+    await fetch(`${apiBase}/api/activity`, {
+      method: 'POST',
+      headers: { ...(await authHeaders()), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, detail: detail || null }),
+    })
+  } catch {
+    /* best-effort */
   }
 }
 

@@ -13,6 +13,7 @@ import Stripe from 'stripe'
 import { hashStore } from './kv.js'
 import { verifyIdToken } from './lib/firebaseAuth.js'
 import { BASE_URL, FRONTEND_URL } from './config.js'
+import { activity } from './activity-store.js'
 
 const SECRET = process.env.STRIPE_SECRET_KEY
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET
@@ -66,7 +67,12 @@ async function saveFromSubscription(uid, sub, customerId) {
     cancelAtPeriodEnd: Boolean(sub.cancel_at_period_end),
     updatedAt: Date.now(),
   }
+  const prev = await plans.get(uid)
   await plans.put(uid, record)
+  // Log an upgrade to a paid plan once (newly paid, or switched paid plan).
+  if (active && (plan === 'pro' || plan === 'business') && prev?.plan !== plan) {
+    activity.add({ type: 'upgrade', uid, detail: plan === 'business' ? 'Business' : 'Creator' })
+  }
   return record
 }
 

@@ -16,6 +16,7 @@ import { support } from './support-store.js'
 import { analytics } from './analytics-store.js'
 import { errors as errorLog } from './error-store.js'
 import { banner } from './banner-store.js'
+import { activity } from './activity-store.js'
 import { checkHealth } from './health.js'
 import { registerBillingRoutes, stripeWebhook, plansByUid } from './billing.js'
 import { tagRedirect, registerPublicConversionRoutes, registerConversionRoutes } from './conversions.js'
@@ -217,6 +218,7 @@ app.post('/api/early-access', limit('early-access', 5, 3600), async (req, res) =
   }
   try {
     const result = await earlyAccess.add(email)
+    activity.add({ type: 'signup', email, detail: result?.status || null })
     await notifyEarlyAccess(email, result)
     res.json(result)
   } catch (err) {
@@ -271,9 +273,12 @@ app.post('/api/track-error', limit('track-error', 120, 60), async (req, res) => 
   try {
     const ua = req.get('user-agent') || ''
     if (/bot|crawl|spider|lighthouse|headless/i.test(ua)) return res.json({ ok: true })
-    const { context, message, email, platform, url } = req.body || {}
+    const { context, message, email, platform, url, severity, device } = req.body || {}
     if (message || context) {
-      const event = await errorLog.add({ context, message, email, platform, url, source: 'client' })
+      const event = await errorLog.add({ context, message, email, platform, url, severity, device, source: 'client' })
+    if (event.severity === 'critical') {
+      activity.add({ type: 'error', email: event.email || null, detail: `${event.context}: ${event.message}`.slice(0, 160) })
+    }
       // Alert the owner by email on a new error type or a spike (best-effort).
       if (emailEnabled) {
         errorLog
@@ -481,6 +486,7 @@ app.post('/api/support', limit('support', 5, 600), async (req, res) => {
   if (!message || !String(message).trim()) return res.status(400).json({ error: 'A message is required' })
   try {
     const ticket = await support.add({ email, subject, message, userId })
+    activity.add({ type: 'support', email: ticket.email || null, uid: userId || null, detail: ticket.subject || null })
     const adminTo = process.env.ADMIN_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER
     if (adminTo) {
       try {
@@ -544,11 +550,27 @@ app.post('/api/feedback', limit('feedback', 12, 600), async (req, res) => {
         console.warn('[feedback] notify failed:', e.message)
       }
     }
+    activity.add({ type: 'feedback', email: ticket.email || null, uid: userId || null, detail: FEEDBACK_LABEL[cat] })
     res.json({ ok: true, id: ticket.id })
   } catch (err) {
     console.error('[feedback] failed:', err.message)
     res.status(500).json({ error: 'Could not send feedback. Please try again.' })
   }
+})
+
+// Client-logged lifecycle events (onboarding complete, first publish, ...).
+app.post('/api/activity', async (req, res) => {
+  const uid = await uidFromReq(req)
+  const { type, detail, email } = req.body || {}
+  const ALLOWED = ['onboarding', 'publish', 'connect', 'link']
+  if (!ALLOWED.includes(type)) return res.status(400).json({ error: 'invalid type' })
+  await activity.add({ type, uid: uid || null, email: email || null, detail: detail ? String(detail) : null })
+  res.json({ ok: true })
+})
+
+app.get('/api/admin/activity', async (req, res) => {
+  if (!(await adminOf(req))) return res.status(401).json({ error: 'unauthorized' })
+  res.json({ events: await activity.all() })
 })
 
 app.get('/api/admin/support', async (req, res) => {
@@ -760,6 +782,7 @@ app.get('/auth/:platform/callback', async (req, res) => {
       // best-effort: connection still succeeds even if the first profile read fails
       console.warn(`[${platform.id}] profile fetch failed:`, e.message)
     }
+    activity.add({ type: 'connect', uid, detail: platform.name })
     finish('connected')
   } catch (err) {
     console.error(`[${platform.id}] callback error:`, err.message)
@@ -1199,6 +1222,7 @@ app.post('/api/links', limit('links', 40, 3600), async (req, res) => {
 
   const slug = crypto.randomBytes(3).toString('hex')
   const link = await links.add({ slug, uid, url: clean, clicks: 0, uniqueVisitors: 0, createdAt: Date.now() })
+  activity.add({ type: 'link', uid, detail: clean.slice(0, 80) })
   res.json(withShort(link))
 })
 

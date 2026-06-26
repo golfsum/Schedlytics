@@ -14,7 +14,29 @@ export function getLastError() {
   return lastError
 }
 
-export function reportError(context: string, detail?: string, platform?: string): void {
+/** Short browser + device string for the admin Errors tab, e.g. "Chrome · Desktop". */
+function deviceInfo(): string {
+  try {
+    const ua = navigator.userAgent
+    let b = 'Browser'
+    if (/Edg\//.test(ua)) b = 'Edge'
+    else if (/OPR\//.test(ua)) b = 'Opera'
+    else if (/Chrome\//.test(ua) && !/Edg|OPR/.test(ua)) b = 'Chrome'
+    else if (/Version\/.*Safari/.test(ua)) b = 'Safari'
+    else if (/Firefox\//.test(ua)) b = 'Firefox'
+    const d = /iPad|Tablet/.test(ua) ? 'Tablet' : /Mobi|iPhone|Android/.test(ua) ? 'Mobile' : 'Desktop'
+    return `${b} · ${d}`
+  } catch {
+    return ''
+  }
+}
+
+export function reportError(
+  context: string,
+  detail?: string,
+  platform?: string,
+  severity?: 'error' | 'critical' | 'warning',
+): void {
   const hasBackend = import.meta.env.PROD || apiBase !== ''
   if (!hasBackend) return
   const message = String(detail || '').trim()
@@ -34,6 +56,8 @@ export function reportError(context: string, detail?: string, platform?: string)
     email,
     platform: platform || null,
     url: typeof location !== 'undefined' ? location.pathname + location.hash : '',
+    severity: severity || 'error',
+    device: deviceInfo(),
   })
 
   try {

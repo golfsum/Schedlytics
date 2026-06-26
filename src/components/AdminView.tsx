@@ -10,6 +10,8 @@ import {
   sendPasswordReset,
   setUserDisabled,
   setUserFounder,
+  fetchActivity,
+  type ActivityEvent,
   fetchAnalytics,
   clearAnalytics,
   fetchErrors,
@@ -34,9 +36,10 @@ import {
 const fmtDate = (ms: number) =>
   ms ? new Date(ms).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''
 
-type Tab = 'overview' | 'traffic' | 'errors' | 'status' | 'early' | 'support' | 'users'
+type Tab = 'overview' | 'activity' | 'traffic' | 'errors' | 'status' | 'early' | 'support' | 'users'
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
+  { id: 'activity', label: 'Activity' },
   { id: 'traffic', label: 'Traffic' },
   { id: 'errors', label: 'Errors' },
   { id: 'status', label: 'Status' },
@@ -70,6 +73,7 @@ export default function AdminView() {
       </div>
 
       {tab === 'overview' && <OverviewPanel onGo={setTab} />}
+      {tab === 'activity' && <ActivityPanel />}
       {tab === 'traffic' && <TrafficPanel />}
       {tab === 'errors' && <ErrorsPanel />}
       {tab === 'status' && <StatusPanel />}
@@ -435,18 +439,85 @@ function ErrorsPanel() {
           <div className="max-h-80 space-y-3 overflow-y-auto">
             {data.recent.map((e) => (
               <div key={e.id} className="border-b border-white/5 pb-2 last:border-0">
-                <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                  {e.severity === 'critical' && (
+                    <span className="rounded bg-rose-400/15 px-1.5 py-0.5 font-bold text-rose-300">critical</span>
+                  )}
                   <span className="rounded bg-white/5 px-1.5 py-0.5 font-semibold text-slate-400">{e.context}</span>
                   {e.platform && <span className="text-cyan-accent">{e.platform}</span>}
                   <span className="ml-auto">{fmtDate(e.at)}</span>
                 </div>
                 <p className="mt-1 text-sm text-slate-200">{e.message || '(no message)'}</p>
-                <p className="text-xs text-slate-500">{e.email || 'signed-out'}{e.url ? ` · ${e.url}` : ''}</p>
+                <p className="text-xs text-slate-500">
+                  {e.email || 'signed-out'}
+                  {e.url ? ` · ${e.url}` : ''}
+                  {e.device ? ` · ${e.device}` : ''}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+const ACTIVITY_META: Record<string, { label: string; Icon: typeof Users; color: string }> = {
+  signup: { label: 'New signup', Icon: Users, color: 'text-cyan-accent' },
+  onboarding: { label: 'Onboarding completed', Icon: Check, color: 'text-emerald-300' },
+  connect: { label: 'Platform connected', Icon: ShieldCheck, color: 'text-emerald-300' },
+  link: { label: 'Tracked link created', Icon: FileText, color: 'text-cyan-accent' },
+  publish: { label: 'Published', Icon: RefreshCw, color: 'text-cyan-accent' },
+  upgrade: { label: 'Paid upgrade', Icon: Crown, color: 'text-amber-300' },
+  support: { label: 'Support ticket', Icon: InboxIcon, color: 'text-violet-300' },
+  feedback: { label: 'Feedback', Icon: Eye, color: 'text-violet-300' },
+  error: { label: 'Critical error', Icon: AlertTriangle, color: 'text-rose-300' },
+}
+
+/** Founder Mode: a live feed of the lifecycle moments that matter. */
+function ActivityPanel() {
+  const [events, setEvents] = useState<ActivityEvent[] | 'loading'>('loading')
+  useEffect(() => {
+    fetchActivity().then(setEvents)
+  }, [])
+
+  if (events === 'loading') return <Loading />
+  if (events.length === 0)
+    return (
+      <div className="card grid place-items-center gap-2 p-12 text-center">
+        <Users className="h-8 w-8 text-slate-500" />
+        <p className="text-sm text-slate-400">No activity yet. Signups, connections, links, publishes, and upgrades show up here.</p>
+      </div>
+    )
+
+  return (
+    <div className="card p-5">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-bold text-white">Activity</h2>
+        <span className="text-xs text-slate-500">{events.length} events</span>
+      </div>
+      <ul className="max-h-[32rem] space-y-3 overflow-y-auto">
+        {events.map((ev) => {
+          const m = ACTIVITY_META[ev.type] || { label: ev.type, Icon: FileText, color: 'text-slate-400' }
+          const { Icon } = m
+          return (
+            <li key={ev.id} className="flex items-start gap-3 border-b border-white/5 pb-3 last:border-0">
+              <span className={`mt-0.5 ${m.color}`}>
+                <Icon className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-white">
+                  <span className="font-semibold">{m.label}</span>
+                  {ev.detail ? <span className="text-slate-400"> · {ev.detail}</span> : ''}
+                </p>
+                <p className="truncate text-xs text-slate-500">
+                  {ev.email || ev.uid || 'unknown'} · {fmtDate(ev.at)}
+                </p>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
     </div>
   )
 }

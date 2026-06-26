@@ -28,6 +28,8 @@ export const errors = {
       email: ev.email ? String(ev.email).slice(0, 160).toLowerCase() : null,
       platform: ev.platform ? String(ev.platform).slice(0, 24) : null,
       url: ev.url ? String(ev.url).slice(0, 200) : null,
+      severity: ev.severity === 'critical' || ev.severity === 'warning' ? ev.severity : 'error',
+      device: ev.device ? String(ev.device).slice(0, 120) : null,
       source: ev.source === 'server' ? 'server' : 'client',
     }
     list.push(event)
