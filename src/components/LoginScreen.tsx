@@ -111,7 +111,7 @@ export default function LoginScreen() {
               ? 'Enter your email and we will send you a password reset link.'
               : mode === 'signin'
                 ? 'Sign in to your Schedlytics dashboard.'
-                : 'Start scheduling smarter in minutes.'}
+                : 'Start tracking what your content is actually worth.'}
           </p>
         </div>
 
@@ -327,9 +327,14 @@ export default function LoginScreen() {
             </button>
 
             {mode === 'register' && (
-              <p className="text-balance text-center text-[11px] leading-relaxed text-slate-500">
-                Early Access pricing is locked in while you stay subscribed.
-              </p>
+              <div className="space-y-1.5">
+                <p className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-300">
+                  <Check className="h-3 w-3 shrink-0 text-emerald-300" /> No credit card required
+                </p>
+                <p className="text-balance text-center text-[11px] leading-relaxed text-slate-500">
+                  Early Access pricing is locked in while you stay subscribed.
+                </p>
+              </div>
             )}
           </form>
 
