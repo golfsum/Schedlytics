@@ -13,6 +13,58 @@ export interface Suggestion {
   trend: number
 }
 
+/** Whether the server has a real (Claude) AI backend configured. */
+export interface AiStatus {
+  enabled: boolean
+  model?: string
+  vision?: boolean
+}
+export async function aiStatus(): Promise<AiStatus> {
+  if (!backendEnabled) return { enabled: false }
+  try {
+    const res = await fetch(`${apiBase}/api/ai/status`)
+    if (!res.ok) return { enabled: false }
+    return (await res.json()) as AiStatus
+  } catch {
+    return { enabled: false }
+  }
+}
+
+/** Vision result: Claude looked at the actual video frames. */
+export interface AiAnalysis {
+  titles: string[]
+  description: string
+  hashtags: string[]
+}
+
+/**
+ * Send sampled video frames to Claude's vision model so the title, description
+ * and hashtags describe THIS video. Returns null when AI is off or it fails, so
+ * the caller falls back to the text-only generator.
+ */
+export async function aiAnalyze(
+  frames: string[],
+  opts: { platform: string; topic?: string },
+): Promise<AiAnalysis | null> {
+  if (!backendEnabled || !frames.length) return null
+  try {
+    const res = await fetch(`${apiBase}/api/ai/analyze`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ frames, platform: opts.platform, topic: opts.topic || '' }),
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as Partial<AiAnalysis>
+    const titles = (data.titles || []).filter(Boolean)
+    const hashtags = (data.hashtags || []).filter(Boolean)
+    if (!titles.length && !data.description && !hashtags.length) return null
+    return { titles, description: data.description || '', hashtags }
+  } catch {
+    return null
+  }
+}
+
 /** Try the Claude-backed endpoint; return null to signal "use the fallback". */
 async function fetchAi(kind: 'title' | 'caption' | 'tags', topic: string): Promise<Suggestion[] | null> {
   if (!backendEnabled) return null

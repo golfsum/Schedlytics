@@ -15,6 +15,10 @@ interface ThumbnailPickerProps {
   videoSrc?: string
   /** Open the Media section's file picker (the single upload entry point). */
   onRequestVideo?: () => void
+  /** The currently selected thumbnail (controlled by the parent). */
+  selected?: string
+  /** Fires with the freshly extracted cover frames (for AI + auto-select). */
+  onFrames?: (frames: string[]) => void
   onSelect: (dataUrl: string) => void
 }
 
@@ -30,10 +34,11 @@ export default function ThumbnailPicker({
   note,
   videoSrc,
   onRequestVideo,
+  selected,
+  onFrames,
   onSelect,
 }: ThumbnailPickerProps) {
   const [frames, setFrames] = useState<string[]>([])
-  const [selected, setSelected] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -65,6 +70,7 @@ export default function ThumbnailPicker({
         out.push(canvas.toDataURL('image/jpeg', 0.82))
       }
       setFrames(out)
+      onFrames?.(out)
     } finally {
       setBusy(false)
     }
@@ -74,7 +80,7 @@ export default function ThumbnailPicker({
   // point of the rework: the user uploads the video once and gets thumbnails.
   useEffect(() => {
     setFrames([])
-    setSelected(null)
+    onFrames?.([])
     if (!videoSrc || !allowFrames) return
     const v = videoRef.current
     if (!v) return
@@ -91,7 +97,6 @@ export default function ThumbnailPicker({
   }, [videoSrc, allowFrames])
 
   const choose = (url: string) => {
-    setSelected(url)
     onSelect(url)
   }
 

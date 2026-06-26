@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Sparkles,
   Wand2,
@@ -35,7 +35,7 @@ import { useConnections } from './Connections'
 import { useCampaigns } from './Campaigns'
 import { usePersistedState } from '../lib/usePersisted'
 import { backendEnabled, publishYouTubeVideo, publishYouTubeFile, publishPost, publishMedia, schedulePost } from '../lib/socialApi'
-import { aiTitles, aiCaptions, aiHashtags, type Suggestion } from '../lib/aiSuggest'
+import { aiTitles, aiCaptions, aiHashtags, aiAnalyze, aiStatus, type Suggestion } from '../lib/aiSuggest'
 import { createShortLink, displayShort, normalizeUrl, type ShortLink } from '../lib/shortLinks'
 import { PLATFORM_LIST, PLATFORMS, isComingSoon } from '../data'
 import TikTokSandboxNotice from './TikTokSandboxNotice'
@@ -181,6 +181,10 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   const [trackedLink, setTrackedLink] = useState<ShortLink | null>(null)
   const [creatingLink, setCreatingLink] = useState(false)
   const [generatingAll, setGeneratingAll] = useState(false)
+  // Cover frames lifted from ThumbnailPicker (used for vision + auto-select).
+  const [frames, setFrames] = useState<string[]>([])
+  // Whether the server has a real Claude AI backend (vs offline samples).
+  const [aiOn, setAiOn] = useState<boolean | null>(null)
   // Persisted weekly upload slot (e.g. "every Friday 8 PM").
   const [recurring, setRecurring] = usePersistedState<RecurringSlot | null>('sl_recurring_slot', null)
 
@@ -192,6 +196,16 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
   const defaultDescription = defaults[platform] || ''
   const setDefaultDescription = (text: string) =>
     setDefaults((d) => ({ ...d, [platform]: text }))
+
+  // Ask the server once whether a real AI backend is configured, so we can show
+  // an honest indicator instead of silently using offline samples.
+  useEffect(() => {
+    let alive = true
+    aiStatus().then((s) => alive && setAiOn(s.enabled))
+    return () => {
+      alive = false
+    }
+  }, [])
 
   const supportsTimestamps = Boolean(TIMESTAMP_PLATFORMS[platform])
   const ytConnected = Boolean(accounts.youtube?.connected)
@@ -209,6 +223,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     setMediaPreview(undefined)
     setMediaMeta({})
     setThumbnail(undefined)
+    setFrames([])
     setVideoUrl('')
     setChapters([{ time: '0:00', label: 'Intro' }])
     setScheduleAt(null)
@@ -223,6 +238,7 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     setMediaPreview(undefined)
     setMediaMeta({})
     setThumbnail(undefined)
+    setFrames([])
   }
   const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -268,10 +284,29 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     }
   }
 
-  /** Fill Title + Description + Hashtags in one click. */
+  /**
+   * Fill Title + Description + Hashtags in one click, and push the publishing
+   * score as high as possible. When we have cover frames, Claude's vision model
+   * analyzes the actual video so the copy is about THIS video, not a template.
+   */
   const generateEverything = async () => {
     setGeneratingAll(true)
     try {
+      // Vision path: analyze the real frames (only when frames + real AI exist).
+      const analysis = frames.length ? await aiAnalyze(frames, { platform, topic: title }) : null
+      if (analysis && (analysis.titles.length || analysis.description || analysis.hashtags.length)) {
+        if (analysis.titles[0]) setTitle(analysis.titles[0])
+        if (analysis.description) setCaption(analysis.description)
+        if (analysis.hashtags.length)
+          setTags((prev) => Array.from(new Set([...prev, ...analysis.hashtags.slice(0, 6)])))
+        setTitleSugs(analysis.titles.map((text, i) => ({ text, trend: Math.max(60, 96 - i * 4) })))
+        setTagSugs(analysis.hashtags.map((text, i) => ({ text, trend: Math.max(60, 94 - i * 3) })))
+        // Auto-pick a cover so the thumbnail box of the score is covered too.
+        if (!thumbnail && frames[0]) setThumbnail(frames[0])
+        addToast('AI analyzed your video and filled everything ✨')
+        return
+      }
+      // Text path: no frames (or AI off) - generate from the topic.
       const [t, c, h] = await Promise.all([aiTitles(title), aiCaptions(title), aiHashtags(title)])
       if (t[0]) setTitle(t[0].text)
       if (c[0]) setCaption(c[0].text)
@@ -279,7 +314,12 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
       setTitleSugs(t)
       setCaptionSugs(c)
       setTagSugs(h)
-      addToast('AI filled your title, description, and hashtags ✨')
+      if (!thumbnail && frames[0]) setThumbnail(frames[0])
+      addToast(
+        frames.length
+          ? 'AI filled your title, description, and hashtags ✨'
+          : 'AI filled your fields. Upload a video so AI can tailor them to it ✨',
+      )
     } finally {
       setGeneratingAll(false)
     }
@@ -572,9 +612,18 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold text-white">Media Studio</h1>
-        <span className="flex items-center gap-1.5 rounded-full border border-cyan-accent/20 bg-cyan-accent/10 px-3 py-1 text-xs font-semibold text-cyan-accent">
-          <Sparkles className="h-3.5 w-3.5" /> AI assisted
-        </span>
+        {aiOn === false ? (
+          <span
+            title="Set ANTHROPIC_API_KEY on the server to enable real AI. Until then, suggestions use offline samples."
+            className="flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-300"
+          >
+            <Sparkles className="h-3.5 w-3.5" /> AI offline (samples)
+          </span>
+        ) : (
+          <span className="flex items-center gap-1.5 rounded-full border border-cyan-accent/20 bg-cyan-accent/10 px-3 py-1 text-xs font-semibold text-cyan-accent">
+            <Sparkles className="h-3.5 w-3.5" /> {aiOn ? 'AI ready' : 'AI assisted'}
+          </span>
+        )}
       </div>
 
       {/* platform selector */}
@@ -753,6 +802,8 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             allowFrames={caps.frame && mediaMode === 'video'}
             note={caps.note}
             videoSrc={hasVideoFile ? mediaPreview : undefined}
+            selected={thumbnail}
+            onFrames={setFrames}
             onRequestVideo={() => {
               setMediaMode('video')
               openFilePicker()
@@ -778,7 +829,13 @@ export default function MediaStudioView({ onSchedule, onScheduled }: MediaStudio
             className="flex items-center justify-center gap-2 rounded-lg border border-cyan-accent/30 bg-cyan-accent/5 py-2.5 text-sm font-bold text-cyan-accent transition-colors hover:bg-cyan-accent/10 disabled:opacity-60"
           >
             {generatingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {generatingAll ? 'Generating…' : 'Generate everything'}
+            {generatingAll
+              ? frames.length
+                ? 'Analyzing your video…'
+                : 'Generating…'
+              : frames.length
+                ? 'Generate everything from video'
+                : 'Generate everything'}
           </button>
 
           {/* Title */}
