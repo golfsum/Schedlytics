@@ -875,13 +875,15 @@ function BestPlatformsCard({ sample }: { sample: boolean }) {
             return (
               <div
                 key={row.platform}
-                className="flex items-center gap-3 rounded-xl border border-white/5 bg-navy-900/50 p-3"
+                className="flex flex-col gap-3 rounded-xl border border-white/5 bg-navy-900/50 p-3 sm:flex-row sm:items-center"
               >
-                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${plat.gradient} text-white`}>
-                  <Icon className="h-4 w-4" />
-                </span>
-                <span className="w-20 shrink-0 truncate text-sm font-semibold text-white">{plat.name}</span>
-                <div className="ml-auto flex items-center gap-4 text-right text-xs">
+                <div className="flex items-center gap-3">
+                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br ${plat.gradient} text-white`}>
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="truncate text-sm font-semibold text-white">{plat.name}</span>
+                </div>
+                <div className="grid grid-cols-4 gap-2 text-xs sm:ml-auto sm:flex sm:items-center sm:gap-4 sm:text-right">
                   <Stat label="Views" value={row.views} />
                   <Stat label="Clicks" value={row.clicks} />
                   <Stat label="CTR" value={row.ctr} />

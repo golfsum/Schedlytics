@@ -128,7 +128,12 @@ export default function Topbar({ onNavigate, onUpgrade, posts, onMenu }: TopbarP
   }
 
   return (
-    <header className="relative z-40 flex h-16 shrink-0 items-center gap-3 border-b border-white/5 bg-navy-900/60 px-4 backdrop-blur-sm sm:px-6">
+    <header
+      className="relative z-40 flex shrink-0 items-center gap-3 border-b border-white/5 bg-navy-900/60 px-4 backdrop-blur-sm sm:px-6"
+      // Sit below the phone status bar / notch when running as an installed PWA
+      // (viewport-fit=cover lets content go edge to edge).
+      style={{ minHeight: 'calc(4rem + env(safe-area-inset-top))', paddingTop: 'env(safe-area-inset-top)' }}
+    >
       <button
         onClick={onMenu}
         aria-label="Open menu"
