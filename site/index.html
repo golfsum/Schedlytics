@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Try the Schedlytics demo for link tracking, campaign attribution, and content analytics. Connected social platform access is not yet publicly available while provider approvals are in progress."
+      content="Try the Schedlytics demo for link tracking, campaign attribution, and content analytics. Sign up for launch access while connected social platform approvals are in progress."
     />
     <link rel="canonical" href="https://www.schedlytics.com/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -35,6 +35,7 @@
           <a href="#pricing">Planned pricing</a>
           <a href="/tools">Tools</a>
           <a href="/guides">Guides</a>
+          <a href="#launch-list">Sign up</a>
         </nav>
         <a class="btn btn-primary" href="/app/?demo=1">Try the demo</a>
       </div>
@@ -53,7 +54,7 @@
               </p>
               <div class="hero-cta">
                 <a class="btn btn-primary btn-lg" href="/app/?demo=1">Open demo, no signup</a>
-                <a class="btn btn-ghost btn-lg" href="#launch-list">Join launch list</a>
+                <a class="btn btn-ghost btn-lg" href="#launch-list">Sign up for launch access</a>
               </div>
               <p class="demo-caption">
                 Schedlytics is not yet open for production account connections. YouTube, Facebook,
@@ -183,13 +184,13 @@
               <h3>Creator</h3>
               <div class="price">$9<span class="per">/month</span></div>
               <ul class="price-features"><li>Unlimited tracked links</li><li>Unlimited campaigns</li><li>QR codes</li><li>Link in bio</li><li>Extended analytics</li></ul>
-              <a class="btn btn-primary" href="#launch-list">Join launch list</a>
+              <a class="btn btn-primary" href="#launch-list">Sign up</a>
             </div>
             <div class="price-card">
               <h3>Business</h3>
               <div class="price">$24<span class="per">/month</span></div>
               <ul class="price-features"><li>Creator features</li><li>Branded domains</li><li>Team collaboration</li><li>Revenue attribution</li><li>Advanced exports</li></ul>
-              <a class="btn btn-ghost" href="#launch-list">Join launch list</a>
+              <a class="btn btn-ghost" href="#launch-list">Sign up</a>
             </div>
           </div>
         </div>
@@ -198,11 +199,11 @@
       <section class="section" id="launch-list">
         <div class="container">
           <div class="cta-band">
-            <h2>Want to know when production access opens?</h2>
-            <p>Join the launch list. For now, the public product remains demo-only.</p>
+            <h2>Sign up for Schedlytics launch access</h2>
+            <p>Enter your email and we will notify you when production access opens. The public product remains demo-only while platform approvals are completed.</p>
             <form id="ea-form" class="ea-form" novalidate>
               <input type="email" id="ea-email" placeholder="you@email.com" autocomplete="email" aria-label="Email address" required />
-              <button class="btn btn-primary btn-lg" type="submit" id="ea-submit">Join launch list</button>
+              <button class="btn btn-primary btn-lg" type="submit" id="ea-submit">Sign up</button>
             </form>
             <div id="ea-result" class="ea-result" role="status"></div>
           </div>
@@ -246,7 +247,7 @@
             return
           }
           btn.disabled = true
-          btn.textContent = 'Submitting...'
+          btn.textContent = 'Signing up...'
           fetch('/api/early-access', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -255,19 +256,19 @@
             .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d } }) })
             .then(function (res) {
               btn.disabled = false
-              btn.textContent = 'Join launch list'
+              btn.textContent = 'Sign up'
               if (!res.ok) {
                 result.className = 'ea-result err'
                 result.textContent = (res.d && res.d.error) || 'Something went wrong. Please try again.'
                 return
               }
               result.className = 'ea-result ok'
-              result.textContent = 'You are on the Schedlytics launch list.'
+              result.textContent = 'Thanks. You are signed up for Schedlytics launch access.'
               form.reset()
             })
             .catch(function () {
               btn.disabled = false
-              btn.textContent = 'Join launch list'
+              btn.textContent = 'Sign up'
               result.className = 'ea-result err'
               result.textContent = 'Network error. Please try again.'
             })
