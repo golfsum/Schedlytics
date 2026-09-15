@@ -5,6 +5,11 @@
  * nodemailer is imported dynamically so a missing dependency never crashes the
  * server, only disables sending.
  */
+
+// Owner-facing notifications default to the public Schedlytics support inbox.
+// An explicit ADMIN_EMAIL environment variable can still override this later.
+if (!process.env.ADMIN_EMAIL) process.env.ADMIN_EMAIL = 'support@schedlytics.com'
+
 const SMTP = {
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT) || 465,
