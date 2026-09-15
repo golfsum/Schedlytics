@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Schedlytics is a content attribution platform. Schedule posts, shorten campaign links, track every click, and see which platforms turn content into traffic and revenue."
+      content="Try the Schedlytics demo for link tracking, campaign attribution, and content analytics. Connected social platform access is not yet publicly available while provider approvals are in progress."
     />
     <link rel="canonical" href="https://www.schedlytics.com/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -16,568 +16,205 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
-    <title>Schedlytics | Social Media Analytics, Campaign Tracking &amp; Content Scheduling</title>
+    <title>Schedlytics Demo | Link Tracking &amp; Content Attribution</title>
   </head>
   <body>
-    <!-- ====================================================== nav ====== -->
     <header class="nav">
       <div class="container nav-inner">
         <a class="brand" href="/">
           <svg viewBox="0 0 64 64" width="34" height="34" aria-hidden="true">
-            <defs>
-              <linearGradient id="slbg" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stop-color="#22324F" /><stop offset="1" stop-color="#15233A" />
-              </linearGradient>
-              <linearGradient id="slcal" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stop-color="#CCDDF4" /><stop offset="1" stop-color="#9CBDE7" />
-              </linearGradient>
-              <linearGradient id="slar" x1="0" y1="1" x2="1" y2="0">
-                <stop offset="0" stop-color="#D6A73A" /><stop offset="1" stop-color="#F1CF7B" />
-              </linearGradient>
-            </defs>
-            <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#slbg)" />
-            <rect x="22" y="13" width="4" height="9" rx="2" fill="#AFCBEC" />
-            <rect x="38" y="13" width="4" height="9" rx="2" fill="#AFCBEC" />
-            <rect x="15" y="18" width="34" height="31" rx="4" fill="url(#slcal)" />
-            <g stroke="#6E95CB" stroke-linecap="round">
-              <line x1="15.5" y1="27" x2="48.5" y2="27" stroke-width="1.6" />
-              <line x1="26" y1="27" x2="26" y2="49" stroke-width="1.3" />
-              <line x1="37" y1="27" x2="37" y2="49" stroke-width="1.3" />
-              <line x1="15.5" y1="36" x2="48.5" y2="36" stroke-width="1.3" />
-              <line x1="15.5" y1="43" x2="48.5" y2="43" stroke-width="1.3" />
-            </g>
-            <path
-              d="M13 48 L25 40 L32 44 L50 22 M50 22 L42 23 M50 22 L49 31"
-              fill="none"
-              stroke="url(#slar)"
-              stroke-width="4.2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-          <span>Sched<span class="accent">lytics</span></span>
-        </a>
-        <nav class="nav-links">
-          <a href="#features">Features</a>
-          <a href="#pricing">Pricing</a>
-          <a href="#platforms">Platforms</a>
-          <a href="/tools">Tools</a>
-          <a href="/guides">Guides</a>
-          <a href="/app/?demo=1">Try demo</a>
-        </nav>
-        <!-- Early-access mode: link to the sign-up form. The inline script at the
-             bottom restores the app link when EARLY_ACCESS is off (production). -->
-        <a class="btn btn-primary" href="#early-access" data-app-href="/app/" data-app-text="Start tracking free">Get early access</a>
-      </div>
-    </header>
-
-    <!-- ===================================================== hero ====== -->
-    <main>
-      <section class="hero">
-        <div class="container">
-          <div class="hero-grid">
-            <div class="hero-copy">
-              <span class="eyebrow">Content attribution for creators and marketers</span>
-              <h1>Know Exactly <span class="grad">What Your Content Is Worth</span></h1>
-              <p class="lead">
-                Schedule content, track every click, and discover which posts drive traffic,
-                leads, and growth.
-              </p>
-              <div class="hero-cta">
-                <a class="btn btn-primary btn-lg" href="#early-access" data-app-href="/app/" data-app-text="Start tracking free">Get early access</a>
-                <a class="btn btn-ghost btn-lg" href="/app/?demo=1">Try demo, no signup</a>
-              </div>
-            </div>
-
-            <!-- analytics dashboard preview (not the calendar) -->
-            <div class="preview preview-hero">
-              <div class="preview-bar">
-                <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
-              </div>
-              <img
-                class="preview-img"
-                src="/site-media/dashboard.png"
-                alt="Schedlytics growth dashboard showing total clicks, unique visitors, revenue, top posts, and best platforms"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================================================ built for ==== -->
-      <section class="section">
-        <div class="container">
-          <div class="section-head">
-            <h2>Built for creators, agencies, and businesses</h2>
-            <p>Whatever you publish, Schedlytics shows you what is actually driving results.</p>
-          </div>
-          <div class="features">
-            <div class="feature">
-              <h3>Creators</h3>
-              <p>Grow your audience by doubling down on the content and platforms that drive real traffic.</p>
-            </div>
-            <div class="feature">
-              <h3>Agencies</h3>
-              <p>Track campaigns and links across multiple clients, and show the results that matter.</p>
-            </div>
-            <div class="feature">
-              <h3>Small businesses</h3>
-              <p>See which posts and channels actually send customers to your site or store.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- =============================================== early access === -->
-      <section class="section" id="early-access">
-        <div class="container">
-          <div class="cta-band">
-            <h2>Join Early Access</h2>
-            <p>Become one of the first creators helping shape Schedlytics.</p>
-            <ul class="ea-perks">
-              <li>Lifetime early adopter pricing</li>
-              <li>Direct access to new features</li>
-              <li>Influence the roadmap</li>
-              <li>Priority support</li>
-            </ul>
-            <div class="ea-rollout">
-              <div class="ea-rollout-groups">
-                <div>
-                  <span class="ea-rollout-label available">Available now</span>
-                  <span class="ea-rollout-items">YouTube, Pinterest, Twitch, Patreon</span>
-                </div>
-                <div>
-                  <span class="ea-rollout-label soon">Coming soon</span>
-                  <span class="ea-rollout-items">Instagram, Facebook, TikTok</span>
-                </div>
-              </div>
-              <p class="ea-rollout-note">As approvals are completed, these integrations automatically become available to all Early Access members at no additional cost.</p>
-            </div>
-            <form id="ea-form" class="ea-form" novalidate>
-              <input type="email" id="ea-email" placeholder="you@email.com" autocomplete="email" aria-label="Email address" required />
-              <button class="btn btn-primary btn-lg" type="submit" id="ea-submit">Request access</button>
-            </form>
-            <div id="ea-result" class="ea-result" role="status"></div>
-            <p class="ea-spots-line"><span id="ea-spots">Only 25 spots available.</span></p>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================================================= problem ===== -->
-      <section class="section">
-        <div class="container">
-          <div class="section-head">
-            <h2>Views do not tell the whole story</h2>
-            <p>Reach and likes are only part of the picture. Schedlytics helps you understand what actually moved people to click, visit, and buy.</p>
-          </div>
-          <div class="features">
-            <div class="feature">
-              <h3>Reach is not enough</h3>
-              <p>Views and likes look good, but they do not show whether your content drove traffic, leads, or sales.</p>
-            </div>
-            <div class="feature">
-              <h3>Attribution is missing</h3>
-              <p>When your posts are spread across multiple platforms, it is hard to know which one actually sent people to your site.</p>
-            </div>
-            <div class="feature">
-              <h3>Most reports stop too early</h3>
-              <p>Charts tell you what happened. Schedlytics helps you understand what to do next.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================================================ insights ===== -->
-      <section class="section">
-        <div class="container">
-          <div class="section-head">
-            <h2>Insights that tell you what to do next</h2>
-            <p>Schedlytics does more than show charts. It turns your content, links, and campaign data into clear recommendations.</p>
-          </div>
-          <div class="preview">
-            <div class="preview-bar">
-              <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
-            </div>
-            <img
-              class="preview-img"
-              src="/site-media/analytics.png"
-              alt="Schedlytics Insights with Growth Coach, best platform, best content type, best posting time, recommended next actions, and a needs-attention card"
-            />
-          </div>
-          <p class="demo-caption">Your weekly growth brief shows what worked, what missed, and what to post next.</p>
-          <p class="analyzes-lead">Every recommendation is built from your own data, not generic AI advice. Growth Coach analyzes:</p>
-          <ul class="analyzes">
-            <li>Post performance</li>
-            <li>Click-through rates</li>
-            <li>Posting times</li>
-            <li>Platform trends</li>
-            <li>Campaign history</li>
-          </ul>
-        </div>
-      </section>
-
-      <!-- ============================================== how it works === -->
-      <section class="section" id="how">
-        <div class="container">
-          <div class="section-head">
-            <h2>How Schedlytics connects the dots</h2>
-            <p>Every campaign link connects your content to real traffic and measurable outcomes.</p>
-          </div>
-          <div class="flow">
-            <span class="flow-node">Post</span>
-            <span class="flow-arrow">&rarr;</span>
-            <span class="flow-node">Short Link</span>
-            <span class="flow-arrow">&rarr;</span>
-            <span class="flow-node">Clicks</span>
-            <span class="flow-arrow">&rarr;</span>
-            <span class="flow-node">Revenue</span>
-            <span class="flow-arrow">&rarr;</span>
-            <span class="flow-node accent-node">Insight</span>
-          </div>
-          <div class="flow-steps">
-            <div><h4>Post</h4><p>Plan and publish content across your channels.</p></div>
-            <div><h4>Short Link</h4><p>Create a trackable link with UTM data automatically.</p></div>
-            <div><h4>Clicks</h4><p>Measure visits, referrers, devices, and platforms.</p></div>
-            <div><h4>Revenue Attribution <em class="soon">coming soon</em></h4><p>Connect Schedlytics to your website, store, or CRM to measure conversions, sales, and campaign performance from every tracked link.</p></div>
-            <div><h4>Insight</h4><p>See what worked and what to do next.</p></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ============================================ why different ==== -->
-      <section class="section">
-        <div class="container">
-          <div class="section-head">
-            <h2>Stop guessing. Start knowing.</h2>
-            <p>Traditional scheduling tools help you publish. Schedlytics helps you understand what actually grows your business.</p>
-          </div>
-          <div class="compare">
-            <div class="compare-col">
-              <h3>Traditional scheduler</h3>
-              <ul class="compare-list">
-                <li>Schedule posts</li>
-                <li>Track views and likes</li>
-                <li>Platform-by-platform reporting</li>
-                <li>Generic analytics dashboards</li>
-                <li>Manual link tracking</li>
-                <li>Reports that show what happened</li>
-              </ul>
-            </div>
-            <div class="compare-col featured">
-              <h3>Schedlytics</h3>
-              <ul class="compare-list check">
-                <li>Schedule and track content</li>
-                <li>Measure clicks, campaigns, and traffic</li>
-                <li>Unified cross-platform attribution</li>
-                <li>Growth Coach recommendations</li>
-                <li>Automatic short links and UTM tracking</li>
-                <li>Insights that suggest what to do next</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================================================ features ===== -->
-      <section class="section" id="features">
-        <div class="container">
-          <div class="section-head">
-            <h2>Everything you need to grow with data</h2>
-            <p>Plan, publish, track, and improve from one dashboard.</p>
-          </div>
-          <div class="features">
-            <div class="feature">
-              <div class="ico">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h18M5 7l2-3h10l2 3M4 11v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8"/></svg>
-              </div>
-              <h3>Campaign Tracking</h3>
-              <p class="feat-highlight">See which launch drove the most clicks</p>
-              <p>Group posts, links, and results into one campaign so you can see what each launch actually produced.</p>
-            </div>
-            <div class="feature">
-              <div class="ico">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
-              </div>
-              <h3>Smart Short Links</h3>
-              <p class="feat-highlight">Auto UTM tags on every link</p>
-              <p>Automatically generate trackable short links with UTM data for posts, campaigns, and link-in-bio pages.</p>
-            </div>
-            <div class="feature">
-              <div class="ico">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
-              </div>
-              <h3>Growth Insights</h3>
-              <p class="feat-highlight">Find your best platform and time</p>
-              <p>Find your best platform, content type, posting time, and next action without digging through reports.</p>
-            </div>
-            <div class="feature">
-              <div class="ico">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
-              </div>
-              <h3>Content Calendar</h3>
-              <p class="feat-highlight">Drag and drop scheduling</p>
-              <p>Plan posts visually, reschedule with drag and drop, and keep your publishing consistent.</p>
-            </div>
-            <div class="feature">
-              <div class="ico">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3l2.2 5.8L21 11l-5.8 2.2L13 19l-2.2-5.8L5 11l5.8-2.2z"/><path d="M5 3v3M3.5 4.5h3M18 16v3M16.5 17.5h3"/></svg>
-              </div>
-              <h3>AI Media Studio</h3>
-              <p class="feat-highlight">Titles, captions, hashtags, and CTAs</p>
-              <p>Generate titles, captions, hashtags, and calls to action built around your campaign goal.</p>
-            </div>
-            <div class="feature">
-              <div class="ico">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1"/></svg>
-              </div>
-              <h3>Link in Bio</h3>
-              <p class="feat-highlight">See which links get clicked</p>
-              <p>Build a branded profile page and see which links your audience actually clicks.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ====================================== media + calendar ====== -->
-      <section class="section">
-        <div class="container">
-          <div class="section-head">
-            <h2>Plan and publish when you are ready</h2>
-            <p>Use the calendar and Media Studio to create content, then let Schedlytics track what happens after it goes live.</p>
-          </div>
-          <div class="gallery gallery-2">
-            <figure>
-              <img src="/site-media/mediastudio.png" alt="Schedlytics AI Media Studio" />
-              <figcaption>Write, upload, and prepare posts with AI-assisted titles, hashtags, and calls to action.</figcaption>
-            </figure>
-            <figure>
-              <img src="/site-media/calendar.png" alt="Schedlytics content calendar" />
-              <figcaption>Plan your week visually and reschedule posts with drag and drop.</figcaption>
-            </figure>
-          </div>
-        </div>
-      </section>
-
-      <!-- ============================================== platforms ===== -->
-      <section class="section" id="platforms">
-        <div class="container">
-          <div class="section-head">
-            <span class="eyebrow">Growing platform support</span>
-            <h2>
-              Growing Platform Support
-              <span class="plat-info" tabindex="0" role="button" aria-label="About platform availability">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 16v-4" />
-                  <path d="M12 8h.01" />
-                </svg>
-                <span class="plat-tip">Some social platforms require developer approval before public access is granted. New integrations are enabled for all users immediately after approval.</span>
-              </span>
-            </h2>
-            <p>Schedlytics is expanding platform support as integrations complete each platform's approval process.</p>
-          </div>
-
-          <h3 class="plat-group-label">Available now</h3>
-          <div class="plat-grid">
-            <div class="plat-card">
-              <div class="plat-card-head">
-                <span class="plat-icon">
-                  <svg viewBox="0 0 24 24" fill="#FF0000" role="img" aria-label="YouTube">
-                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                  </svg>
-                </span>
-                <span class="plat-name">YouTube</span>
-                <span class="plat-status available">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
-                  Available
-                </span>
-              </div>
-              <p class="plat-desc">Publish content, track performance, and analyze campaign traffic.</p>
-            </div>
-
-            <div class="plat-card">
-              <div class="plat-card-head">
-                <span class="plat-icon">
-                  <svg viewBox="0 0 24 24" fill="#E60023" role="img" aria-label="Pinterest">
-                    <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.39 18.592.026 12.015.026L12.017 0z" />
-                  </svg>
-                </span>
-                <span class="plat-name">Pinterest</span>
-                <span class="plat-status available">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
-                  Available
-                </span>
-              </div>
-              <p class="plat-desc">Schedule pins, measure clicks, and monitor campaign performance.</p>
-            </div>
-
-            <div class="plat-card">
-              <div class="plat-card-head">
-                <span class="plat-icon">
-                  <svg viewBox="0 0 24 24" fill="#9146FF" role="img" aria-label="Twitch">
-                    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z" />
-                  </svg>
-                </span>
-                <span class="plat-name">Twitch</span>
-                <span class="plat-status available">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
-                  Available
-                </span>
-              </div>
-              <p class="plat-desc">Track streams, announcements, and audience growth.</p>
-            </div>
-
-            <div class="plat-card">
-              <div class="plat-card-head">
-                <span class="plat-icon">
-                  <svg viewBox="0 0 24 24" fill="#FF424D" role="img" aria-label="Patreon">
-                    <path d="M0 .48h4.22v23.04H0zm15.385 0c-4.764 0-8.641 3.88-8.641 8.65 0 4.755 3.877 8.623 8.641 8.623 4.75 0 8.615-3.868 8.615-8.623C24 4.36 20.136.48 15.385.48z" />
-                  </svg>
-                </span>
-                <span class="plat-name">Patreon</span>
-                <span class="plat-status available">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
-                  Available
-                </span>
-              </div>
-              <p class="plat-desc">Measure campaigns and monitor creator engagement.</p>
-            </div>
-          </div>
-
-          <h3 class="plat-group-label">Coming soon</h3>
-          <div class="plat-grid">
-            <div class="plat-card soon">
-              <div class="plat-card-head">
-                <span class="plat-icon">
-                  <svg viewBox="0 0 24 24" role="img" aria-label="Instagram">
-                    <defs>
-                      <linearGradient id="ig-grad" x1="0" y1="1" x2="1" y2="0">
-                        <stop offset="0" stop-color="#FEDA77" />
-                        <stop offset="0.45" stop-color="#DD2A7B" />
-                        <stop offset="1" stop-color="#515BD4" />
-                      </linearGradient>
-                    </defs>
-                    <path fill="url(#ig-grad)" d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z" />
-                  </svg>
-                </span>
-                <span class="plat-name">Instagram</span>
-                <span class="plat-badge">Approval in progress</span>
-              </div>
-              <p class="plat-desc">Meta platform approval in progress.</p>
-            </div>
-
-            <div class="plat-card soon">
-              <div class="plat-card-head">
-                <span class="plat-icon">
-                  <svg viewBox="0 0 24 24" fill="#1877F2" role="img" aria-label="Facebook">
-                    <path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z" />
-                  </svg>
-                </span>
-                <span class="plat-name">Facebook</span>
-                <span class="plat-badge">Approval in progress</span>
-              </div>
-              <p class="plat-desc">Meta platform approval in progress.</p>
-            </div>
-
-            <div class="plat-card soon">
-              <div class="plat-card-head">
-                <span class="plat-icon">
-                  <svg viewBox="0 0 24 24" fill="#FFFFFF" role="img" aria-label="TikTok">
-                    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
-                  </svg>
-                </span>
-                <span class="plat-name">TikTok</span>
-                <span class="plat-badge">Awaiting platform approval</span>
-              </div>
-              <p class="plat-desc">Platform approval is currently in progress. TikTok will be enabled automatically for all users once approved.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================================================= pricing ===== -->
-      <section class="section" id="pricing">
-        <div class="container">
-          <div class="section-head">
-            <span class="eyebrow">Early adopter pricing</span>
-            <h2>Lock in founder pricing before launch</h2>
-            <p>Schedlytics is opening to a limited number of creators and businesses before public launch. Claim your early adopter rate now and keep it for as long as your subscription stays active. Prices go up as we ship new features.</p>
-          </div>
-
-          <div class="pricing">
-            <div class="price-card">
-              <h3>Free</h3>
-              <div class="price">$0<span class="per">/month</span></div>
-              <ul class="price-features">
-                <li>25 tracked links</li>
-                <li>1 campaign</li>
-                <li>Basic calendar</li>
-                <li>7 day analytics history</li>
-              </ul>
-              <a class="btn btn-ghost" href="#early-access" data-app-href="/app/" data-app-text="Start free">Get early access</a>
-            </div>
-            <div class="price-card featured">
-              <span class="price-tag">⭐ Most creators choose this plan</span>
-              <h3>Creator</h3>
-              <p class="price-was">Regular $15/month</p>
-              <div class="price">$9<span class="per">/month</span></div>
-              <p class="price-note">Locked in while your subscription stays active</p>
-              <ul class="price-features">
-                <li>Unlimited tracked links</li>
-                <li>Unlimited campaigns</li>
-                <li>QR codes</li>
-                <li>Link in bio</li>
-                <li>90 day analytics</li>
-              </ul>
-              <p class="perfect-for"><span>Perfect for</span> Solo creators, streamers, YouTubers, and Etsy sellers</p>
-              <a class="btn btn-primary" href="#early-access" data-app-href="/app/" data-app-text="Start tracking">Get early access</a>
-            </div>
-            <div class="price-card">
-              <h3>Business</h3>
-              <p class="price-was">Regular $39/month</p>
-              <div class="price">$24<span class="per">/month</span></div>
-              <p class="price-note">Locked in while your subscription stays active</p>
-              <p class="plan-lead">Everything in Creator, plus:</p>
-              <ul class="price-features">
-                <li>Custom branded domains</li>
-                <li>Team collaboration</li>
-                <li>Revenue attribution <em class="soon">coming soon</em></li>
-                <li>White-label reports</li>
-                <li>Advanced CSV exports</li>
-              </ul>
-              <p class="perfect-for"><span>Perfect for</span> Agencies, marketing teams, ecommerce brands, and multi-location businesses</p>
-              <a class="btn btn-ghost" href="#early-access" data-app-href="/app/" data-app-text="Choose Business">Get early access</a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================================================ cta band ===== -->
-      <section class="section">
-        <div class="container">
-          <div class="cta-band">
-            <h2>Ready to stop guessing?</h2>
-            <p>Discover which content actually grows your business.</p>
-            <a class="btn btn-primary btn-lg" href="#early-access" data-app-href="/app/" data-app-text="Start tracking free">Get early access</a>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <!-- ==================================================== footer ===== -->
-    <footer class="footer">
-      <div class="container footer-inner">
-        <a class="brand" href="/" style="font-size:17px">
-          <svg viewBox="0 0 64 64" width="28" height="28" aria-hidden="true">
             <rect x="2" y="2" width="60" height="60" rx="14" fill="#1b2a44" />
             <rect x="15" y="18" width="34" height="31" rx="4" fill="#b6cdec" />
             <path d="M13 48 L25 40 L32 44 L50 22 M50 22 L42 23 M50 22 L49 31" fill="none" stroke="#e2b94d" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
           <span>Sched<span class="accent">lytics</span></span>
         </a>
+        <nav class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#platforms">Platforms</a>
+          <a href="#pricing">Planned pricing</a>
+          <a href="/tools">Tools</a>
+          <a href="/guides">Guides</a>
+        </nav>
+        <a class="btn btn-primary" href="/app/?demo=1">Try the demo</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container">
+          <div class="hero-grid">
+            <div class="hero-copy">
+              <span class="eyebrow">Demo available now · Connected platforms pending approval</span>
+              <h1>See What Your <span class="grad">Content Actually Drives</span></h1>
+              <p class="lead">
+                Explore Schedlytics in demo mode today. Preview tracked links, campaign attribution,
+                content analytics, scheduling workflows, and growth insights without connecting a social account.
+              </p>
+              <div class="hero-cta">
+                <a class="btn btn-primary btn-lg" href="/app/?demo=1">Open demo, no signup</a>
+                <a class="btn btn-ghost btn-lg" href="#launch-list">Join launch list</a>
+              </div>
+              <p class="demo-caption">
+                Schedlytics is not yet open for production account connections. YouTube, Facebook,
+                Instagram, and other provider integrations will only be enabled after required approvals and launch checks are complete.
+              </p>
+            </div>
+            <div class="preview preview-hero">
+              <div class="preview-bar"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+              <img class="preview-img" src="/site-media/dashboard.png" alt="Schedlytics demo analytics dashboard showing tracked clicks, visitors, campaigns, and content performance" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="features">
+        <div class="container">
+          <div class="section-head">
+            <span class="eyebrow">What you can preview today</span>
+            <h2>Attribution first, platform connections second</h2>
+            <p>The demo shows the core Schedlytics workflow without implying that public social account access is already live.</p>
+          </div>
+          <div class="features">
+            <div class="feature">
+              <h3>Tracked Links</h3>
+              <p class="feat-highlight">Know which link earned the click</p>
+              <p>Create and organize trackable links, campaign tags, UTMs, and QR codes.</p>
+            </div>
+            <div class="feature">
+              <h3>Campaign Attribution</h3>
+              <p class="feat-highlight">See which campaign sends traffic</p>
+              <p>Group links and content into campaigns and compare clicks, visitors, and sources.</p>
+            </div>
+            <div class="feature">
+              <h3>Content Analytics</h3>
+              <p class="feat-highlight">Compare posts and channels</p>
+              <p>Preview dashboards for traffic, content performance, platform trends, and growth insights.</p>
+            </div>
+            <div class="feature">
+              <h3>Content Calendar</h3>
+              <p class="feat-highlight">Preview the planning workflow</p>
+              <p>Plan and organize content in the demo. Direct publishing is not publicly enabled yet.</p>
+            </div>
+            <div class="feature">
+              <h3>Growth Coach</h3>
+              <p class="feat-highlight">Turn reporting into next actions</p>
+              <p>See how Schedlytics turns campaign and content data into practical recommendations.</p>
+            </div>
+            <div class="feature">
+              <h3>AI Media Studio</h3>
+              <p class="feat-highlight">Prepare content before publishing</p>
+              <p>Preview assisted titles, descriptions, hashtags, CTAs, and media planning tools.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="section-head">
+            <h2>How the finished product connects the dots</h2>
+            <p>Schedlytics is designed around measurable outcomes instead of vanity metrics.</p>
+          </div>
+          <div class="flow">
+            <span class="flow-node">Content</span>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="flow-node">Tracked Link</span>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="flow-node">Clicks</span>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="flow-node">Conversion</span>
+            <span class="flow-arrow">&rarr;</span>
+            <span class="flow-node accent-node">Insight</span>
+          </div>
+          <div class="flow-steps">
+            <div><h4>Content</h4><p>Plan the post, video, pin, campaign, or promotion.</p></div>
+            <div><h4>Tracked Link</h4><p>Give each content item a measurable destination.</p></div>
+            <div><h4>Clicks</h4><p>Measure visits, referrers, devices, and campaign sources.</p></div>
+            <div><h4>Conversions</h4><p>Attribute signups or revenue as conversion support rolls out.</p></div>
+            <div><h4>Insight</h4><p>Use the results to decide what content to make next.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="platforms">
+        <div class="container">
+          <div class="section-head">
+            <span class="eyebrow">Platform connection status</span>
+            <h2>Connected accounts are not public yet</h2>
+            <p>Provider approvals and production verification are still required before Schedlytics can offer public social account connections.</p>
+          </div>
+          <div class="features">
+            <div class="feature">
+              <h3>YouTube</h3>
+              <p class="feat-highlight">Approval / verification required</p>
+              <p>The demo can show the intended YouTube workflow, but public account connection and publishing remain gated until Google/YouTube approval is complete.</p>
+            </div>
+            <div class="feature">
+              <h3>Facebook + Instagram</h3>
+              <p class="feat-highlight">Meta App Review required</p>
+              <p>Public Meta account access will open only after the required permissions receive production approval.</p>
+            </div>
+            <div class="feature">
+              <h3>Other platforms</h3>
+              <p class="feat-highlight">Roll out after provider approval</p>
+              <p>Pinterest, Twitch, Patreon, TikTok, and other integrations will be labeled live only when they are actually available to public users.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="pricing">
+        <div class="container">
+          <div class="section-head">
+            <span class="eyebrow">Planned launch pricing</span>
+            <h2>Pricing is preview-only while Schedlytics is in demo mode</h2>
+            <p>No paid production access is being advertised as live yet. These tiers show the intended product packaging and can change before launch.</p>
+          </div>
+          <div class="pricing">
+            <div class="price-card">
+              <h3>Free</h3>
+              <div class="price">$0<span class="per">/month</span></div>
+              <ul class="price-features"><li>Tracked links</li><li>Basic campaigns</li><li>Basic analytics</li><li>Demo access now</li></ul>
+              <a class="btn btn-ghost" href="/app/?demo=1">Try demo</a>
+            </div>
+            <div class="price-card featured">
+              <span class="price-tag">Planned</span>
+              <h3>Creator</h3>
+              <div class="price">$9<span class="per">/month</span></div>
+              <ul class="price-features"><li>Unlimited tracked links</li><li>Unlimited campaigns</li><li>QR codes</li><li>Link in bio</li><li>Extended analytics</li></ul>
+              <a class="btn btn-primary" href="#launch-list">Join launch list</a>
+            </div>
+            <div class="price-card">
+              <h3>Business</h3>
+              <div class="price">$24<span class="per">/month</span></div>
+              <ul class="price-features"><li>Creator features</li><li>Branded domains</li><li>Team collaboration</li><li>Revenue attribution</li><li>Advanced exports</li></ul>
+              <a class="btn btn-ghost" href="#launch-list">Join launch list</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="launch-list">
+        <div class="container">
+          <div class="cta-band">
+            <h2>Want to know when production access opens?</h2>
+            <p>Join the launch list. For now, the public product remains demo-only.</p>
+            <form id="ea-form" class="ea-form" novalidate>
+              <input type="email" id="ea-email" placeholder="you@email.com" autocomplete="email" aria-label="Email address" required />
+              <button class="btn btn-primary btn-lg" type="submit" id="ea-submit">Join launch list</button>
+            </form>
+            <div id="ea-result" class="ea-result" role="status"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer-inner">
+        <a class="brand" href="/" style="font-size:17px"><span>Sched<span class="accent">lytics</span></span></a>
         <nav class="footer-links">
           <a href="/social-media-analytics">Social Media Analytics</a>
-          <a href="/youtube-analytics">YouTube Analytics</a>
           <a href="/campaign-tracking">Campaign Tracking</a>
           <a href="/link-tracking">Link Tracking</a>
           <a href="/utm-builder">UTM Builder</a>
@@ -594,85 +231,49 @@
       </div>
     </footer>
 
-    <!-- Early-access toggle + sign-up. EARLY_ACCESS is read from /api/config.
-         When off, app links are restored and the sign-up section is hidden. -->
     <script>
       (function () {
-        function applyProduction() {
-          var els = document.querySelectorAll('[data-app-href]')
-          for (var i = 0; i < els.length; i++) {
-            var a = els[i]
-            a.setAttribute('href', a.getAttribute('data-app-href'))
-            if (a.getAttribute('data-app-text')) a.textContent = a.getAttribute('data-app-text')
-          }
-          var sec = document.getElementById('early-access')
-          if (sec) sec.style.display = 'none'
-        }
-        fetch('/api/config')
-          .then(function (r) { return r.json() })
-          .then(function (c) {
-            if (c.earlyAccess === false) { applyProduction(); return }
-            var spots = document.getElementById('ea-spots')
-            if (spots && typeof c.eaSpotsLeft === 'number') {
-              spots.textContent = c.eaSpotsLeft > 0
-                ? ' Only ' + c.eaSpotsLeft + ' spots left.'
-                : ' The first round is full, so new sign-ups join the waitlist.'
-            }
-          })
-          .catch(function () { /* keep early-access default */ })
-
         var form = document.getElementById('ea-form')
-        if (form) {
-          form.addEventListener('submit', function (e) {
-            e.preventDefault()
-            var email = (document.getElementById('ea-email').value || '').trim()
-            var result = document.getElementById('ea-result')
-            var btn = document.getElementById('ea-submit')
-            if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-              result.className = 'ea-result err'
-              result.textContent = 'Please enter a valid email address.'
-              return
-            }
-            btn.disabled = true
-            btn.textContent = 'Submitting...'
-            fetch('/api/early-access', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: email }),
-            })
-              .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d } }) })
-              .then(function (res) {
-                btn.disabled = false
-                btn.textContent = 'Request access'
-                if (!res.ok) {
-                  result.className = 'ea-result err'
-                  result.textContent = (res.d && res.d.error) || 'Something went wrong. Please try again.'
-                  return
-                }
-                result.className = 'ea-result ok'
-                if (res.d.already) {
-                  result.textContent = res.d.status === 'accepted'
-                    ? 'You are already on the early-access list.'
-                    : 'You are already on the waitlist.'
-                } else if (res.d.status === 'accepted') {
-                  result.textContent = "You are in. We will email your invite soon."
-                } else {
-                  result.textContent = "The first round is full, but you are on the waitlist. We will be in touch."
-                }
-                form.reset()
-              })
-              .catch(function () {
-                btn.disabled = false
-                btn.textContent = 'Request access'
-                result.className = 'ea-result err'
-                result.textContent = 'Network error. Please try again.'
-              })
+        if (!form) return
+        form.addEventListener('submit', function (e) {
+          e.preventDefault()
+          var email = (document.getElementById('ea-email').value || '').trim()
+          var result = document.getElementById('ea-result')
+          var btn = document.getElementById('ea-submit')
+          if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+            result.className = 'ea-result err'
+            result.textContent = 'Please enter a valid email address.'
+            return
+          }
+          btn.disabled = true
+          btn.textContent = 'Submitting...'
+          fetch('/api/early-access', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email }),
           })
-        }
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d } }) })
+            .then(function (res) {
+              btn.disabled = false
+              btn.textContent = 'Join launch list'
+              if (!res.ok) {
+                result.className = 'ea-result err'
+                result.textContent = (res.d && res.d.error) || 'Something went wrong. Please try again.'
+                return
+              }
+              result.className = 'ea-result ok'
+              result.textContent = 'You are on the Schedlytics launch list.'
+              form.reset()
+            })
+            .catch(function () {
+              btn.disabled = false
+              btn.textContent = 'Join launch list'
+              result.className = 'ea-result err'
+              result.textContent = 'Network error. Please try again.'
+            })
+        })
       })()
     </script>
-
-    <!-- First-party visit beacon (powers the admin Traffic tab) -->
     <script>
       (function () {
         try {
@@ -681,11 +282,7 @@
         } catch (e) {}
       })()
     </script>
-
-    <!-- Vercel Web Analytics (page views for the marketing site) -->
-    <script>
-      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments) }
-    </script>
+    <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments) }</script>
     <script defer src="/_vercel/insights/script.js"></script>
   </body>
 </html>
